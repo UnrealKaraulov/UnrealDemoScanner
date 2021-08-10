@@ -1,0 +1,318 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{D594A1D6-30A7-48EC-9298-37BC21142F1D}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>VolvoWrench</RootNamespace>
+    <AssemblyName>UnrealDemoScanner2</AssemblyName>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <IsWebBootstrapper>false</IsWebBootstrapper>
+    <TargetFrameworkProfile />
+    <PublishUrl>D:/volvowrench/</PublishUrl>
+    <Install>true</Install>
+    <InstallFrom>Disk</InstallFrom>
+    <UpdateEnabled>true</UpdateEnabled>
+    <UpdateMode>Background</UpdateMode>
+    <UpdateInterval>7</UpdateInterval>
+    <UpdateIntervalUnits>Days</UpdateIntervalUnits>
+    <UpdatePeriodically>false</UpdatePeriodically>
+    <UpdateRequired>false</UpdateRequired>
+    <MapFileExtensions>true</MapFileExtensions>
+    <UpdateUrl>https://traderain.hu/vw/</UpdateUrl>
+    <SupportUrl>https://traderain.hu/vwhelp</SupportUrl>
+    <ErrorReportUrl>https://traderain.hu/vwerror</ErrorReportUrl>
+    <ProductName>VolvoWrench</ProductName>
+    <PublisherName>Traderain</PublisherName>
+    <SuiteName>Sourceruns</SuiteName>
+    <AutorunEnabled>true</AutorunEnabled>
+    <ApplicationRevision>17</ApplicationRevision>
+    <ApplicationVersion>0.9.5.%2a</ApplicationVersion>
+    <UseApplicationTrust>false</UseApplicationTrust>
+    <CreateDesktopShortcut>true</CreateDesktopShortcut>
+    <PublishWizardCompleted>true</PublishWizardCompleted>
+    <BootstrapperEnabled>true</BootstrapperEnabled>
+    <NuGetPackageImportStamp>
+    </NuGetPackageImportStamp>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>
+    </DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>false</AllowUnsafeBlocks>
+    <Prefer32Bit>false</Prefer32Bit>
+    <CodeAnalysisRuleSet>Other\DemoCheatScanner2.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <PropertyGroup>
+    <TargetZone>LocalIntranet</TargetZone>
+  </PropertyGroup>
+  <PropertyGroup>
+    <GenerateManifests>false</GenerateManifests>
+  </PropertyGroup>
+  <PropertyGroup />
+  <PropertyGroup />
+  <PropertyGroup>
+    <ApplicationIcon>Other\1.ico</ApplicationIcon>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ManifestCertificateThumbprint>6E93957E0B8D90149B2EC282DD300092259499CE</ManifestCertificateThumbprint>
+  </PropertyGroup>
+  <PropertyGroup>
+    <ManifestKeyFile>
+    </ManifestKeyFile>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignManifests>false</SignManifests>
+  </PropertyGroup>
+  <PropertyGroup>
+    <SignAssembly>false</SignAssembly>
+  </PropertyGroup>
+  <PropertyGroup>
+    <AssemblyOriginatorKeyFile>
+    </AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+  <PropertyGroup>
+    <StartupObject />
+  </PropertyGroup>
+  <PropertyGroup />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|AnyCPU'">
+    <OutputPath>bin\Debug\</OutputPath>
+    <Optimize>true</Optimize>
+    <DebugType>pdbonly</DebugType>
+    <PlatformTarget>x64</PlatformTarget>
+    <LangVersion>7.3</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <CodeAnalysisRuleSet>Other\DemoCheatScanner2.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="PresentationFramework" />
+    <Reference Include="System" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+    <Reference Include="WindowsBase" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Helpers\ConsoleHelper.cs" />
+    <Compile Include="Helpers\ConsoleTable.cs" />
+    <Compile Include="Parser\Demo stuff\BinaryReaderExtension.cs" />
+    <Compile Include="Parser\Demo stuff\DemoInfo.cs" />
+    <Compile Include="Parser\Demo stuff\GoldSource\Verify\BXT.cs" />
+    <Compile Include="Parser\Demo stuff\GoldSource\Verify\BXTVerify.cs" />
+    <Compile Include="Parser\Demo stuff\GoldSource\Verify\Category.cs" />
+    <Compile Include="Parser\Demo stuff\GoldSource\Verify\Commandtype.cs" />
+    <Compile Include="Parser\Demo stuff\GoldSource\Verify\Config.cs" />
+    <Compile Include="Parser\Demo stuff\GoldSource\Verify\TEA.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\Category.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\BitStreamUtil\BitArrayStream.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\BitStreamUtil\BitStreamUtil.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\BitStreamUtil\DebugBitStream.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\BitStreamUtil\IBitStream.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\BitStreamUtil\ManagedBitStream.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\BitStreamUtil\UnsafeBitStream.cs" />
+    <Compile Include="Parser\Demo stuff\CrossDemoParser.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\AdditionalPlayerInformation.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\DemoParser.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\DP\DemoPacketParser.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\DP\Entity.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\DP\FastNetmessages\CreateStringTable.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\DP\FastNetmessages\GameEvent.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\DP\FastNetmessages\GameEventList.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\DP\FastNetmessages\NETTick.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\DP\FastNetmessages\PacketEntities.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\DP\FastNetmessages\SendTable.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\DP\FastNetmessages\UpdateStringTable.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\DP\Handler\CreateStringTableUserInfoHandler.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\DP\Handler\GameEventHandler.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\DP\Handler\PacketEntitesHandler.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\DP\Handler\PropDecoder.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\DP\Handler\SoundHandler.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\DP\Handler\UpdateStringTableUserInfoHandler.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\DP\Handler\UserMessageHandler.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\DP\IMessageParser.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\DT\DataTableParser.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\DT\SendTable.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\DT\SendTableProperty.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\DT\ServerClass.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\Events.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\Helper.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\LimitStream.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\Messages\EnumConstants.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\Messages\gcmessages.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\Messages\netmessages.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\Messages\steammessages.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\Messages\usermessages.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\Player.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\Structs.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\CSGODemoInfo\ST\StringTableParser.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\L4D2BranchParser.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\PortalStuff\DemoParser.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\PortalStuff\DemoProtocolVersion.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\PortalStuff\GameHandler\GameHandler.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\PortalStuff\GameHandler\HL2GameHandler.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\PortalStuff\GameHandler\OrangeBoxGameHandler.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\PortalStuff\GameHandler\Portal2CoopCourse6GameHandler.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\PortalStuff\GameHandler\Portal2CoopGameHandler.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\PortalStuff\GameHandler\Portal2SpGameHandler.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\PortalStuff\GameHandler\PortalGameHandler.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\PortalStuff\Result\ConsoleCmdResult.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\PortalStuff\Result\DemoParseResult.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\PortalStuff\Result\PacketResult.cs" />
+    <Compile Include="Parser\Demo stuff\L4D2Branch\PortalStuff\Result\Point3D.cs" />
+    <Compile Include="Parser\Demo stuff\Source\StringTable.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Acquire.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Assert.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\AssertCount.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\AtLeast.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Batch.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Cartesian.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Concat.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Consume.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\DistinctBy.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\EndsWith.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\EquiZip.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\ExceptBy.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Exclude.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\FallbackIfEmpty.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Fold.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Fold.g.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\ForEach.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\FullGroupJoin.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Generate.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\GenerateByIndex.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\GroupAdjacent.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Incremental.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Index.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Interleave.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Lag.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Lead.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Lookup.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\MaxBy.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\MinBy.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\MoreEnumerable.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\NestedLoops.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\OrderBy.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\OrderByDirection.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\OrderedMerge.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Pad.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Pairwise.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\PartialSort.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Partition.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Permutations.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Pipe.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Prepend.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\PreScan.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Random.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\RandomSubset.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Rank.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Repeat.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\ReverseComparer.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\RunLengthEncode.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Scan.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Segment.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\SequenceException.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\SingleOrFallback.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\SkipUntil.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Slice.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\SortedMerge.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Split.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\StartsWith.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Subsets.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\TagFirstLast.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\TakeEvery.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\TakeLast.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\TakeUntil.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\ToDataTable.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\ToDelimitedString.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\ToHashSet.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Trace.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Traverse.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Windowed.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\Zip.stub.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\ZipLongest.cs" />
+    <Compile Include="Parser\ExtensionMethods\MoreLinq\ZipShortest.cs" />
+    <Compile Include="Parser\ExtensionMethods\Traderain.cs" />
+    <Compile Include="Parser\Demo stuff\GoldSource\GoldSourceParser.cs" />
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DesignTime>True</DesignTime>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <Compile Include="Parser\SaveStuff\SaveParser.cs" />
+    <Compile Include="Parser\Settings\KeyInput.cs" />
+    <Compile Include="Parser\Demo stuff\Source\BitBuffer.cs" />
+    <Compile Include="Parser\Demo stuff\Source\DataTables.cs" />
+    <Compile Include="Parser\Demo stuff\Source\SourceParser.cs" />
+    <Compile Include="Parser\Demo stuff\Source\Packet.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="UnrealDemoScanner.cs" />
+    <Compile Include="Parser\ValvePak\ArchiveMD5SectionEntry.cs" />
+    <Compile Include="Parser\ValvePak\Package.cs" />
+    <Compile Include="Parser\ValvePak\PackageEntry.cs" />
+    <Compile Include="Parser\ValvePak\Utilities\AsnKeyParser.cs" />
+    <Compile Include="Parser\ValvePak\Utilities\Crc32.cs" />
+    <Compile Include="Parser\ValvePak\Utilities\StreamHelpers.cs" />
+    <Compile Include="UnrealDemoScannerHL2.cs" />
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>PublicResXFileCodeGenerator</Generator>
+      <SubType>Designer</SubType>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+    </EmbeddedResource>
+    <None Include="Other\app.config" />
+    <None Include="Other\DemoCheatScanner2.ruleset" />
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <FileAssociation Include=".dem">
+      <Visible>False</Visible>
+      <Description>Demo files</Description>
+      <Progid>VWDem</Progid>
+      <DefaultIcon>demoicon.ico</DefaultIcon>
+    </FileAssociation>
+    <FileAssociation Include=".sav">
+      <Visible>False</Visible>
+      <Description>Save files</Description>
+      <Progid>VWSav</Progid>
+      <DefaultIcon>savicon.ico</DefaultIcon>
+    </FileAssociation>
+  </ItemGroup>
+  <ItemGroup>
+    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
+      <Visible>False</Visible>
+      <ProductName>.NET Framework 3.5 SP1</ProductName>
+      <Install>false</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Other\1.ico" />
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>
