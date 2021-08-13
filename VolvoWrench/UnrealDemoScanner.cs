@@ -1456,7 +1456,7 @@ namespace VolvoWrench.DG
 
         public static string TotalFreewareTool = "[ПОЛНОСТЬЮ БЕСПЛАТНЫЙ] [TOTALLY FREE]";
 
-        public static string SourceCode = "https://github.com/2020karaulov2020/UnrealDemoScanner";
+        public static string SourceCode = "https://github.com/UnrealKaraulov/UnrealDemoScanner";
         public static int usagesrccode = 0;
 
         [STAThread]
@@ -1676,7 +1676,7 @@ namespace VolvoWrench.DG
                 return;
             }
 
-            if (SourceCode.Length != 53)
+            if (SourceCode.Length != 51)
                 return;
 
             if (File.Exists(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) +
@@ -2970,6 +2970,13 @@ namespace VolvoWrench.DG
 
                                 PreviousTime = CurrentTime;
                                 CurrentTime = nf.RParms.Time;
+
+                                if (Math.Abs(CurrentTime - PreviousTime) > 0.20)
+                                {
+                                    LastLossTime = PreviousTime;
+                                    LastLossTimeEnd = CurrentTime;
+                                }
+
                                 if ((nf.UCmd.Buttons & 1) > 0)
                                 {
                                     if (CurrentFrameAttacked && !CurrentFrameDuplicated)
@@ -4640,6 +4647,17 @@ namespace VolvoWrench.DG
                                     JumpHackCount2 = 0;
                                 }
 
+                                if (DemoScanner.KnownSkyName == string.Empty)
+                                {
+                                    DemoScanner.KnownSkyName = nf.MVars.SkyName;
+                                }
+                                else if (DemoScanner.KnownSkyName != nf.MVars.SkyName)
+                                {
+                                    DemoScanner_AddInfo("[DETECTED! Player changed sky name from \""+ DemoScanner.KnownSkyName + "\" to \"" + nf.MVars.SkyName + "\" at (" + CurrentTime +
+                                                          "):" + DemoScanner.CurrentTimeString);
+                                    DemoScanner.KnownSkyName = nf.MVars.SkyName;
+                                }
+
                                 if (DUMP_ALL_FRAMES)
                                 {
                                     subnode.Text = "{\n";
@@ -5947,7 +5965,7 @@ namespace VolvoWrench.DG
         {
             usagesrccode++;
             VolvoWrench.Settings.asdf.asdf2++;
-            if (SourceCode.Length != 53)
+            if (SourceCode.Length != 51)
                 throw new Exception("ANAL ERROR");
             return SourceCode;
         }
@@ -5988,14 +6006,18 @@ namespace VolvoWrench.DG
         public static float LastUsernameCheckTime = 0.0f;
         public static int MessageCount = 0;
         public static int SVC_CHOKEMSGID = 0;
+        public static int SVC_CHOKEMSGIDSKIP = 5;
+        public static int SVC_TIMEMSGID = 0;
         public static uint LossPackets = 0;
         public static uint LossPackets2 = 0;
         public static int ChokePackets = 0;
         public static float LastLossPacket = 0.0f;
+        public static float LastLossTime = 0.0f;
+        public static float LastLossTimeEnd = 0.0f;
 
         public static bool IsPlayerLossConnection()
         {
-            return CurrentTime - LastLossPacket < 1.5;
+            return CurrentTime - LastLossPacket < 1.5 || CurrentTime - LastLossTime < 1.5 || CurrentTime - LastLossTimeEnd < 1.5;
         }
 
         public static float LastChokePacket;
@@ -6183,6 +6205,7 @@ namespace VolvoWrench.DG
         public static float LastLookEnabled;
         public static int FlyJumps = 0;
         public static bool SearchMoveHack1 = false;
+        public static string KnownSkyName = string.Empty;
 
         public static bool IsHookDetected()
         {
@@ -6877,7 +6900,7 @@ namespace VolvoWrench.DG
             AddMessageHandler((byte)MessageId.svc_version, MessageVersion);
             AddMessageHandler((byte)MessageId.svc_setview, MessageView);
             AddMessageHandler((byte)MessageId.svc_sound, MessageSound);
-            AddMessageHandler((byte)MessageId.svc_time, 4);
+            AddMessageHandler((byte)MessageId.svc_time, MessageTime);
             AddMessageHandler((byte)MessageId.svc_print, MessagePrint);
             AddMessageHandler((byte)MessageId.svc_stufftext, MessageStuffText);
             AddMessageHandler((byte)MessageId.svc_setangle, 6);
@@ -7493,6 +7516,12 @@ namespace VolvoWrench.DG
             }
         }
 
+        public void MessageTime()
+        {
+            float timemsg = BitBuffer.ReadSingle();
+            DemoScanner.SVC_TIMEMSGID++;
+        }
+
         public void MessageSound()
         {
             if (demo.GsDemoInfo.Header.NetProtocol <= 43)
@@ -7763,13 +7792,26 @@ namespace VolvoWrench.DG
         {
             if (DemoScanner.SVC_CHOKEMSGID > 0)
             {
-                if (DemoScanner.MessageCount - DemoScanner.SVC_CHOKEMSGID > 2)
+                if (DemoScanner.MessageCount - DemoScanner.SVC_CHOKEMSGID > 1)
                 {
-                    Console.WriteLine("Fakelag detected");
+                    if (DemoScanner.SVC_CHOKEMSGIDSKIP < 0)
+                        DemoScanner.DemoScanner_AddWarn(
+                                                "[Fakelag] at (" + DemoScanner.CurrentTime +
+                                                "):" + DemoScanner.CurrentTimeString, false);
+                    DemoScanner.SVC_CHOKEMSGIDSKIP--;
                 }
                 DemoScanner.SVC_CHOKEMSGID = 0;
             }
-
+            if (DemoScanner.SVC_TIMEMSGID > 0)
+            {
+                if (DemoScanner.SVC_TIMEMSGID > 1)
+                {
+                    DemoScanner.DemoScanner_AddWarn(
+                                               "[Fakespeed] at (" + DemoScanner.CurrentTime +
+                                               "):" + DemoScanner.CurrentTimeString, false);
+                }
+            }
+            DemoScanner.SVC_TIMEMSGID = 0;
 
             if (demo.GsDemoInfo.Header.NetProtocol <= 43)
                 BitBuffer.Endian = BitBuffer.EndianType.Big;

@@ -265,7 +265,6 @@
     <Compile Include="Parser\ValvePak\Utilities\AsnKeyParser.cs" />
     <Compile Include="Parser\ValvePak\Utilities\Crc32.cs" />
     <Compile Include="Parser\ValvePak\Utilities\StreamHelpers.cs" />
-    <Compile Include="UnrealDemoScannerHL2.cs" />
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <SubType>Designer</SubType>
