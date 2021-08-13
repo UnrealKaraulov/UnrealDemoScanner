@@ -43,7 +43,7 @@ namespace VolvoWrench.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.53b15";
+        public const string PROGRAMVERSION = "1.53b16";
 
         public static bool DEBUG_ENABLED = false;
 
