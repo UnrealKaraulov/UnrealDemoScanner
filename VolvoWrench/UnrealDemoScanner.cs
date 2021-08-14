@@ -4653,7 +4653,7 @@ namespace VolvoWrench.DG
                                 }
                                 else if (DemoScanner.KnownSkyName != nf.MVars.SkyName)
                                 {
-                                    DemoScanner_AddInfo("[DETECTED! Player changed sky name from \""+ DemoScanner.KnownSkyName + "\" to \"" + nf.MVars.SkyName + "\" at (" + CurrentTime +
+                                    DemoScanner_AddInfo("Player changed sky name from \""+ DemoScanner.KnownSkyName + "\" to \"" + nf.MVars.SkyName + "\" at (" + CurrentTime +
                                                           "):" + DemoScanner.CurrentTimeString);
                                     DemoScanner.KnownSkyName = nf.MVars.SkyName;
                                 }
