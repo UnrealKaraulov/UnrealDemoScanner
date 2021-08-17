@@ -43,12 +43,10 @@ namespace VolvoWrench.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.53b16";
+        public const string PROGRAMVERSION = "1.54";
 
         public static bool DEBUG_ENABLED = false;
-
         public static bool NO_TELEPORT = false;
-
         public static bool DUMP_ALL_FRAMES = false;
 
         public enum WeaponIdType
@@ -2319,7 +2317,7 @@ namespace VolvoWrench.DG
                                             CurrentTime - DemoScanner.LastAim5DetectedReal < 0.5f)
                                         {
                                             DemoScanner_AddWarn(
-                                                "[AIM TYPE 5] at (" + LastAim5DetectedReal +
+                                                "[AIM TYPE 5.1] at (" + LastAim5DetectedReal +
                                                 "):" + DemoScanner.CurrentTimeString, !IsPlayerLossConnection() && !IsAngleEditByEngine() && !IsChangeWeapon());
                                             if (!IsPlayerLossConnection() && !IsAngleEditByEngine() && !IsChangeWeapon())
                                                 SilentAimDetected++;
@@ -2332,7 +2330,7 @@ namespace VolvoWrench.DG
                                             if ((SilentAimDetected > 1 || JumpHackCount > 1) && !IsAngleEditByEngine() && !IsPlayerLossConnection())
                                             {
                                                 DemoScanner_AddWarn(
-                                                    "[AIM TYPE 5] at (" + CurrentTime +
+                                                    "[AIM TYPE 5.2] at (" + CurrentTime +
                                                     "):" + DemoScanner.CurrentTimeString, !IsPlayerLossConnection() && !IsAngleEditByEngine() && !IsChangeWeapon());
                                                 if (!IsPlayerLossConnection() && !IsAngleEditByEngine() && !IsChangeWeapon())
                                                     SilentAimDetected++;
@@ -2340,7 +2338,7 @@ namespace VolvoWrench.DG
                                             else
                                             {
                                                 DemoScanner_AddWarn(
-                                                    "[AIM TYPE 5] at (" + LastAim5Detected +
+                                                    "[AIM TYPE 5.3] at (" + LastAim5Detected +
                                                     "):" + DemoScanner.CurrentTimeString, false);
                                             }
                                             DemoScanner.LastAim5DetectedReal = 0.0f;
@@ -2356,7 +2354,7 @@ namespace VolvoWrench.DG
                                                 if (!IsAngleEditByEngine() && !IsPlayerLossConnection())
                                                 {
                                                     DemoScanner_AddWarn(
-                                                        "[AIM TYPE 5] at (" + CurrentTime +
+                                                        "[AIM TYPE 5.4] at (" + CurrentTime +
                                                         "):" + DemoScanner.CurrentTimeString, false);
                                                     DemoScanner.LastAim5DetectedReal = 0.0f;
                                                     DemoScanner.LastAim5Detected = 0.0f;
@@ -2373,7 +2371,7 @@ namespace VolvoWrench.DG
                                                 if (!IsAngleEditByEngine() && !IsPlayerLossConnection())
                                                 {
                                                     DemoScanner_AddWarn(
-                                                        "[AIM TYPE 5.2] at (" + CurrentTime +
+                                                        "[AIM TYPE 5.5] at (" + CurrentTime +
                                                         "):" + DemoScanner.CurrentTimeString, false);
                                                     DemoScanner.LastAim5DetectedReal = 0.0f;
                                                     DemoScanner.LastAim5Detected = 0.0f;
@@ -5093,14 +5091,14 @@ namespace VolvoWrench.DG
                                             if ((SilentAimDetected > 0 || JumpHackCount > 0) && !IsAngleEditByEngine())
                                             {
                                                 DemoScanner_AddWarn(
-                                                    "[AIM TYPE 1] at (" + CurrentTime +
+                                                    "[AIM TYPE 1.2] at (" + CurrentTime +
                                                     "):" + DemoScanner.CurrentTimeString, !IsChangeWeapon() && !IsPlayerLossConnection() && !IsForceCenterView());
                                                 SilentAimDetected++;
                                             }
                                             else
                                             {
                                                 DemoScanner_AddWarn(
-                                                     "[AIM TYPE 1] at (" + CurrentTime +
+                                                     "[AIM TYPE 1.3] at (" + CurrentTime +
                                                      "):" + DemoScanner.CurrentTimeString, false, false);
                                             }
                                         }
@@ -5111,7 +5109,7 @@ namespace VolvoWrench.DG
                                         {
                                             DemoScanner_AddWarn(
                                                 "[AIM TYPE 1] at (" + CurrentTime +
-                                                "):" + DemoScanner.CurrentTimeString, !IsChangeWeapon() && !IsPlayerLossConnection() && IsForceCenterView());
+                                                "):" + DemoScanner.CurrentTimeString, !IsChangeWeapon() && !IsPlayerLossConnection() && !IsForceCenterView());
                                             SilentAimDetected++;
                                         }
                                     }
