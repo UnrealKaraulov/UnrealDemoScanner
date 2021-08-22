@@ -43,7 +43,7 @@ namespace VolvoWrench.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.54";
+        public const string PROGRAMVERSION = "1.54.2";
 
         public static bool DEBUG_ENABLED = false;
         public static bool NO_TELEPORT = false;
@@ -6015,7 +6015,7 @@ namespace VolvoWrench.DG
 
         public static bool IsPlayerLossConnection()
         {
-            return CurrentTime - LastLossPacket < 1.5 || CurrentTime - LastLossTime < 1.5 || CurrentTime - LastLossTimeEnd < 1.5;
+            return CurrentTime - LastLossPacket < 1.5 /*|| CurrentTime - LastLossTime < 1.5 */|| CurrentTime - LastLossTimeEnd < 1.5;
         }
 
         public static float LastChokePacket;
