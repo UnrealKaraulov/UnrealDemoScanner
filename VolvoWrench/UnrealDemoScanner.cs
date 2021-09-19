@@ -1978,7 +1978,7 @@ namespace VolvoWrench.DG
                                     if (DemoScanner.LastGameMaximizeTime != 0.0f && DemoScanner.LastTeleportusTime != 0.0f && DemoScanner.LastGameMaximizeTime == CurrentTime && !DemoScanner.GameEnd)
                                     {
                                         DemoScanner.ReturnToGameDetects++;
-                                        DemoScanner_AddWarn("[RETURN TO GAME FEATURE]", DemoScanner.ReturnToGameDetects > 2, true, true);
+                                        DemoScanner_AddWarn("['RETURN TO GAME' FEATURE]", DemoScanner.ReturnToGameDetects > 2, true, true);
                                     }
                                     DemoScanner.LastTeleportusTime = CurrentTime;
                                 }
@@ -2889,6 +2889,63 @@ namespace VolvoWrench.DG
                                 DemoScanner.UDS_RATE1++;
                                 var nf = (GoldSource.NetMsgFrame)frame.Value;
                                 CurrentNetMsgFrame = nf;
+
+                                DemoScanner.CurrentTimeString = "MODIFIED";
+
+
+                                PreviousTime3 = CurrentTime3;
+                                CurrentTime3 = frame.Key.Time;
+
+                                PreviousTime = CurrentTime;
+                                CurrentTime = nf.RParms.Time;
+
+                                if (Math.Abs(CurrentTime - PreviousTime) > 0.20)
+                                {
+                                    LastLossTime = PreviousTime;
+                                    LastLossTimeEnd = CurrentTime;
+                                }
+
+                                try
+                                {
+                                    var t = TimeSpan.FromSeconds(CurrentTime);
+
+                                    DemoScanner.CurrentTimeString = string.Format("{0:D2}h:{1:D2}m:{2:D2}s:{3:D3}ms",
+                                        t.Hours,
+                                        t.Minutes,
+                                        t.Seconds,
+                                        t.Milliseconds);
+                                    lastnormalanswer = DemoScanner.CurrentTimeString;
+
+                                    Console.Title =
+                                        "[ANTICHEAT/ANTIHACK] Unreal Demo Scanner " + PROGRAMVERSION + ". Demo:" +
+                                        DemoName + ". DEMO TIME: " + DemoScanner.CurrentTimeString;
+                                }
+                                catch
+                                {
+                                    DemoScanner.ModifiedDemoFrames += 1;
+                                    try
+                                    {
+                                        Console.Title =
+                                            "[ANTICHEAT/ANTIHACK] Unreal Demo Scanner " + PROGRAMVERSION + ". Demo:" +
+                                            DemoName + ". DEMO TIME: " + lastnormalanswer;
+                                    }
+                                    catch
+                                    {
+                                        try
+                                        {
+                                            Console.Title =
+                                                "[ANTICHEAT/ANTIHACK] Unreal Demo Scanner " + PROGRAMVERSION + ". Demo:" +
+                                                "BAD NAME" + ". DEMO TIME: " + lastnormalanswer;
+                                        }
+                                        catch
+                                        {
+
+                                        }
+                                    }
+                                }
+
+
+
                                 var outstr = "";
                                 ParseGameData(nf.MsgBytes, ref outstr);
                                 // Console.WriteLine("Frame:" + frame.Key.Type.ToString() +". Len:" + nf.MsgBytes.Length);
@@ -2963,17 +3020,6 @@ namespace VolvoWrench.DG
                                     if (SkipNextAttack == 2) SkipNextAttack = 1;
                                 }
 
-                                PreviousTime3 = CurrentTime3;
-                                CurrentTime3 = frame.Key.Time;
-
-                                PreviousTime = CurrentTime;
-                                CurrentTime = nf.RParms.Time;
-
-                                if (Math.Abs(CurrentTime - PreviousTime) > 0.20)
-                                {
-                                    LastLossTime = PreviousTime;
-                                    LastLossTimeEnd = CurrentTime;
-                                }
 
                                 if ((nf.UCmd.Buttons & 1) > 0)
                                 {
@@ -3807,46 +3853,7 @@ namespace VolvoWrench.DG
                                     FakeLagsValus.Add(CurrentFrameLerp);
                                 CurrentFramePunchangleZ = nf.RParms.Punchangle.Z;
 
-                                DemoScanner.CurrentTimeString = "MODIFIED";
-                                try
-                                {
-                                    var t = TimeSpan.FromSeconds(CurrentTime);
-
-                                    DemoScanner.CurrentTimeString = string.Format("{0:D2}h:{1:D2}m:{2:D2}s:{3:D3}ms",
-                                        t.Hours,
-                                        t.Minutes,
-                                        t.Seconds,
-                                        t.Milliseconds);
-                                    lastnormalanswer = DemoScanner.CurrentTimeString;
-
-                                    Console.Title =
-                                        "[ANTICHEAT/ANTIHACK] Unreal Demo Scanner " + PROGRAMVERSION + ". Demo:" +
-                                        DemoName + ". DEMO TIME: " + DemoScanner.CurrentTimeString;
-                                }
-                                catch
-                                {
-                                    DemoScanner.ModifiedDemoFrames += 1;
-                                    try
-                                    {
-                                        Console.Title =
-                                            "[ANTICHEAT/ANTIHACK] Unreal Demo Scanner " + PROGRAMVERSION + ". Demo:" +
-                                            DemoName + ". DEMO TIME: " + lastnormalanswer;
-                                    }
-                                    catch
-                                    {
-                                        try
-                                        {
-                                            Console.Title =
-                                                "[ANTICHEAT/ANTIHACK] Unreal Demo Scanner " + PROGRAMVERSION + ". Demo:" +
-                                                "BAD NAME" + ". DEMO TIME: " + lastnormalanswer;
-                                        }
-                                        catch
-                                        {
-
-                                        }
-                                    }
-                                }
-
+                               
 
                                 /*
                                  * 1. Игрок не на земле
@@ -4271,10 +4278,10 @@ namespace VolvoWrench.DG
                                                     AimType8WarnTime = CurrentTime;
                                                 bAimType8WarnTime = CurrentTime;
                                                 //}
-                                                if (!DemoScanner.AimType8False)
+                                               /* if (!DemoScanner.AimType8False)
                                                 {
                                                     DemoScanner.AimType8False = !CurrentFrameOnGround || IsAngleEditByEngine() || IsPlayerLossConnection() || IsChangeWeapon();
-                                                }
+                                                }*/
                                                 //AimType8Warn = -1;
                                             }
                                         }
@@ -5354,7 +5361,10 @@ namespace VolvoWrench.DG
 
             Console.ForegroundColor = ConsoleColor.DarkGreen;
 
+            DemoScanner.ForceFlushScanResults();
+
             Console.WriteLine("Unreal Demo Scanner [ " + PROGRAMVERSION + " ] scan result:");
+
             //Console.WriteLine(AngleLenMaxX);
             //Console.WriteLine(AngleLenMaxY);
             //Console.WriteLine(nospreadtest.ToString("F8"));
@@ -8406,7 +8416,9 @@ namespace VolvoWrench.DG
             //Console.WriteLine("ChokePackets " + DemoScanner.CurrentTimeString);
             if (DemoScanner.SVC_CHOKEMSGID > 0)
             {
-                Console.WriteLine("Fakelag2 detected");
+                DemoScanner.DemoScanner_AddWarn(
+                                                "[Fakelag 2.0] at (" + DemoScanner.CurrentTime +
+                                                "):" + DemoScanner.CurrentTimeString, false);
                 DemoScanner.SVC_CHOKEMSGID = 0;
             }
             else
