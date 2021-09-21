@@ -1,9 +1,9 @@
 ﻿using System;
 using System.IO;
-using VolvoWrench.DemoStuff.L4D2Branch.BitStreamUtil;
-using VolvoWrench.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler;
+using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
+using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler;
 
-namespace VolvoWrench.DemoStuff.L4D2Branch.CSGODemoInfo.DP.FastNetmessages
+namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.FastNetmessages
 {
     public struct CreateStringTable
     {

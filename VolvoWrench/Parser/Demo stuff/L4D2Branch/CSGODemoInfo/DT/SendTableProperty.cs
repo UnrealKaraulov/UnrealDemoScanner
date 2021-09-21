@@ -1,6 +1,6 @@
 using System;
 
-namespace VolvoWrench.DemoStuff.L4D2Branch.CSGODemoInfo.DT
+namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DT
 {
     public class SendTableProperty
     {

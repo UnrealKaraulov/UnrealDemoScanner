@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace VolvoWrench.DemoStuff.Source
+namespace DemoScanner.DemoStuff.Source
 {
     [Serializable]
     public class BitBufferOutOfRangeException : Exception

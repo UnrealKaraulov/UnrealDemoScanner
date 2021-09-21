@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Windows.Forms;
 
-namespace VolvoWrench.DemoStuff.Source
+namespace DemoScanner.DemoStuff.Source
 {
     internal class DataTables
     {

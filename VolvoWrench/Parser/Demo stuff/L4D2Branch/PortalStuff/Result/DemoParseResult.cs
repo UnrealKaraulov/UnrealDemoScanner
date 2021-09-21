@@ -1,6 +1,6 @@
 using System;
 
-namespace VolvoWrench.DemoStuff.L4D2Branch.PortalStuff.Result
+namespace DemoScanner.DemoStuff.L4D2Branch.PortalStuff.Result
 {
     public class DemoParseResult : ICloneable
     {

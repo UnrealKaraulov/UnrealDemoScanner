@@ -21,7 +21,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace VolvoWrench.ExtensionMethods.MoreLinq
+namespace DemoScanner.ExtensionMethods.MoreLinq
 {
     #region Imports
 

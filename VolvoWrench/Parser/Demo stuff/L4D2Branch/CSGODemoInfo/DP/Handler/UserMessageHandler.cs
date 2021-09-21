@@ -1,4 +1,4 @@
-﻿namespace VolvoWrench.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
+﻿namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
 {
 #if SLOW_PROTOBUF
 	public class UserMessageHandler : IMessageParser

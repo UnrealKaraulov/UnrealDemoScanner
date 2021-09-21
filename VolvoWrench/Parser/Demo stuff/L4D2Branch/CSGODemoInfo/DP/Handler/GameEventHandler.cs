@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using VolvoWrench.DemoStuff.L4D2Branch.CSGODemoInfo.DP.FastNetmessages;
+using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.FastNetmessages;
 
-namespace VolvoWrench.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
+namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
 {
     /// <summary>
     ///     This class manages all GameEvents for a demo-parser.

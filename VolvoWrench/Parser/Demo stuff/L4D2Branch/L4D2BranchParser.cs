@@ -1,11 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using VolvoWrench.DemoStuff.L4D2Branch.BitStreamUtil;
-using VolvoWrench.DemoStuff.L4D2Branch.CSGODemoInfo;
-using VolvoWrench.DemoStuff.L4D2Branch.PortalStuff.Result;
+using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
+using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo;
+using DemoScanner.DemoStuff.L4D2Branch.PortalStuff.Result;
 
-namespace VolvoWrench.DemoStuff.L4D2Branch
+namespace DemoScanner.DemoStuff.L4D2Branch
 {
     /// <summary>
     ///     The header of the demo

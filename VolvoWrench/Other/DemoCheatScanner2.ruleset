@@ -1,5 +1,5 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<RuleSet Name="Правила для DemoCheatScanner2" Description="Правила анализа кода для DemoCheatScanner2.csproj." ToolsVersion="16.0">
+<RuleSet Name="Правила для DemoCheatScanner2" Description="Правила анализа кода для DemoCheatScanner2.csproj." ToolsVersion="17.0">
   <Rules AnalyzerId="Microsoft.Analyzers.ManagedCodeAnalysis" RuleNamespace="Microsoft.Rules.Managed">
     <Rule Id="CA1009" Action="Warning" />
     <Rule Id="CA1033" Action="Warning" />

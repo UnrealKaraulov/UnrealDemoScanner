@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using VolvoWrench.DemoStuff.Source;
+using DemoScanner.DemoStuff.Source;
 
-namespace VolvoWrench.DemoStuff.Source
+namespace DemoScanner.DemoStuff.Source
 {
     class StringTable
     {

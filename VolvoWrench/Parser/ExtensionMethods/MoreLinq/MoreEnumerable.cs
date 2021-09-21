@@ -19,7 +19,7 @@
 
 using System.Collections.Generic;
 
-namespace VolvoWrench.ExtensionMethods.MoreLinq
+namespace DemoScanner.ExtensionMethods.MoreLinq
 {
     /// <summary>
     ///     Provides a set of static methods for querying objects that

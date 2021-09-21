@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using VolvoWrench.DemoStuff.L4D2Branch.PortalStuff.Result;
+using DemoScanner.DemoStuff.L4D2Branch.PortalStuff.Result;
 
-namespace VolvoWrench.DemoStuff.L4D2Branch.PortalStuff.GameHandler
+namespace DemoScanner.DemoStuff.L4D2Branch.PortalStuff.GameHandler
 {
     public abstract class GameHandler
     {

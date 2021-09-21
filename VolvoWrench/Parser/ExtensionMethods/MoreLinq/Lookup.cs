@@ -31,7 +31,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace VolvoWrench.ExtensionMethods.MoreLinq
+namespace DemoScanner.ExtensionMethods.MoreLinq
 {
     /// <summary>
     ///     A <see cref="ILookup{TKey,TElement}" /> implementation that preserves insertion order

@@ -1,3 +1,3 @@
-﻿namespace VolvoWrench.DemoStuff.L4D2Branch.BitStreamUtil
+﻿namespace DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil
 {
 }

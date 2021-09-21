@@ -4,7 +4,7 @@ using System.ComponentModel;
 using System.Drawing;
 using System.Windows.Forms;
 
-namespace VolvoWrench.DemoStuff.Source
+namespace DemoScanner.DemoStuff.Source
 {
     internal class Packet
     {

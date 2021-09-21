@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using VolvoWrench.DemoStuff.L4D2Branch.PortalStuff.Result;
+using DemoScanner.DemoStuff.L4D2Branch.PortalStuff.Result;
 
-namespace VolvoWrench.DemoStuff.GoldSource.Verify
+namespace DemoScanner.DemoStuff.GoldSource.Verify
 {
     /// <summary>
     ///     Types from BunnymodXT's runtime serialization.

@@ -6,9 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
-using VolvoWrench.ExtensionMethods;
-
-#pragma warning disable 1591
+using DemoScanner.ExtensionMethods;
 
 
 /*  NOTES
@@ -24,7 +22,7 @@ using VolvoWrench.ExtensionMethods;
  */
 
 
-namespace VolvoWrench.SaveStuff
+namespace DemoScanner.SaveStuff
 {
     public class Flag
     {
@@ -40,8 +38,6 @@ namespace VolvoWrench.SaveStuff
         public string Type { get; set; }
     }
 
-    [SuppressMessage("ReSharper", "UseObjectOrCollectionInitializer")]
-    [SuppressMessage("ReSharper", "InconsistentNaming")]
     public class Listsave
     {
         [Serializable]

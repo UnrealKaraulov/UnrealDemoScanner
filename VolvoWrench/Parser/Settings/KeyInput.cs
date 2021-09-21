@@ -1,7 +1,7 @@
 ﻿using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
-namespace VolvoWrench.Settings
+namespace DemoScanner.Settings
 {
     public static class asdf
     {

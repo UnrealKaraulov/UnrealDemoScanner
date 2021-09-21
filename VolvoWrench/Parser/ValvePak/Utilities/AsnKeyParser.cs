@@ -37,7 +37,7 @@ using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace VolvoWrench.ValvePak.Utilities
+namespace DemoScanner.ValvePak.Utilities
 {
     internal sealed class BerDecodeException : Exception
     {

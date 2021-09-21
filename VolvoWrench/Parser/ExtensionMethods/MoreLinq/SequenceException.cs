@@ -20,7 +20,7 @@
 using System;
 using System.Runtime.Serialization;
 
-namespace VolvoWrench.ExtensionMethods.MoreLinq
+namespace DemoScanner.ExtensionMethods.MoreLinq
 {
 #if !NO_EXCEPTION_SERIALIZATION
 

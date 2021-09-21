@@ -14,13 +14,13 @@ using System.Windows;
 using System.Windows.Data;
 using System.Windows.Forms;
 using System.Xml.Serialization;
-using VolvoWrench.DemoStuff;
-using VolvoWrench.DemoStuff.GoldSource;
-using static VolvoWrench.DG.BitWriter;
-using static VolvoWrench.DG.Common;
+using DemoScanner.DemoStuff;
+using DemoScanner.DemoStuff.GoldSource;
+using static DemoScanner.DG.BitWriter;
+using static DemoScanner.DG.Common;
 using MessageBox = System.Windows.Forms.MessageBox;
 
-namespace VolvoWrench.DG
+namespace DemoScanner.DG
 {
     /* (BIT №)
     #define IN_ATTACK 1
@@ -43,7 +43,7 @@ namespace VolvoWrench.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.54.2";
+        public const string PROGRAMVERSION = "1.55";
 
         public static bool DEBUG_ENABLED = false;
         public static bool NO_TELEPORT = false;
@@ -1462,11 +1462,11 @@ namespace VolvoWrench.DG
         {
             try
             {
-                ConsoleUtils.CenterConsole();
+                NativeMethods.CenterConsole();
                 Console.SetWindowSize(114, 32);
                 Console.SetBufferSize(114, 5555);
                 Console.SetWindowSize(115, 32);
-                ConsoleUtils.CenterConsole();
+                NativeMethods.CenterConsole();
             }
             catch
             {
@@ -1593,6 +1593,8 @@ namespace VolvoWrench.DG
                 }
             }
 
+
+            DemoScanner.StartScanTime = DateTime.Now;
             if (!DemoScanner.DUMP_ALL_FRAMES)
             {
                 if (File.Exists("Frames.log"))
@@ -1901,7 +1903,7 @@ namespace VolvoWrench.DG
                         case GoldSource.DemoFrameType.ClientData:
                             {
                                 DemoScanner.UDS_RATE2++;
-                                if (VolvoWrench.Settings.asdf.asdf2 != 1)
+                                if (global::DemoScanner.Settings.asdf.asdf2 != 1)
                                 {
                                     break;
                                 }
@@ -2286,9 +2288,9 @@ namespace VolvoWrench.DG
                                         CurrentWeapon == WeaponIdType.WEAPON_SG552 ||
                                         CurrentWeapon == WeaponIdType.WEAPON_AUG)
                                     {
-                                        anglecheat = anglecheat / 50.0;
-                                        anglecheat2 = anglecheat2 / 100.0;
-                                        anglecheat3 = anglecheat3 / 50.0;
+                                        anglecheat /= 50.0;
+                                        anglecheat2 /= 100.0;
+                                        anglecheat3 /= 50.0;
                                     }
                                     if (DemoScanner.LastAim5DetectedReal != 0.0f && CurrentTime - DemoScanner.LastAim5DetectedReal >= 0.75f)
                                     {
@@ -5520,8 +5522,10 @@ namespace VolvoWrench.DG
 
 
             DemoScanner.ForceFlushScanResults();
+            var EndScanTime = Trim(new DateTime((DateTime.Now - DemoScanner.StartScanTime).Ticks), 10);
 
-            Console.WriteLine("Scan completed.");
+            Console.WriteLine("Scan completed. Scan time: " + EndScanTime.ToString("T"));
+           
             while (true)
             {
                 Console.ForegroundColor = ConsoleColor.Gray;
@@ -5920,6 +5924,9 @@ namespace VolvoWrench.DG
 
                     if (playerList.Count > 0)
                         Console.WriteLine("Players: " + playerList.Count);
+
+                    Console.WriteLine("Codecname:" + DemoScanner.codecname);
+
                     try
                     {
                         if (CheatKey > 0)
@@ -5932,7 +5939,10 @@ namespace VolvoWrench.DG
                 }
             }
         }
-
+        public static DateTime Trim(this DateTime date, long ticks)
+        {
+            return new DateTime(date.Ticks - (date.Ticks % ticks), date.Kind);
+        }
         private static void record_angles_stop()
         {
 
@@ -5972,7 +5982,7 @@ namespace VolvoWrench.DG
         public static string GetSourceCodeString()
         {
             usagesrccode++;
-            VolvoWrench.Settings.asdf.asdf2++;
+            global::DemoScanner.Settings.asdf.asdf2++;
             if (SourceCode.Length != 51)
                 throw new Exception("ANAL ERROR");
             return SourceCode;
@@ -6214,6 +6224,9 @@ namespace VolvoWrench.DG
         public static int FlyJumps = 0;
         public static bool SearchMoveHack1 = false;
         public static string KnownSkyName = string.Empty;
+        public static DateTime StartScanTime;
+
+        public static string codecname;
 
         public static bool IsHookDetected()
         {
@@ -8566,15 +8579,13 @@ namespace VolvoWrench.DG
             //}
         }
 
-        private static string codecname = "unknown";
-
         private void MessageVoiceInit()
         {
             // string: codec name (sv_voicecodec, either voice_miles or voice_speex)
             // byte: quality (sv_voicequality, 1 to 5)
 
             var tmpcodecname = BitBuffer.ReadString();
-            if (tmpcodecname.Length > 0) codecname = tmpcodecname;
+            if (tmpcodecname.Length > 0) DemoScanner.codecname = tmpcodecname;
 
             //MessageBox.Show(codecname);
             if (DemoScanner.DUMP_ALL_FRAMES)
@@ -10100,7 +10111,6 @@ namespace VolvoWrench.DG
             public void ReadDelta(BitBuffer bitBuffer, HalfLifeDelta delta)
             {
                 Byte[] bitmaskBytes;
-
                 ReadDelta(bitBuffer, delta, out bitmaskBytes);
             }
 

@@ -1,7 +1,7 @@
 ﻿using System.IO;
-using VolvoWrench.DemoStuff.L4D2Branch.BitStreamUtil;
+using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
 
-namespace VolvoWrench.DemoStuff.L4D2Branch.CSGODemoInfo.DP.FastNetmessages
+namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.FastNetmessages
 {
     public struct NETTick
     {

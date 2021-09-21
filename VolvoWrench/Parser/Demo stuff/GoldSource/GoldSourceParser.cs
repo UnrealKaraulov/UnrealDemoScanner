@@ -6,10 +6,10 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Windows.Forms;
-using VolvoWrench.DemoStuff.GoldSource.Verify;
-using VolvoWrench.DemoStuff.L4D2Branch.PortalStuff.Result;
+using DemoScanner.DemoStuff.GoldSource.Verify;
+using DemoScanner.DemoStuff.L4D2Branch.PortalStuff.Result;
 
-namespace VolvoWrench.DemoStuff.GoldSource
+namespace DemoScanner.DemoStuff.GoldSource
 {
     /// <summary>
     ///     Types for HLSOOE
@@ -680,7 +680,6 @@ namespace VolvoWrench.DemoStuff.GoldSource
     /// <summary>
     ///     Contains methods to parse GoldSource engine demo parsing methods
     /// </summary>
-    [SuppressMessage("ReSharper", "CompareOfFloatsByEqualityOperator")]
     public class GoldSourceParser
     {
         /// <summary>

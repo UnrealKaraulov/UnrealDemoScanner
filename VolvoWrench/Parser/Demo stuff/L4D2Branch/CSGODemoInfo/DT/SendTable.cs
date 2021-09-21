@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
-using VolvoWrench.DemoStuff.L4D2Branch.BitStreamUtil;
+using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
 
-namespace VolvoWrench.DemoStuff.L4D2Branch.CSGODemoInfo.DT
+namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DT
 {
     internal class SendTable
     {

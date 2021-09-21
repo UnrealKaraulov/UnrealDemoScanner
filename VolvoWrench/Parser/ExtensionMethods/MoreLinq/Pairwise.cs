@@ -21,7 +21,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 
-namespace VolvoWrench.ExtensionMethods.MoreLinq
+namespace DemoScanner.ExtensionMethods.MoreLinq
 {
     public static partial class MoreEnumerable
     {

@@ -1,4 +1,4 @@
-namespace VolvoWrench.DemoStuff.L4D2Branch.CSGODemoInfo
+namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo
 {
     public class AdditionalPlayerInformation
     {

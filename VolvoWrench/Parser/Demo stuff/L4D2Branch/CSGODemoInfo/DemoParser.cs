@@ -2,13 +2,13 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using VolvoWrench.DemoStuff.L4D2Branch.BitStreamUtil;
-using VolvoWrench.DemoStuff.L4D2Branch.CSGODemoInfo.DP;
-using VolvoWrench.DemoStuff.L4D2Branch.CSGODemoInfo.DP.FastNetmessages;
-using VolvoWrench.DemoStuff.L4D2Branch.CSGODemoInfo.DT;
-using VolvoWrench.DemoStuff.L4D2Branch.CSGODemoInfo.ST;
+using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
+using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP;
+using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.FastNetmessages;
+using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DT;
+using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.ST;
 
-namespace VolvoWrench.DemoStuff.L4D2Branch.CSGODemoInfo
+namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo
 {
     public class DemoParser : IDisposable
     {

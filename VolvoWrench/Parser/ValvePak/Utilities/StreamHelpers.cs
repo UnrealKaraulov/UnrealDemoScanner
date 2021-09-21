@@ -1,7 +1,7 @@
 ﻿using System.IO;
 using System.Text;
 
-namespace VolvoWrench.ValvePak.Utilities
+namespace DemoScanner.ValvePak.Utilities
 {
     internal static class StreamHelpers
     {

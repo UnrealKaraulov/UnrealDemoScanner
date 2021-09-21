@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace VolvoWrench.DemoStuff
+namespace DemoScanner.DemoStuff
 {
     internal static class BinaryReaderExtension
     {

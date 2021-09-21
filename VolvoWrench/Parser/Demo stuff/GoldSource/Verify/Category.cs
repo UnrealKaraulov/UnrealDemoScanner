@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace VolvoWrench.DemoStuff.GoldSource.Verify
+namespace DemoScanner.DemoStuff.GoldSource.Verify
 {
     public class Category
     {

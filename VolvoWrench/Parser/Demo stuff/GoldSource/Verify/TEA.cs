@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Linq;
 
-namespace VolvoWrench.DemoStuff.GoldSource.Verify
+namespace DemoScanner.DemoStuff.GoldSource.Verify
 {
     /// <summary>
     ///     Tea encryption class

@@ -6,11 +6,11 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 
-[assembly: AssemblyTitle("Unreal DemoScanner")]
+[assembly: AssemblyTitle("Unreal Demo Scanner")]
 [assembly: AssemblyDescription("Scan demo for cheat/hack/scripts.")]
-[assembly: AssemblyCompany("Karaul0v")]
-[assembly: AssemblyProduct("Unreal DemoScanner")]
-[assembly: AssemblyCopyright("2020")]
+[assembly: AssemblyCompany("https://github.com/UnrealKaraulov/UnrealDemoScanner")]
+[assembly: AssemblyProduct("Unreal Demo Scanner")]
+[assembly: AssemblyCopyright("Karaulov")]
 
 // Setting ComVisible to false makes the types in this assembly not visible 
 // to COM components.  If you need to access a type in this assembly from 
@@ -33,6 +33,6 @@ using System.Runtime.InteropServices;
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
 
-[assembly: AssemblyVersion("1.0.5.0")]
-[assembly: AssemblyFileVersion("1.0.5.0")]
+[assembly: AssemblyVersion("1.5.0.0")]
+[assembly: AssemblyFileVersion("1.1.0.0")]
 [assembly: NeutralResourcesLanguage("en-US")]

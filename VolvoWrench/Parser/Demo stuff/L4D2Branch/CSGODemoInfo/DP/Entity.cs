@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using VolvoWrench.DemoStuff.L4D2Branch.BitStreamUtil;
-using VolvoWrench.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler;
-using VolvoWrench.DemoStuff.L4D2Branch.CSGODemoInfo.DT;
+using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
+using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler;
+using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DT;
 
-namespace VolvoWrench.DemoStuff.L4D2Branch.CSGODemoInfo.DP
+namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP
 {
     internal class Entity
     {

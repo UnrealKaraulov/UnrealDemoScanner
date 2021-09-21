@@ -3,7 +3,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 
-namespace VolvoWrench.DemoStuff.L4D2Branch.BitStreamUtil
+namespace DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil
 {
     public class DebugBitStream : IBitStream
     {
@@ -22,8 +22,8 @@ namespace VolvoWrench.DemoStuff.L4D2Branch.BitStreamUtil
 
         void IDisposable.Dispose()
         {
-            A.Dispose();
-            B.Dispose();
+            if (A != null) A.Dispose();
+            if (B != null) B.Dispose();
         }
 
         public uint ReadInt(int bits)

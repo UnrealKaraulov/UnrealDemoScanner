@@ -1,4 +1,4 @@
-﻿namespace VolvoWrench.DemoStuff.L4D2Branch.CSGODemoInfo.DP
+﻿namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP
 {
 #if SLOW_PROTOBUF
 	using ProtoBuf;

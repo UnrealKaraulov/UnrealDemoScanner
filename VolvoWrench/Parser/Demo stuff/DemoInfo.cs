@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace VolvoWrench.DemoStuff
+namespace DemoScanner.DemoStuff
 {
     /// <summary>
     ///     Demos return a class that inherits this

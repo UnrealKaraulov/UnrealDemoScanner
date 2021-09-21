@@ -30,9 +30,9 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using VolvoWrench.ValvePak.Utilities;
+using DemoScanner.ValvePak.Utilities;
 
-namespace VolvoWrench.ValvePak
+namespace DemoScanner.ValvePak
 {
     public class Package : IDisposable
     {

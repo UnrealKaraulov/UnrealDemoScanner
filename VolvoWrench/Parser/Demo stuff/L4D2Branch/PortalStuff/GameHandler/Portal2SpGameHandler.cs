@@ -1,9 +1,9 @@
 using System;
 using System.IO;
 using System.Text;
-using VolvoWrench.DemoStuff.L4D2Branch.PortalStuff.Result;
+using DemoScanner.DemoStuff.L4D2Branch.PortalStuff.Result;
 
-namespace VolvoWrench.DemoStuff.L4D2Branch.PortalStuff.GameHandler
+namespace DemoScanner.DemoStuff.L4D2Branch.PortalStuff.GameHandler
 {
     internal class Portal2SpGameHandler : OrangeBoxGameHandler
     {

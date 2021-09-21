@@ -1,7 +1,7 @@
 ﻿using System.IO;
 using System.Text;
 
-namespace VolvoWrench.ExtensionMethods
+namespace DemoScanner.ExtensionMethods
 {
     internal static class Traderain
     {

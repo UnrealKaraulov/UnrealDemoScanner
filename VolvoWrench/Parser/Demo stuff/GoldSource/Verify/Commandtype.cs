@@ -1,4 +1,4 @@
-﻿namespace VolvoWrench.DemoStuff.GoldSource.Verify
+﻿namespace DemoScanner.DemoStuff.GoldSource.Verify
 {
     public enum Commandtype
     {

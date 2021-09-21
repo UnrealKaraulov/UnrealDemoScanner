@@ -1,4 +1,4 @@
-﻿namespace VolvoWrench.DemoStuff.L4D2Branch.CSGODemoInfo.Messages
+﻿namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.Messages
 {
 #if !SLOW_PROTOBUF
     public enum NET_Messages

@@ -5,7 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Windows.Forms;
 
-namespace VolvoWrench.DemoStuff.GoldSource.Verify
+namespace DemoScanner.DemoStuff.GoldSource.Verify
 {
     public class BXTVerify
     {

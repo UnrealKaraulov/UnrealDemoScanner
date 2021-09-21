@@ -3,11 +3,11 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using VolvoWrench.DemoStuff.GoldSource;
-using VolvoWrench.DemoStuff.L4D2Branch;
-using VolvoWrench.DemoStuff.Source;
+using DemoScanner.DemoStuff.GoldSource;
+using DemoScanner.DemoStuff.L4D2Branch;
+using DemoScanner.DemoStuff.Source;
 
-namespace VolvoWrench.DemoStuff
+namespace DemoScanner.DemoStuff
 {
     /// <summary>
     ///     Type of the demo

@@ -1,8 +1,8 @@
-﻿using VolvoWrench.DemoStuff.L4D2Branch.BitStreamUtil;
-using VolvoWrench.DemoStuff.L4D2Branch.CSGODemoInfo.DP.FastNetmessages;
-using VolvoWrench.DemoStuff.L4D2Branch.CSGODemoInfo.Messages;
+﻿using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
+using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.FastNetmessages;
+using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.Messages;
 
-namespace VolvoWrench.DemoStuff.L4D2Branch.CSGODemoInfo.DP
+namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP
 {
     public static class DemoPacketParser
     {

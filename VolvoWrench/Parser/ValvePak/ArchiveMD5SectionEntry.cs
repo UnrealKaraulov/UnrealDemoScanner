@@ -1,4 +1,4 @@
-﻿namespace VolvoWrench.ValvePak
+﻿namespace DemoScanner.ValvePak
 {
     /// <summary>
     ///     VPK_ArchiveMD5SectionEntry

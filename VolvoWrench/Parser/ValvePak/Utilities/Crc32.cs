@@ -1,4 +1,4 @@
-﻿namespace VolvoWrench.ValvePak.Utilities
+﻿namespace DemoScanner.ValvePak.Utilities
 {
     /// <summary>
     ///     A utility class to compute CRC32.
