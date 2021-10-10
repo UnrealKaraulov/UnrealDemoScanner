@@ -43,7 +43,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.55";
+        public const string PROGRAMVERSION = "1.55.2";
 
         public static bool DEBUG_ENABLED = false;
         public static bool NO_TELEPORT = false;
@@ -7815,11 +7815,14 @@ namespace DemoScanner.DG
             {
                 if (DemoScanner.MessageCount - DemoScanner.SVC_CHOKEMSGID > 1)
                 {
-                    if (DemoScanner.SVC_CHOKEMSGIDSKIP < 0)
-                        DemoScanner.DemoScanner_AddWarn(
-                                                "[Fakelag] at (" + DemoScanner.CurrentTime +
-                                                "):" + DemoScanner.CurrentTimeString, false);
-                    DemoScanner.SVC_CHOKEMSGIDSKIP--;
+                    if (DemoScanner.IsUserAlive())
+                    {
+                        if (DemoScanner.SVC_CHOKEMSGIDSKIP < 0)
+                            DemoScanner.DemoScanner_AddWarn(
+                                                    "[Fakelag] at (" + DemoScanner.CurrentTime +
+                                                    "):" + DemoScanner.CurrentTimeString, false);
+                        DemoScanner.SVC_CHOKEMSGIDSKIP--;
+                    }
                 }
                 DemoScanner.SVC_CHOKEMSGID = 0;
             }
