@@ -22,28 +22,10 @@ using MessageBox = System.Windows.Forms.MessageBox;
 
 namespace DemoScanner.DG
 {
-    /* (BIT №)
-    #define IN_ATTACK 1
-    #define IN_JUMP	2
-    #define IN_DUCK	3
-    #define IN_FORWARD 4
-    #define IN_BACK	5
-    #define IN_USE	6
-    #define IN_CANCEL 7
-    #define IN_LEFT	 8
-    #define IN_RIGHT	9
-    #define IN_MOVELEFT	10
-    #define IN_MOVERIGHT 11
-    #define IN_ATTACK2	12
-    #define IN_RUN      13
-    #define IN_RELOAD	14
-    #define IN_ALT1		15
-    #define IN_SCORE	16  
-    */
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.55.2";
+        public const string PROGRAMVERSION = "1.55.3";
 
         public static bool DEBUG_ENABLED = false;
         public static bool NO_TELEPORT = false;
@@ -460,6 +442,8 @@ namespace DemoScanner.DG
         {
             if (GameEnd)
             {
+                if (detected)
+                    DemoScanner.WarnsAfterGameEnd++;
                 return;
             }
             if (LastWarnTime == CurrentTime)
@@ -1977,7 +1961,7 @@ namespace DemoScanner.DG
                                     DemoScanner.ReloadWarns = 0;
                                     if (DemoScanner.DEBUG_ENABLED)
                                         Console.WriteLine("Teleportus " + CurrentTime + ":" + CurrentTimeString);
-                                    if (DemoScanner.LastGameMaximizeTime != 0.0f && DemoScanner.LastTeleportusTime != 0.0f && DemoScanner.LastGameMaximizeTime == CurrentTime && !DemoScanner.GameEnd)
+                                    if (DemoScanner.LastGameMaximizeTime != 0.0f && DemoScanner.LastTeleportusTime != 0.0f && DemoScanner.LastGameMaximizeTime == CurrentTime)
                                     {
                                         DemoScanner.ReturnToGameDetects++;
                                         DemoScanner_AddWarn("['RETURN TO GAME' FEATURE]", DemoScanner.ReturnToGameDetects > 2, true, true);
@@ -4189,7 +4173,7 @@ namespace DemoScanner.DG
                                                     //Console.WriteLine(nospreadtest.ToString("F8"));
                                                 }
 
-                                                if (DemoScanner.NoSpreadDetectionTime != CurrentTime && spreadtest > MAX_SPREAD_CONST && !DemoScanner.GameEnd)
+                                                if (DemoScanner.NoSpreadDetectionTime != CurrentTime && spreadtest > MAX_SPREAD_CONST)
                                                 {
                                                     DemoScanner.NoSpreadDetectionTime = CurrentTime;
                                                     DemoScanner_AddWarn(
@@ -4226,7 +4210,7 @@ namespace DemoScanner.DG
                                                     nospreadtest2 = Math.Round(viewanglesforsearch.Y - nf.RParms.Viewangles.Y + nf.RParms.Punchangle.Y, 8, MidpointRounding.AwayFromZero);
                                                     //Console.WriteLine(nospreadtest.ToString("F8"));
                                                 }
-                                                if (DemoScanner.NoSpreadDetectionTime != CurrentTime && spreadtest2 > MAX_SPREAD_CONST2 && !DemoScanner.GameEnd)
+                                                if (DemoScanner.NoSpreadDetectionTime != CurrentTime && spreadtest2 > MAX_SPREAD_CONST2)
                                                 {
                                                     DemoScanner.NoSpreadDetectionTime = CurrentTime;
                                                     DemoScanner_AddWarn(
@@ -4327,7 +4311,7 @@ namespace DemoScanner.DG
                                         DemoScanner.MaximumTimeBetweenFrames = 0.01f;
                                     else
                                     {
-                                        if (!CurrentFrameDuplicated && CurrentTime - PreviousTime > 0.5f && !DemoScanner.GameEnd && CurrentFrameId > 10)
+                                        if (!CurrentFrameDuplicated && CurrentTime - PreviousTime > 0.5f && CurrentFrameId > 10)
                                         {
                                             DemoScanner.TimeShiftCount += 1;
 
@@ -4365,7 +4349,7 @@ namespace DemoScanner.DG
                                             if (SecondFound && CurrentTime != 0.0 &&
                                                 CurrentTime2 != 0.0)
                                             {
-                                                if (!CurrentFrameDuplicated && !DemoScanner.GameEnd)
+                                                if (!CurrentFrameDuplicated )
                                                 {
                                                     DemoScanner.TimeShiftCount += 1;
                                                     if (LastTimeOut != 2 && DemoScanner.TimeShiftCount - DemoScanner.LossPackets > 4 + DemoScanner.ChokePackets && CurrentTime - LastChokePacket > 60)
@@ -4383,7 +4367,7 @@ namespace DemoScanner.DG
                                             if (SecondFound2 && CurrentTime != 0.0 &&
                                                 CurrentTime2 != 0.0)
                                             {
-                                                if (!CurrentFrameDuplicated && !DemoScanner.GameEnd)
+                                                if (!CurrentFrameDuplicated)
                                                 {
                                                     DemoScanner.TimeShiftCount += 1;
                                                     if (LastTimeOut != 3 && DemoScanner.TimeShiftCount - DemoScanner.LossPackets > 4 + DemoScanner.ChokePackets && CurrentTime - LastChokePacket > 60)
@@ -5295,7 +5279,7 @@ namespace DemoScanner.DG
                                         "\n";
                                 }
                                 //subnode.Text += @"msg = " + nf.Msg + "\n";
-                                if (nf.IncomingSequence > 0 && !DemoScanner.GameEnd &&
+                                if (nf.IncomingSequence > 0 && 
                                     nf.IncomingSequence <= DemoScanner.LastIncomingSequence)
                                 {
                                     DemoScanner.BadSequences++;
@@ -5388,6 +5372,10 @@ namespace DemoScanner.DG
                 DemoScanner.DemoScanner_AddInfo("Possible demoscanner bypass. Tried to kill frames:" + ModifiedDemoFrames);
             }
 
+            if (WarnsAfterGameEnd > 0)
+            {
+                DemoScanner.DemoScanner_AddInfo("Possible demoscanner bypass. Detects after game end:" + WarnsAfterGameEnd);
+            }
 
             Console.ForegroundColor = ConsoleColor.DarkRed;
 
@@ -6227,6 +6215,7 @@ namespace DemoScanner.DG
         public static DateTime StartScanTime;
 
         public static string codecname;
+        public static int WarnsAfterGameEnd = 0;
 
         public static bool IsHookDetected()
         {
@@ -7299,11 +7288,11 @@ namespace DemoScanner.DG
                     {
                         DemoScanner.GameEnd = true;
                         DemoScanner.GameEndTime = DemoScanner.CurrentTime;
-                        Console.WriteLine("---------- [Конец игры / Game Over] ----------");
+                        Console.WriteLine("---------- [Конец игры / Game Over (" + DemoScanner.CurrentTimeString + ")] ----------");
                     }
                     else
                     {
-                        Console.WriteLine("---------- [Конец игры 2/ Game Over 2] ----------"); //  Console.WriteLine("Detect two or more \"Game end\" messages. HPP HACK DETECTED?");
+                        Console.WriteLine("---------- [Конец игры 2 / Game Over 2 (" + DemoScanner.CurrentTimeString + ")] ----------");
                     }
                 }
 
@@ -9227,11 +9216,6 @@ namespace DemoScanner.DG
         }
         private void MessageDeath()
         {
-            if (DemoScanner.GameEnd && DemoScanner.CurrentTime - DemoScanner.GameEndTime > 5.0f)
-            {
-                Console.WriteLine("Detected kill after game end!");
-            }
-
             var len = BitBuffer.ReadByte();
             var iKiller = BitBuffer.ReadByte();
             var iVictim = BitBuffer.ReadByte();
