@@ -10682,4 +10682,37 @@ namespace DemoScanner.DG
             }
         }
     }
+
+    public static class MachineLearn_CheckAngles
+    {
+        public const int AnglesCheckCount = 3;
+        public const int AnglesFloatNumber = 2;
+        public class CheckAnglesStruct
+        {
+            public List<float> anglescheck;
+        }
+        public static List<CheckAnglesStruct> ANGLES_DB;
+
+
+        public static void ReadAnglesDB()
+        {
+
+        }
+        public static void WriteAnglesDB()
+        {
+            
+        }
+
+        public static bool IsAnglesInDB(List<float> angles_in)
+        {
+
+            return false;
+        }
+
+        public static void AddAnglesToDB(List<float> angles_in)
+        {
+
+
+        }
+    }
 }
