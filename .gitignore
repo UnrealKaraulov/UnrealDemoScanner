@@ -9,15 +9,14 @@
 # Build results
 
 [Dd]ebug/
-[Rr]elease/
 x64/
-[Bb]in/
 [Oo]bj/
 
 # MSTest test Results
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*
-
+*.config
+*.exe
 *_i.c
 *_p.c
 *_i.h
