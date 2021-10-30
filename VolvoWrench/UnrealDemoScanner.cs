@@ -31,6 +31,7 @@ namespace DemoScanner.DG
         public static bool NO_TELEPORT = false;
         public static bool DUMP_ALL_FRAMES = false;
 
+        public static bool AUTO_MACHINE_LEARN_HACK_FOR_DEVELOPER = false;
 
         public enum WeaponIdType
         {
@@ -77,6 +78,7 @@ namespace DemoScanner.DG
         public static List<float> LearnAngles = new List<float>();
         public static bool ENABLE_LEARN_CLEAN_DEMO = false;
         public static bool ENABLE_LEARN_HACK_DEMO = false;
+        public static bool ENABLE_LEARN_HACK_DEMO_FORCE_SAVE = false;
         public const int LEARN_FLOAT_COUNT = 4;
         public static int current_learn_float_count = -1;
         public static MachineLearn_CheckAngles MachineLearnAnglesCLEAN = new MachineLearn_CheckAngles("Y_ATTACK_DB.bin", LEARN_FLOAT_COUNT - 1);
@@ -833,6 +835,11 @@ namespace DemoScanner.DG
                         CurrentNetMsgFrameId - StopAttackBtnFrameId > 2 && StopAttackBtnFrameId != 0 && NeedSearchAim3)
                     {
                         DemoScanner.NeedSearchAim3 = false;
+                        if (DemoScanner.AUTO_MACHINE_LEARN_HACK_FOR_DEVELOPER)
+                        {
+                            DemoScanner.ENABLE_LEARN_HACK_DEMO = true;
+                            DemoScanner.ENABLE_LEARN_HACK_DEMO_FORCE_SAVE = true;
+                        }
                         if (!CurrentFrameDuplicated)
                             DemoScanner_AddWarn("[AIM TYPE 3] at (" + StopAttackBtnFrameId +
                                                         "):" + DemoScanner.CurrentTimeString, false);
@@ -1336,7 +1343,11 @@ namespace DemoScanner.DG
                 val2 = 5;
                 val3 = 5;
             }
-
+            if (DemoScanner.AUTO_MACHINE_LEARN_HACK_FOR_DEVELOPER)
+            {
+                DemoScanner.ENABLE_LEARN_HACK_DEMO = true;
+                DemoScanner.ENABLE_LEARN_HACK_DEMO_FORCE_SAVE = true;
+            }
             return "[AIM TYPE 7." + (type - 1) + " MATCH1:" + val1 + "% MATCH2:" +
            val2 + "% MATCH3:" + val3 + "%]";
         }
@@ -2231,6 +2242,11 @@ namespace DemoScanner.DG
                                         else if (PlayerSensitivityWarning == 0 && DemoScanner.LastAim5DetectedReal != 0.0f &&
                                             CurrentTime - DemoScanner.LastAim5DetectedReal < 0.5f)
                                         {
+                                            if (DemoScanner.AUTO_MACHINE_LEARN_HACK_FOR_DEVELOPER)
+                                            {
+                                                DemoScanner.ENABLE_LEARN_HACK_DEMO = true;
+                                                DemoScanner.ENABLE_LEARN_HACK_DEMO_FORCE_SAVE = true;
+                                            }
                                             DemoScanner_AddWarn(
                                                 "[AIM TYPE 5.1] at (" + LastAim5DetectedReal +
                                                 "):" + DemoScanner.CurrentTimeString, !IsPlayerLossConnection() && !IsAngleEditByEngine() && !IsChangeWeapon());
@@ -2244,6 +2260,11 @@ namespace DemoScanner.DG
                                         {
                                             if ((SilentAimDetected > 1 || JumpHackCount > 1) && !IsAngleEditByEngine() && !IsPlayerLossConnection())
                                             {
+                                                if (DemoScanner.AUTO_MACHINE_LEARN_HACK_FOR_DEVELOPER)
+                                                {
+                                                    DemoScanner.ENABLE_LEARN_HACK_DEMO = true;
+                                                    DemoScanner.ENABLE_LEARN_HACK_DEMO_FORCE_SAVE = true;
+                                                }
                                                 DemoScanner_AddWarn(
                                                     "[AIM TYPE 5.2] at (" + CurrentTime +
                                                     "):" + DemoScanner.CurrentTimeString, !IsPlayerLossConnection() && !IsAngleEditByEngine() && !IsChangeWeapon());
@@ -2252,6 +2273,11 @@ namespace DemoScanner.DG
                                             }
                                             else
                                             {
+                                                if (DemoScanner.AUTO_MACHINE_LEARN_HACK_FOR_DEVELOPER)
+                                                {
+                                                    DemoScanner.ENABLE_LEARN_HACK_DEMO = true;
+                                                    DemoScanner.ENABLE_LEARN_HACK_DEMO_FORCE_SAVE = true;
+                                                }
                                                 DemoScanner_AddWarn(
                                                     "[AIM TYPE 5.3] at (" + LastAim5Detected +
                                                     "):" + DemoScanner.CurrentTimeString, false);
@@ -2268,6 +2294,11 @@ namespace DemoScanner.DG
                                             {
                                                 if (!IsAngleEditByEngine() && !IsPlayerLossConnection())
                                                 {
+                                                    if (DemoScanner.AUTO_MACHINE_LEARN_HACK_FOR_DEVELOPER)
+                                                    {
+                                                        DemoScanner.ENABLE_LEARN_HACK_DEMO = true;
+                                                        DemoScanner.ENABLE_LEARN_HACK_DEMO_FORCE_SAVE = true;
+                                                    }
                                                     DemoScanner_AddWarn(
                                                         "[AIM TYPE 5.4] at (" + CurrentTime +
                                                         "):" + DemoScanner.CurrentTimeString, false);
@@ -2285,6 +2316,11 @@ namespace DemoScanner.DG
                                             {
                                                 if (!IsAngleEditByEngine() && !IsPlayerLossConnection())
                                                 {
+                                                    if (DemoScanner.AUTO_MACHINE_LEARN_HACK_FOR_DEVELOPER)
+                                                    {
+                                                        DemoScanner.ENABLE_LEARN_HACK_DEMO = true;
+                                                        DemoScanner.ENABLE_LEARN_HACK_DEMO_FORCE_SAVE = true;
+                                                    }
                                                     DemoScanner_AddWarn(
                                                         "[AIM TYPE 5.5] at (" + CurrentTime +
                                                         "):" + DemoScanner.CurrentTimeString, false);
@@ -3074,15 +3110,17 @@ namespace DemoScanner.DG
                                         current_learn_float_count = -1;
                                         if (DemoScanner.ENABLE_LEARN_CLEAN_DEMO || DemoScanner.ENABLE_LEARN_HACK_DEMO)
                                         {
+                                            DemoScanner.ENABLE_LEARN_HACK_DEMO = false;
                                             WriteLearnAngles();
+                                            DemoScanner.LearnAngles = new List<float>();
                                         }
                                         else if (MachineLearnAnglesCLEAN.is_file_exists
                                             || MachineLearnAnglesHACK.is_file_exists)
                                         {
                                             if (IsUserAlive() && !IsPlayerLossConnection() && !IsAngleEditByEngine() && !IsChangeWeapon() && CurrentFrameOnGround)
                                                 CheckLearnAngles();
+                                            DemoScanner.LearnAngles = new List<float>();
                                         }
-                                        DemoScanner.LearnAngles = new List<float>();
                                     }
                                    
 
@@ -4216,6 +4254,11 @@ namespace DemoScanner.DG
                                         }
                                         else if (viewanglesforsearch != nf.RParms.ClViewangles)
                                         {
+                                            if (DemoScanner.AUTO_MACHINE_LEARN_HACK_FOR_DEVELOPER)
+                                            {
+                                                DemoScanner.ENABLE_LEARN_HACK_DEMO = true;
+                                                DemoScanner.ENABLE_LEARN_HACK_DEMO_FORCE_SAVE = true;
+                                            }
                                             if (AimType8Warn > 5)
                                                 AimType8Warn = 0;
                                             AimType8Warn++;
@@ -4237,6 +4280,11 @@ namespace DemoScanner.DG
                                         }
                                         else if (viewanglesforsearch != nf.UCmd.Viewangles)
                                         {
+                                            if (DemoScanner.AUTO_MACHINE_LEARN_HACK_FOR_DEVELOPER)
+                                            {
+                                                DemoScanner.ENABLE_LEARN_HACK_DEMO = true;
+                                                DemoScanner.ENABLE_LEARN_HACK_DEMO_FORCE_SAVE = true;
+                                            }
                                             if (AimType8Warn > 5)
                                                 AimType8Warn = 0;
                                             AimType8Warn++;
@@ -4935,12 +4983,22 @@ namespace DemoScanner.DG
                                             if (ReallyAim2 == 2 && SilentAimDetected < 2 &&
                                                 BadAttackCount < 2)
                                             {
+                                                if (DemoScanner.AUTO_MACHINE_LEARN_HACK_FOR_DEVELOPER)
+                                                {
+                                                    DemoScanner.ENABLE_LEARN_HACK_DEMO = true;
+                                                    DemoScanner.ENABLE_LEARN_HACK_DEMO_FORCE_SAVE = true;
+                                                }
                                                 DemoScanner_AddWarn(
                                                     "[AIM TYPE 2] at (" + CurrentTime +
                                                     "):" + DemoScanner.CurrentTimeString, false);
                                             }
                                             else if (!IsAngleEditByEngine())
                                             {
+                                                if (DemoScanner.AUTO_MACHINE_LEARN_HACK_FOR_DEVELOPER)
+                                                {
+                                                    DemoScanner.ENABLE_LEARN_HACK_DEMO = true;
+                                                    DemoScanner.ENABLE_LEARN_HACK_DEMO_FORCE_SAVE = true;
+                                                }
                                                 DemoScanner_AddWarn(
                                                     "[AIM TYPE 2] at (" + CurrentTime +
                                                     "):" + DemoScanner.CurrentTimeString, !IsPlayerLossConnection() && !IsChangeWeapon() && !IsForceCenterView());
@@ -4993,6 +5051,11 @@ namespace DemoScanner.DG
                                         }
                                         else
                                         {
+                                            if (DemoScanner.AUTO_MACHINE_LEARN_HACK_FOR_DEVELOPER)
+                                            {
+                                                DemoScanner.ENABLE_LEARN_HACK_DEMO = true;
+                                                DemoScanner.ENABLE_LEARN_HACK_DEMO_FORCE_SAVE = true;
+                                            }
                                             DemoScanner_AddWarn(
                                                 "[TRIGGER BOT] at (" + CurrentTime +
                                                 ") " + DemoScanner.CurrentTimeString, !IsChangeWeapon());
@@ -5047,6 +5110,11 @@ namespace DemoScanner.DG
                                         {
                                             if ((SilentAimDetected > 0 || JumpHackCount > 0) && !IsAngleEditByEngine())
                                             {
+                                                if (DemoScanner.AUTO_MACHINE_LEARN_HACK_FOR_DEVELOPER)
+                                                {
+                                                    DemoScanner.ENABLE_LEARN_HACK_DEMO = true;
+                                                    DemoScanner.ENABLE_LEARN_HACK_DEMO_FORCE_SAVE = true;
+                                                }
                                                 DemoScanner_AddWarn(
                                                     "[AIM TYPE 1.2] at (" + CurrentTime +
                                                     "):" + DemoScanner.CurrentTimeString, !IsChangeWeapon() && !IsPlayerLossConnection() && !IsForceCenterView());
@@ -5054,6 +5122,11 @@ namespace DemoScanner.DG
                                             }
                                             else
                                             {
+                                                if (DemoScanner.AUTO_MACHINE_LEARN_HACK_FOR_DEVELOPER)
+                                                {
+                                                    DemoScanner.ENABLE_LEARN_HACK_DEMO = true;
+                                                    DemoScanner.ENABLE_LEARN_HACK_DEMO_FORCE_SAVE = true;
+                                                }
                                                 DemoScanner_AddWarn(
                                                      "[AIM TYPE 1.3] at (" + CurrentTime +
                                                      "):" + DemoScanner.CurrentTimeString, false, false);
@@ -5064,6 +5137,11 @@ namespace DemoScanner.DG
                                     {
                                         if (FirstAttack && !IsAngleEditByEngine())
                                         {
+                                            if (DemoScanner.AUTO_MACHINE_LEARN_HACK_FOR_DEVELOPER)
+                                            {
+                                                DemoScanner.ENABLE_LEARN_HACK_DEMO = true;
+                                                DemoScanner.ENABLE_LEARN_HACK_DEMO_FORCE_SAVE = true;
+                                            }
                                             DemoScanner_AddWarn(
                                                 "[AIM TYPE 1] at (" + CurrentTime +
                                                 "):" + DemoScanner.CurrentTimeString, !IsChangeWeapon() && !IsPlayerLossConnection() && !IsForceCenterView());
@@ -5479,7 +5557,7 @@ namespace DemoScanner.DG
             Console.WriteLine("Scan completed. Scan time: " + EndScanTime.ToString("T"));
             if (DemoScanner.ENABLE_LEARN_CLEAN_DEMO)
                 MachineLearnAnglesCLEAN.WriteAnglesDB();
-            if (DemoScanner.ENABLE_LEARN_HACK_DEMO)
+            if (DemoScanner.ENABLE_LEARN_HACK_DEMO || ENABLE_LEARN_HACK_DEMO_FORCE_SAVE)
                 MachineLearnAnglesHACK.WriteAnglesDB();
 
             while (true)
@@ -5903,7 +5981,7 @@ namespace DemoScanner.DG
             {
                 newLearnAngles.Add((float)Math.Round((float)((LearnAngles[i] / LearnAngles[0]) * 100.0f), 3));
             }
-            if (!ENABLE_LEARN_HACK_DEMO)
+            if (!ENABLE_LEARN_HACK_DEMO && !ENABLE_LEARN_HACK_DEMO_FORCE_SAVE)
                 MachineLearnAnglesCLEAN.AddAnglesToDB(newLearnAngles);
             else
                 MachineLearnAnglesHACK.AddAnglesToDB(newLearnAngles);
@@ -8989,11 +9067,21 @@ namespace DemoScanner.DG
                         {
                             if (!foundone && !foundtwo)
                             {
+                                if (DemoScanner.AUTO_MACHINE_LEARN_HACK_FOR_DEVELOPER)
+                                {
+                                    DemoScanner.ENABLE_LEARN_HACK_DEMO = true;
+                                    DemoScanner.ENABLE_LEARN_HACK_DEMO_FORCE_SAVE = true;
+                                }
                                 DemoScanner.DemoScanner_AddWarn("[AIM TYPE 9] at (" + DemoScanner.CurrentTime +
                                                          "):" + DemoScanner.CurrentTimeString, true, true, false, true);
                             }
                             else
                             {
+                                if (DemoScanner.AUTO_MACHINE_LEARN_HACK_FOR_DEVELOPER)
+                                {
+                                    DemoScanner.ENABLE_LEARN_HACK_DEMO = true;
+                                    DemoScanner.ENABLE_LEARN_HACK_DEMO_FORCE_SAVE = true;
+                                }
                                 DemoScanner.DemoScanner_AddWarn("[AIM TYPE 9] at (" + DemoScanner.CurrentTime +
                                                         "):" + DemoScanner.CurrentTimeString, false, true, false, true);
                             }
