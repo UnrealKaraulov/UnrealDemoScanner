@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.56.0 BETA";
+        public const string PROGRAMVERSION = "1.56.1 BETA";
 
         public static bool DEBUG_ENABLED = false;
         public static bool NO_TELEPORT = false;
@@ -75,10 +75,12 @@ namespace DemoScanner.DG
 
 
         public static List<float> LearnAngles = new List<float>();
-        public static bool ENABLE_MACHINE_LEARN1 = false;
+        public static bool ENABLE_LEARN_CLEAN_DEMO = true;
+        public static bool ENABLE_LEARN_HACK_DEMO = false;
         public const int LEARN_FLOAT_COUNT = 4;
         public static int current_learn_float_count = -1;
-        public static MachineLearn_CheckAngles MachineLearnAngles1 = new MachineLearn_CheckAngles("Y_ATTACK_DB.bin", LEARN_FLOAT_COUNT - 1);
+        public static MachineLearn_CheckAngles MachineLearnAnglesCLEAN = new MachineLearn_CheckAngles("Y_ATTACK_DB.bin", LEARN_FLOAT_COUNT - 1);
+        public static MachineLearn_CheckAngles MachineLearnAnglesHACK = new MachineLearn_CheckAngles("Y_ATTACK_DB_HACK.bin", LEARN_FLOAT_COUNT - 1);
 
         public static List<string> outFrames = null;
 
@@ -1404,10 +1406,15 @@ namespace DemoScanner.DG
                 {
                     DemoScanner.DUMP_ALL_FRAMES = true;
                 }
-                else if (arg.IndexOf("-learn1") > -1)
+                else if (arg.IndexOf("-learn_clearn") > -1)
                 {
-                    DemoScanner.ENABLE_MACHINE_LEARN1 = true;
-                    Console.WriteLine("ACTIVATED MACHINE LEARN FEATURE 1!");
+                    DemoScanner.ENABLE_LEARN_CLEAN_DEMO = true;
+                    Console.WriteLine("ACTIVATED MACHINE LEARN FEATURE FOR CLEAN DEMOS!");
+                }
+                else if (arg.IndexOf("-learn_hack") > -1)
+                {
+                    DemoScanner.ENABLE_LEARN_HACK_DEMO = true;
+                    Console.WriteLine("ACTIVATED MACHINE LEARN FEATURE FOR CHEAT DEMOS!");
                 }
                 else if (arg.IndexOf("-alive") > -1)
                 {
@@ -1475,10 +1482,15 @@ namespace DemoScanner.DG
                         DemoScanner.DUMP_ALL_FRAMES = true;
                         Console.WriteLine("Dump mode activated.");
                     }
-                    else if (CurrentDemoFilePath.IndexOf("-learn1") == 0)
+                    else if (CurrentDemoFilePath.IndexOf("-learn_clearn") == 0)
                     {
-                        DemoScanner.ENABLE_MACHINE_LEARN1 = true;
-                        Console.WriteLine("ACTIVATED MACHINE LEARN FEATURE 1!");
+                        DemoScanner.ENABLE_LEARN_CLEAN_DEMO = true;
+                        Console.WriteLine("ACTIVATED MACHINE LEARN FEATURE FOR CLEAN DEMOS!");
+                    }
+                    else if (CurrentDemoFilePath.IndexOf("-learn_hack") == 0)
+                    {
+                        DemoScanner.ENABLE_LEARN_HACK_DEMO = true;
+                        Console.WriteLine("ACTIVATED MACHINE LEARN FEATURE FOR CHEAT DEMOS!");
                     }
                     else if (CurrentDemoFilePath.IndexOf("-alive") == 0)
                     {
@@ -1962,25 +1974,7 @@ namespace DemoScanner.DG
                                 CurrentFrameViewanglesX = cdframe.Viewangles.X;
                                 CurrentFrameViewanglesY = cdframe.Viewangles.Y;
 
-                                if (current_learn_float_count != -1 && current_learn_float_count != LEARN_FLOAT_COUNT)
-                                {
-                                    DemoScanner.LearnAngles.Add((float)Math.Round((float)CurrentFrameViewanglesY, 3));
-                                    current_learn_float_count++;
-                                }
-                                else if (current_learn_float_count == LEARN_FLOAT_COUNT)
-                                {
-                                    current_learn_float_count = -1;
-                                    if (DemoScanner.ENABLE_MACHINE_LEARN1)
-                                    {
-                                        WriteLearnAngles();
-                                    }
-                                    else if (MachineLearnAngles1.is_file_exists)
-                                    {
-                                        if (IsUserAlive() && !IsPlayerLossConnection() && !IsAngleEditByEngine() && !IsChangeWeapon() && CurrentFrameOnGround)
-                                           CheckLearnAngles();
-                                    }
-                                    DemoScanner.LearnAngles = new List<float>();
-                                }
+                               
 
                                 var tmpAngleDirY = GetAngleDirection(PreviousFrameViewanglesY, CurrentFrameViewanglesY);
 
@@ -3039,6 +3033,11 @@ namespace DemoScanner.DG
                                     DemoScanner.ReloadWarns = 0;
                                 }
 
+                                if (!IsUserAlive() || !RealAlive)
+                                {
+                                    DemoScanner.LearnAngles.Clear();
+                                    current_learn_float_count = -1;
+                                }
 
                                 if (RealAlive)
                                 {
@@ -3062,9 +3061,31 @@ namespace DemoScanner.DG
                                     {
                                         DemoScanner.LearnAngles.Clear();
                                         current_learn_float_count = 2;
-                                        DemoScanner.LearnAngles.Add((float)Math.Round((float)ViewanglesYBeforeBeforeAttack, 3));
-                                        DemoScanner.LearnAngles.Add((float)Math.Round((float)CurrentFrameViewanglesY, 3));
+                                        DemoScanner.LearnAngles.Add((float)Math.Round((float)normalizeangle(PreviousNetMsgFrame.RParms.Viewangles.Y), 3));
+                                        DemoScanner.LearnAngles.Add((float)Math.Round((float)normalizeangle(nf.RParms.Viewangles.Y), 3));
                                     }
+                                    if (current_learn_float_count != -1 && current_learn_float_count != LEARN_FLOAT_COUNT)
+                                    {
+                                        DemoScanner.LearnAngles.Add((float)Math.Round((float)normalizeangle(nf.RParms.Viewangles.Y), 3));
+                                        current_learn_float_count++;
+                                    }
+                                    else if (current_learn_float_count == LEARN_FLOAT_COUNT)
+                                    {
+                                        current_learn_float_count = -1;
+                                        if (DemoScanner.ENABLE_LEARN_CLEAN_DEMO || DemoScanner.ENABLE_LEARN_HACK_DEMO)
+                                        {
+                                            WriteLearnAngles();
+                                        }
+                                        else if (MachineLearnAnglesCLEAN.is_file_exists
+                                            || MachineLearnAnglesHACK.is_file_exists)
+                                        {
+                                            if (IsUserAlive() && !IsPlayerLossConnection() && !IsAngleEditByEngine() && !IsChangeWeapon() && CurrentFrameOnGround)
+                                                CheckLearnAngles();
+                                        }
+                                        DemoScanner.LearnAngles = new List<float>();
+                                    }
+                                   
+
 
                                     //if (CurrentTime - DemoScanner.NewAttackTimeAim9 > 0.2
                                     //    && CurrentTime - DemoScanner.NewAttackTimeAim9 < 0.5)
@@ -5456,8 +5477,10 @@ namespace DemoScanner.DG
             var EndScanTime = Trim(new DateTime((DateTime.Now - DemoScanner.StartScanTime).Ticks), 10);
 
             Console.WriteLine("Scan completed. Scan time: " + EndScanTime.ToString("T"));
-            if (DemoScanner.ENABLE_MACHINE_LEARN1)
-                MachineLearnAngles1.WriteAnglesDB();
+            if (DemoScanner.ENABLE_LEARN_CLEAN_DEMO)
+                MachineLearnAnglesCLEAN.WriteAnglesDB();
+            if (DemoScanner.ENABLE_LEARN_HACK_DEMO)
+                MachineLearnAnglesHACK.WriteAnglesDB();
 
             while (true)
             {
@@ -5878,9 +5901,12 @@ namespace DemoScanner.DG
             List<float> newLearnAngles = new List<float>();
             for (int i = 1; i < LearnAngles.Count; i++)
             {
-                newLearnAngles.Add((float)Math.Round((float)(LearnAngles[i] / LearnAngles[0]), 3));
+                newLearnAngles.Add((float)Math.Round((float)((LearnAngles[i] / LearnAngles[0]) * 100.0f), 3));
             }
-            MachineLearnAngles1.AddAnglesToDB(newLearnAngles);
+            if (!ENABLE_LEARN_HACK_DEMO)
+                MachineLearnAnglesCLEAN.AddAnglesToDB(newLearnAngles);
+            else
+                MachineLearnAnglesHACK.AddAnglesToDB(newLearnAngles);
             LearnAngles.Clear();
         }
 
@@ -5889,15 +5915,15 @@ namespace DemoScanner.DG
             List<float> newLearnAngles = new List<float>();
             for (int i = 1; i < LearnAngles.Count; i++)
             {
-                newLearnAngles.Add((float)Math.Round((float)(LearnAngles[i] / LearnAngles[0]), 3));
+                newLearnAngles.Add((float)Math.Round((float)((LearnAngles[i] / LearnAngles[0]) * 100.0f), 3));
             }
-            if (MachineLearnAngles1.IsAnglesInDB(newLearnAngles))
+            if (MachineLearnAnglesHACK.IsAnglesInDB(newLearnAngles) && !MachineLearnAnglesCLEAN.IsAnglesInDB(newLearnAngles))
             {
-              //  ;
+                DemoScanner.DemoScanner_AddWarn("[TEST] Machine learn hack detect at : " + DemoScanner.CurrentTimeString, false, false);
             }
             else
             {
-                DemoScanner.DemoScanner_AddWarn("[TEST] Angles not found in learn db: " + DemoScanner.CurrentTimeString ,false,false);
+                
             }
             LearnAngles.Clear();
         }
@@ -10593,7 +10619,7 @@ namespace DemoScanner.DG
                 ReadAnglesDB();
                 if (ANGLES_DB.Count == 0)
                     is_file_exists = false;
-                Console.WriteLine("ReadAnglesDB:" + ANGLES_DB.Count);
+                //Console.WriteLine("ReadAnglesDB:" + ANGLES_DB.Count);
             }
             catch
             {
@@ -10634,7 +10660,7 @@ namespace DemoScanner.DG
         }
         public void WriteAnglesDB()
         {
-            Console.WriteLine("WriteAnglesDB:" + ANGLES_DB.Count);
+           // Console.WriteLine("WriteAnglesDB:" + ANGLES_DB.Count);
             try
             {
                 using (BinaryWriter writer = new BinaryWriter(File.Open(filename, FileMode.Create)))
@@ -10664,7 +10690,7 @@ namespace DemoScanner.DG
 
             for (int i = 0; i < a1.Count; i++)
             {
-                if (Math.Abs(a1[i] - a2[i]) > 0.05)
+                if (Math.Abs(a1[i] - a2[i]) > 0.02)
                 {
                     return false;
                 }
