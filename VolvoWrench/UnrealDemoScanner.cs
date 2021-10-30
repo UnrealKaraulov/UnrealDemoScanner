@@ -75,7 +75,7 @@ namespace DemoScanner.DG
 
 
         public static List<float> LearnAngles = new List<float>();
-        public static bool ENABLE_LEARN_CLEAN_DEMO = true;
+        public static bool ENABLE_LEARN_CLEAN_DEMO = false;
         public static bool ENABLE_LEARN_HACK_DEMO = false;
         public const int LEARN_FLOAT_COUNT = 4;
         public static int current_learn_float_count = -1;
