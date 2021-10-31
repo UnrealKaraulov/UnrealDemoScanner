@@ -233,13 +233,15 @@ namespace DemoScanner.DG
 
         public static bool IsChangeWeapon()
         {
-            return CurrentTime - ChangeWeaponTime < 0.25f;
+            float retvar = CurrentTime - ChangeWeaponTime;
+            return retvar < 0.25f && retvar >= 0;
         }
         public static int FoundForceCenterView = 0;
         public static float ForceCenterViewTime = 0.0f;
         public static bool IsForceCenterView()
         {
-            return CurrentTime - ForceCenterViewTime < 2.0f;
+            float retvar = CurrentTime - ForceCenterViewTime;
+            return retvar < 2.0f && retvar >= 0;
         }
 
         public static int SkipNextAttack = 0;
@@ -1915,7 +1917,7 @@ namespace DemoScanner.DG
                                 }
                                 else
                                 {
-                                    for (int n = frameindex + 1;
+                                    for (int n = frameindex + 2;
                                           n < CurrentDemoFile.GsDemoInfo.DirectoryEntries[index].Frames.Count;
                                           n++)
                                     {
@@ -3221,8 +3223,8 @@ namespace DemoScanner.DG
                                     //}
 
 
-                                    if (IsRoundEnd() || /*DemoScanner.LastBackMoveTime == 0.0f ||*/ DemoScanner.LastForwardMoveTime == 0.0f || DemoScanner.LastMoveForward == 0.0f)
-                                    {
+                                   /* if (IsRoundEnd() || /*DemoScanner.LastBackMoveTime == 0.0f ||*/ /*DemoScanner.LastForwardMoveTime == 0.0f || DemoScanner.LastMoveForward == 0.0f)
+                                    /*{
                                         DemoScanner.DesyncHackWarns = 0;
                                     }
 
@@ -3319,9 +3321,9 @@ namespace DemoScanner.DG
                                         {
                                             DemoScanner.DesyncHackWarns--;
                                         }
-                                    }
+                                    }*/
 
-                                    if (nf.UCmd.Sidemove < -80 || nf.UCmd.Sidemove > 80)
+                                    if (nf.UCmd.Sidemove < -40 || nf.UCmd.Sidemove > 40)
                                     {
                                         if (!DemoScanner.InStrafe && !DemoScanner.MoveLeft && !DemoScanner.MoveRight && CurrentTime - LastMoveLeft > 0.5 &&
                                             CurrentTime - LastMoveRight > 0.5 && CurrentTime - LastUnMoveLeft > 0.5 &&
@@ -3342,7 +3344,7 @@ namespace DemoScanner.DG
                                 }
                                 else
                                 {
-                                    DemoScanner.DesyncHackWarns = 0;
+                                    //DemoScanner.DesyncHackWarns = 0;
                                 }
 
                                 if (SearchMoveHack1)
@@ -10797,6 +10799,7 @@ namespace DemoScanner.DG
         public MachineLearn_CheckAngles(string filename, int angles_count)
         {
             this.filename = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location) + @"\" + filename;
+            //Console.WriteLine(this.filename);
             AnglesStructSize = angles_count;
             ANGLES_DB = new List<CheckAnglesStruct>();
             try
@@ -10804,7 +10807,6 @@ namespace DemoScanner.DG
                 ReadAnglesDB();
                 if (ANGLES_DB.Count == 0)
                     is_file_exists = false;
-                //Console.WriteLine("ReadAnglesDB:" + ANGLES_DB.Count);
             }
             catch
             {
