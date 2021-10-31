@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.56.3 BETA";
+        public const string PROGRAMVERSION = "1.56.4 BETA";
 
         public static bool DEBUG_ENABLED = false;
         public static bool NO_TELEPORT = false;
@@ -78,6 +78,7 @@ namespace DemoScanner.DG
         public static bool ENABLE_LEARN_CLEAN_DEMO = false;
         public static bool AUTO_LEARN_HACK_DB = false;
         public static bool ENABLE_LEARN_HACK_DEMO = false;
+        public static bool ENABLE_LEARN_HACK_DEMO_SAVE_ALL_ANGLES = false;
         public static bool ENABLE_LEARN_HACK_DEMO_FORCE_SAVE = false;
         public const int LEARN_FLOAT_COUNT = 4;
         public static int current_learn_float_count = -1;
@@ -2903,7 +2904,14 @@ namespace DemoScanner.DG
 
                                 var outstr = "";
                                 ParseGameData(nf.MsgBytes, ref outstr);
-                                // Console.WriteLine("Frame:" + frame.Key.Type.ToString() +". Len:" + nf.MsgBytes.Length);
+                                if (nf.MsgBytes.Length < 8 && CurrentTime != 0)
+                                {
+                                    DemoScanner.EmptyFrames++;
+                                    if (DemoScanner.EmptyFrames > 1 && DemoScanner.EmptyFrames < 3)
+                                    {
+                                        DemoScanner.DemoScanner_AddWarn("DETECTED MORE THAN ONE EMPTY FRAMES:" + CurrentTimeString);
+                                    }
+                                }
 
                                 if (CurrentTime != 0.0f && !FoundFirstTime)
                                 {
@@ -3069,7 +3077,7 @@ namespace DemoScanner.DG
                                        )
                                 {
                                     DemoScanner.ReloadWarns = 0;
-                                    DemoScanner.LearnAngles.Clear();
+                                    DemoScanner.LearnAngles = new List<double>();
                                     current_learn_float_count = -1;
                                 }
                                 if (DemoScanner.CurrentWeapon == DemoScanner.WeaponIdType.WEAPON_XM1014
@@ -3095,7 +3103,7 @@ namespace DemoScanner.DG
                                             Console.WriteLine("Aim8DetectionTimeY warn!");
                                         }
                                     }
-
+                                    bool need_add_angle = true;
                                     if (NewAttack)
                                     {
                                         DemoScanner.LearnAngles.Clear();
@@ -3109,24 +3117,20 @@ namespace DemoScanner.DG
                                             current_learn_float_count = 2;
                                             DemoScanner.LearnAngles.Add(nf.RParms.Viewangles.Y);
                                         }
+                                        need_add_angle = false;
                                     }
-                                    if (current_learn_float_count == 1)
+                                    if (current_learn_float_count != -1 && need_add_angle)
                                     {
                                         if (!CurrentFrameDuplicated)
                                         {
-                                            current_learn_float_count = 2;
+                                            current_learn_float_count++;
                                             DemoScanner.LearnAngles.Add(nf.RParms.Viewangles.Y);
                                         }
                                     }
-                                    else if (current_learn_float_count != -1 && current_learn_float_count != LEARN_FLOAT_COUNT)
-                                    {
-                                        DemoScanner.LearnAngles.Add(nf.RParms.Viewangles.Y);
-                                        current_learn_float_count++;
-                                    }
-                                    else if (current_learn_float_count == LEARN_FLOAT_COUNT)
+                                    if (current_learn_float_count == LEARN_FLOAT_COUNT)
                                     {
                                         current_learn_float_count = -1;
-                                        if (DemoScanner.ENABLE_LEARN_CLEAN_DEMO || DemoScanner.ENABLE_LEARN_HACK_DEMO)
+                                        if (DemoScanner.ENABLE_LEARN_CLEAN_DEMO || DemoScanner.ENABLE_LEARN_HACK_DEMO || DemoScanner.ENABLE_LEARN_HACK_DEMO_SAVE_ALL_ANGLES)
                                         {
                                             DemoScanner.ENABLE_LEARN_HACK_DEMO = false;
                                             WriteLearnAngles();
@@ -5432,7 +5436,7 @@ namespace DemoScanner.DG
                 DemoScanner.DemoScanner_AddInfo("Possible demoscanner bypass. Tried to kill frames:" + ModifiedDemoFrames);
             }
 
-            if (WarnsAfterGameEnd > 0)
+            if (WarnsAfterGameEnd > 8)
             {
                 DemoScanner.DemoScanner_AddInfo("Possible demoscanner bypass. Detects after game end:" + WarnsAfterGameEnd);
             }
@@ -5446,11 +5450,6 @@ namespace DemoScanner.DG
             //    Console.WriteLine("Last using at " + LastAttackHack + " second game time.");
             //}
 
-            if (BHOPcount > 0)
-            {
-                TextComments.WriteLine("Detected hack with [BHOP]. Detect count:" + (BHOPcount / 2));
-                Console.WriteLine("Detected hack with [BHOP]. Detect count:" + (BHOPcount / 2));
-            }
 
             if (JumpErrors > 0)
             {
@@ -5466,6 +5465,12 @@ namespace DemoScanner.DG
                 {
                     Console.WriteLine("Mouse jump / alias ratio: " + Math.Round(Convert.ToSingle(JumpErrors2) / Convert.ToSingle(JumpErrors) * 100.0f, 1) + "%");
                 }
+            }
+
+            if (BHOPcount > 0)
+            {
+                TextComments.WriteLine("Detected hack with [BHOP]. Detect count:" + (BHOPcount / 2));
+                Console.WriteLine("Detected hack with [BHOP]. Detect count:" + (BHOPcount / 2));
             }
 
             if (BadAttackCount > 0)
@@ -5573,10 +5578,19 @@ namespace DemoScanner.DG
             var EndScanTime = Trim(new DateTime((DateTime.Now - DemoScanner.StartScanTime).Ticks), 10);
 
             Console.WriteLine("Scan completed. Scan time: " + EndScanTime.ToString("T"));
+
             if (DemoScanner.ENABLE_LEARN_CLEAN_DEMO)
-                MachineLearnAnglesCLEAN.WriteAnglesDB();
-            if (DemoScanner.ENABLE_LEARN_HACK_DEMO_FORCE_SAVE)
+            {
+                if ((BHOPcount < 2)&&(BadAttackCount < 2)&&(SilentAimDetected < 2)&&(FakeLagAim < 2)&&(JumpHackCount < 02))
+                {
+                    MachineLearnAnglesCLEAN.WriteAnglesDB();
+                }
+            }
+
+
+            if (DemoScanner.ENABLE_LEARN_HACK_DEMO_FORCE_SAVE || DemoScanner.ENABLE_LEARN_HACK_DEMO_SAVE_ALL_ANGLES)
                 MachineLearnAnglesHACK.WriteAnglesDB();
+
 
             if (SKIP_RESULTS)
                 return;
@@ -6002,7 +6016,7 @@ namespace DemoScanner.DG
             {
                 newLearnAngles.Add((float)AngleBetween(LearnAngles[0],LearnAngles[i]));
             }
-            if (ENABLE_LEARN_HACK_DEMO_FORCE_SAVE)
+            if (ENABLE_LEARN_HACK_DEMO_FORCE_SAVE || ENABLE_LEARN_HACK_DEMO_SAVE_ALL_ANGLES)
                 MachineLearnAnglesHACK.AddAnglesToDB(newLearnAngles); 
             else
                 MachineLearnAnglesCLEAN.AddAnglesToDB(newLearnAngles);
@@ -6016,14 +6030,31 @@ namespace DemoScanner.DG
             {
                 newLearnAngles.Add((float)AngleBetween(LearnAngles[0], LearnAngles[i]));
             }
-            if (MachineLearnAnglesHACK.IsAnglesInDB(newLearnAngles) && !MachineLearnAnglesCLEAN.IsAnglesInDB(newLearnAngles))
+
+            if (MachineLearnAnglesHACK.IsAnglesInDB(newLearnAngles, 0.01f) && !MachineLearnAnglesCLEAN.IsAnglesInDB(newLearnAngles, 0.01f))
             {
-                DemoScanner.DemoScanner_AddWarn("[BETA] MACHINE LEARN AIM : " + DemoScanner.CurrentTimeString, false, false);
+                DemoScanner.DemoScanner_AddWarn("[BETA] MACHINE LEARN AIM 1.1: " + DemoScanner.CurrentTimeString, false, false);
             }
             else
             {
-                
+                if (MachineLearnAnglesHACK.IsAnglesInDB(newLearnAngles, 1.0f) && !MachineLearnAnglesCLEAN.IsAnglesInDB(newLearnAngles, 1.0f))
+                {
+                    DemoScanner.DemoScanner_AddWarn("[BETA] MACHINE LEARN AIM 1.2: " + DemoScanner.CurrentTimeString, false, false);
+                }
+                else
+                {
+                    if (MachineLearnAnglesHACK.IsAnglesInDB(newLearnAngles, 10.0f) && !MachineLearnAnglesCLEAN.IsAnglesInDB(newLearnAngles, 10.0f))
+                    {
+                        DemoScanner.DemoScanner_AddWarn("[BETA] MACHINE LEARN AIM 1.3: " + DemoScanner.CurrentTimeString, false, false);
+                    }
+                    else
+                    {
+
+                    }
+                }
             }
+
+           
             LearnAngles.Clear();
         }
 
@@ -6319,49 +6350,92 @@ namespace DemoScanner.DG
         public static string codecname;
         public static int WarnsAfterGameEnd = 0;
         public static bool SKIP_RESULTS = false;
+        public static int EmptyFrames = 0;
 
         public static bool IsHookDetected()
         {
-            return CurrentTime - LastBeamFound < 5.0;
+            float retcheck = CurrentTime - LastBeamFound ;
+            bool retval = retcheck < 5.0 && retcheck >= 0;
+
+            /*if (retval)
+                Console.WriteLine("CurrentTime:" + CurrentTime + ". LastBeamFound:" + LastBeamFound);*/
+
+            return retval;
         }
 
         public static bool IsBigVelocity()
         {
-            return CurrentTime - FoundBigVelocityTime < 2.0f;
+            float retcheck = CurrentTime - FoundBigVelocityTime;
+            bool retval = retcheck < 2.0f && retcheck >= 0;
+
+           /* if (retval)
+                Console.WriteLine("CurrentTime:" + CurrentTime + ". FoundBigVelocityTime:" + FoundBigVelocityTime);*/
+
+            return retval;
         }
 
         public static bool IsViewChanged()
         {
-            return CurrentTime - LastViewChange < 4.5f;
+            float retcheck = CurrentTime - LastViewChange;
+            bool retval = retcheck < 4.5f && retcheck >= 0;
+
+            /*if (retval)
+                Console.WriteLine("CurrentTime:" + CurrentTime + ". LastViewChange:" + LastViewChange);*/
+
+            return retval;
         }
         public static bool IsGameStartSecond()
         {
-            return CurrentGameSecond > 1 || CurrentGameSecond2 > 1 || CurrentFrameIdAll > 100;
+            bool retval = CurrentGameSecond > 1 || CurrentGameSecond2 > 1 || CurrentFrameIdAll > 100;
+
+            return retval;
         }
 
         public static bool IsTakeDamage()
         {
-            return CurrentTime - LastDamageTime < 0.25;
+            float retcheck = CurrentTime - LastDamageTime;
+            bool retval = retcheck < 0.25f && retcheck >= 0;
+
+            /*if (retval)
+                Console.WriteLine("CurrentTime:" + CurrentTime + ". LastDamageTime:" + LastDamageTime);*/
+
+            return retval;
         }
 
         public static bool IsPlayerFrozen()
         {
-            return PlayerFrozen || CurrentTime - PlayerUnFrozenTime < 4.5f;
+            float retcheck = CurrentTime - PlayerUnFrozenTime;
+            bool retval = PlayerFrozen || (retcheck < 4.5f && retcheck >= 0);
+
+           /* if (retval)
+                Console.WriteLine("CurrentTime:" + CurrentTime + ". PlayerUnFrozenTime:" + PlayerUnFrozenTime);*/
+
+            return retval;
         }
+        public static bool IsPlayerTeleport()
+        {
+            float retcheck = CurrentTime - LastTeleportusTime;
+            bool retval = retcheck < 2.25f && retcheck >= 0;
+
+            /*if (retval)
+                Console.WriteLine("CurrentTime:" + CurrentTime + ". LastTeleportusTime:" + LastTeleportusTime);*/
+
+            return retval;
+        }
+
         public static bool IsAngleEditByEngine()
         {
             if (NO_TELEPORT)
                 return false;
             return
-               IsPlayerTeleport() ||
+                IsPlayerTeleport() ||
                 CurrentTime - LastAngleManipulation < 0.80f ||
                 CurrentTime - LastDuckUnduckTime < 1.25f ||
-                IsTakeDamage() || IsPlayerFrozen() || IsViewChanged() || HideWeapon || CurrentTime - LastLookDisabled < 1.0;
-        }
-
-        public static bool IsPlayerTeleport()
-        {
-            return CurrentTime - LastTeleportusTime < 2.25f;
+                IsTakeDamage() ||
+                IsPlayerFrozen()  ||
+                IsViewChanged() ||
+                HideWeapon ||
+                CurrentTime - LastLookDisabled < 1.0;
         }
 
 
@@ -10791,7 +10865,7 @@ namespace DemoScanner.DG
             }
         }
 
-        private static bool cmdtwoanglesarray(List<float> a1, List<float> a2, float precision = 0.01f)
+        private static bool cmdtwoanglesarray(List<float> a1, List<float> a2, float precision)
         {
             if (a1.Count != a2.Count)
             {
@@ -10808,21 +10882,11 @@ namespace DemoScanner.DG
             return true;
         }
 
-        public bool IsAnglesInDB(List<float> angles_in)
+        public bool IsAnglesInDB(List<float> angles_in,float precision)
         {
             foreach (var a in ANGLES_DB)
             {
-                if (cmdtwoanglesarray(a.anglescheck, angles_in))
-                    return true;
-            }
-            return false;
-        }
-
-        public bool IsAnglesInDBForSave(List<float> angles_in)
-        {
-            foreach (var a in ANGLES_DB)
-            {
-                if (cmdtwoanglesarray(a.anglescheck, angles_in, 0.001f))
+                if (cmdtwoanglesarray(a.anglescheck, angles_in, precision))
                     return true;
             }
             return false;
@@ -10835,7 +10899,7 @@ namespace DemoScanner.DG
                 Console.WriteLine("ERROR AddAnglesToDB VALUE");
                 return;
             }
-            if (IsAnglesInDBForSave(angles_in))
+            if (IsAnglesInDB(angles_in, 0.001f))
             {
                 Console.WriteLine("IsAnglesInDB !!");
                 return;
