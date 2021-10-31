@@ -6037,13 +6037,13 @@ namespace DemoScanner.DG
             }
             else
             {
-                if (MachineLearnAnglesHACK.IsAnglesInDB(newLearnAngles, 1.0f) && !MachineLearnAnglesCLEAN.IsAnglesInDB(newLearnAngles, 1.0f))
+                if (MachineLearnAnglesHACK.IsAnglesInDB(newLearnAngles, 0.1f) && !MachineLearnAnglesCLEAN.IsAnglesInDB(newLearnAngles, 0.1f))
                 {
                     DemoScanner.DemoScanner_AddWarn("[BETA] MACHINE LEARN AIM 1.2: " + DemoScanner.CurrentTimeString, false, false);
                 }
                 else
                 {
-                    if (MachineLearnAnglesHACK.IsAnglesInDB(newLearnAngles, 10.0f) && !MachineLearnAnglesCLEAN.IsAnglesInDB(newLearnAngles, 10.0f))
+                    if (MachineLearnAnglesHACK.IsAnglesInDB(newLearnAngles, 1.0f) && !MachineLearnAnglesCLEAN.IsAnglesInDB(newLearnAngles, 1.0f))
                     {
                         DemoScanner.DemoScanner_AddWarn("[BETA] MACHINE LEARN AIM 1.3: " + DemoScanner.CurrentTimeString, false, false);
                     }
