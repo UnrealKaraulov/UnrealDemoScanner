@@ -1,1 +1,0 @@
-for /r %%v in (*.dem) do START /B /WAIT ..\VolvoWrench\bin\Release\UnrealDemoScanner2.exe -learn_clearn -skip "%%v"
