@@ -533,7 +533,6 @@ namespace DemoScanner.DemoStuff.GoldSource
                 public float Sidemove;
                 public float Upmove;
                 public DPoint3D Viewangles;
-                public Point3D Viewangles_fl;
                 public sbyte Weaponselect;
 
                 public override bool Equals(object obj)
@@ -1402,7 +1401,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             //    cdframe.ErrAngles++;
                                             try
                                             {
-                                                tmpfloat = float.Parse(Math.Round(tmpfloat, 8, MidpointRounding.AwayFromZero).ToString("F8"));
+                                                tmpfloat = (float)Math.Round(tmpfloat, 8, MidpointRounding.ToEven);
                                             }
                                             catch
                                             {
@@ -1414,7 +1413,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             //    cdframe.ErrAngles++;
                                             try
                                             {
-                                                tmpfloat = float.Parse(Math.Round(tmpfloat, 8, MidpointRounding.AwayFromZero).ToString("F8"));
+                                                tmpfloat = (float)Math.Round(tmpfloat, 8, MidpointRounding.ToEven);
                                             }
                                             catch
                                             {
@@ -1426,7 +1425,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             //    cdframe.ErrAngles++;
                                             try
                                             {
-                                                tmpfloat = float.Parse(Math.Round(tmpfloat, 8, MidpointRounding.AwayFromZero).ToString("F8"));
+                                                tmpfloat = (float)Math.Round(tmpfloat, 8, MidpointRounding.ToEven);
                                             }
                                             catch
                                             {
@@ -1467,7 +1466,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             //    cdframe.ErrAngles++;
                                             try
                                             {
-                                                tmpfloat22 = float.Parse(Math.Round(tmpfloat22, 8, MidpointRounding.AwayFromZero).ToString("F8"));
+                                                tmpfloat22 = (float)Math.Round(tmpfloat22, 8, MidpointRounding.ToEven);
                                             }
                                             catch
                                             {
@@ -1479,7 +1478,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             //    cdframe.ErrAngles++;
                                             try
                                             {
-                                                tmpfloat222 = float.Parse(Math.Round(tmpfloat222, 8, MidpointRounding.AwayFromZero).ToString("F8"));
+                                                tmpfloat222 = (float)Math.Round(tmpfloat222, 8, MidpointRounding.ToEven);
                                             }
                                             catch
                                             {
@@ -1491,7 +1490,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             //    cdframe.ErrAngles++;
                                             try
                                             {
-                                                tmpfloat2222 = float.Parse(Math.Round(tmpfloat2222, 8, MidpointRounding.AwayFromZero).ToString("F8"));
+                                                tmpfloat2222 = (float)Math.Round(tmpfloat2222, 8, MidpointRounding.ToEven);
                                             }
                                             catch
                                             {
@@ -1604,7 +1603,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             //    cdframe.ErrAngles++;
                                             try
                                             {
-                                                tmpfloat2 = float.Parse(Math.Round(tmpfloat2, 8, MidpointRounding.AwayFromZero).ToString("F8"));
+                                                tmpfloat2 = (float)Math.Round(tmpfloat2, 8, MidpointRounding.ToEven);
                                             }
                                             catch
                                             {
@@ -1617,7 +1616,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             //    cdframe.ErrAngles++;
                                             try
                                             {
-                                                tmpfloat2 = float.Parse(Math.Round(tmpfloat2, 8, MidpointRounding.AwayFromZero).ToString("F8"));
+                                                tmpfloat2 = (float)Math.Round(tmpfloat2, 8, MidpointRounding.ToEven);
                                             }
                                             catch
                                             {
@@ -1629,7 +1628,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             //    cdframe.ErrAngles++;
                                             try
                                             {
-                                                tmpfloat2 = float.Parse(Math.Round(tmpfloat2, 8, MidpointRounding.AwayFromZero).ToString("F8"));
+                                                tmpfloat2 = (float)Math.Round(tmpfloat2, 8, MidpointRounding.ToEven);
                                             }
                                             catch
                                             {
@@ -1668,7 +1667,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             //    cdframe.ErrAngles++;
                                             try
                                             {
-                                                tmpfloat2 = float.Parse(Math.Round(tmpfloat2, 8, MidpointRounding.AwayFromZero).ToString("F8"));
+                                                tmpfloat2 = (float)Math.Round(tmpfloat2, 8, MidpointRounding.ToEven);
                                             }
                                             catch
                                             {
@@ -1680,7 +1679,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             //    cdframe.ErrAngles++;
                                             try
                                             {
-                                                tmpfloat2 = float.Parse(Math.Round(tmpfloat2, 8, MidpointRounding.AwayFromZero).ToString("F8"));
+                                                tmpfloat2 = (float)Math.Round(tmpfloat2, 8, MidpointRounding.ToEven);
                                             }
                                             catch
                                             {
@@ -1692,7 +1691,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             //    cdframe.ErrAngles++;
                                             try
                                             {
-                                                tmpfloat2 = float.Parse(Math.Round(tmpfloat2, 8, MidpointRounding.AwayFromZero).ToString("F8"));
+                                                tmpfloat2 = (float)Math.Round(tmpfloat2, 8, MidpointRounding.ToEven);
                                             }
                                             catch
                                             {
@@ -1728,12 +1727,11 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             nf.UCmd.Align1 = br.ReadSByte();
 
                                             tmpfloat2 = br.ReadSingle();
-                                            nf.UCmd.Viewangles_fl.X = tmpfloat2;
                                             //if (tmpfloat.ToString().IndexOf("E") > 0)
                                             //    cdframe.ErrAngles++;
                                             try
                                             {
-                                                tmpfloat2 = float.Parse(Math.Round(tmpfloat2, 8, MidpointRounding.AwayFromZero).ToString("F8"));
+                                                tmpfloat2 = (float)Math.Round(tmpfloat2, 8, MidpointRounding.ToEven);
                                             }
                                             catch
                                             {
@@ -1742,12 +1740,11 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             nf.UCmd.Viewangles.X = tmpfloat2;
                                             
                                             tmpfloat2 = br.ReadSingle();
-                                            nf.UCmd.Viewangles_fl.Y = tmpfloat2;
                                             //if (tmpfloat.ToString().IndexOf("E") > 0)
                                             //    cdframe.ErrAngles++;
                                             try
                                             {
-                                                tmpfloat2 = float.Parse(Math.Round(tmpfloat2, 8, MidpointRounding.AwayFromZero).ToString("F8"));
+                                                tmpfloat2 = (float)Math.Round(tmpfloat2, 8, MidpointRounding.ToEven);
                                             }
                                             catch
                                             {
@@ -1755,12 +1752,11 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             }
                                             nf.UCmd.Viewangles.Y = tmpfloat2;
                                             tmpfloat2 = br.ReadSingle();
-                                            nf.UCmd.Viewangles_fl.Z = tmpfloat2;
                                             //if (tmpfloat.ToString().IndexOf("E") > 0)
                                             //    cdframe.ErrAngles++;
                                             try
                                             {
-                                                tmpfloat2 = float.Parse(Math.Round(tmpfloat2, 8, MidpointRounding.AwayFromZero).ToString("F8"));
+                                                tmpfloat2 = (float)Math.Round(tmpfloat2, 8, MidpointRounding.ToEven);
                                             }
                                             catch
                                             {

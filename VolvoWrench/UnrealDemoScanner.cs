@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.56.4 BETA";
+        public const string PROGRAMVERSION = "1.56.5 BETA";
 
         public static bool DEBUG_ENABLED = false;
         public static bool NO_TELEPORT = false;
@@ -70,8 +70,8 @@ namespace DemoScanner.DG
             WEAPON_BAD2 = 255
         }
 
-        public const double MAX_SPREAD_CONST = 0.00000381;
-        public const double MAX_SPREAD_CONST2 = 0.0000381;
+        public const double MAX_SPREAD_CONST = 0.000004;
+        public const double MAX_SPREAD_CONST2 = 0.00004;
 
 
         public static List<double> LearnAngles = new List<double>();
@@ -1833,6 +1833,7 @@ namespace DemoScanner.DG
                             }
                         case GoldSource.DemoFrameType.ClientData:
                             {
+                                DemoScanner.ClientDataCountDemos++;
                                 DemoScanner.UDS_RATE2++;
                                 if (global::DemoScanner.Settings.asdf.asdf2 != 1)
                                 {
@@ -2909,9 +2910,9 @@ namespace DemoScanner.DG
                                 if (nf.MsgBytes.Length < 8 && CurrentTime != 0)
                                 {
                                     DemoScanner.EmptyFrames++;
-                                    if (DemoScanner.EmptyFrames > 1 && DemoScanner.EmptyFrames < 3)
+                                    if (DemoScanner.EmptyFrames > 5 && DemoScanner.EmptyFrames < 6)
                                     {
-                                        DemoScanner.DemoScanner_AddWarn("DETECTED MORE THAN ONE EMPTY FRAMES:" + CurrentTimeString);
+                                        DemoScanner.DemoScanner_AddWarn("MORE THAN ONE EMPTY FRAMES:" + CurrentTimeString,false);
                                     }
                                 }
 
@@ -3065,6 +3066,7 @@ namespace DemoScanner.DG
                                     NewAttack = true;
                                     attackscounter3++;
                                 }
+
 
                                 if (DemoScanner.CurrentWeapon == DemoScanner.WeaponIdType.WEAPON_KNIFE
                                        || DemoScanner.CurrentWeapon == DemoScanner.WeaponIdType.WEAPON_C4
@@ -3952,7 +3954,7 @@ namespace DemoScanner.DG
                                     }
                                 }
 
-                                if (RealAlive && !IsAngleEditByEngine() && !IsPlayerLossConnection())
+                                if (RealAlive && !IsAngleEditByEngine() && !IsPlayerLossConnection() && !CurrentFrameDuplicated)
                                 {
                                     if (!DemoScanner.NeedDetectThirdPersonHack && CurrentFrameAttacked && GetDistance(new Point(nf.View.X, nf.View.Y),
                                     new Point(nf.RParms.Vieworg.X,
@@ -3967,9 +3969,33 @@ namespace DemoScanner.DG
                                         DemoScanner.NeedDetectThirdPersonHack = true;
                                         DemoScanner.ThirdPersonHackDetectionTimeout = 10;
                                     }
+
+                                    if (DemoScanner.NeedCheckPunchAngle)
+                                    {
+                                        DemoScanner.NeedCheckPunchAngle = false;
+                                        if ((Math.Abs(nf.RParms.Punchangle.X - DemoScanner.LastPunchAngleX[0]) < 0.00001
+                                            && Math.Abs(nf.RParms.Punchangle.Y - DemoScanner.LastPunchAngleY[0]) < 0.00001) ||
+                                            (Math.Abs(nf.RParms.Punchangle.X - DemoScanner.LastPunchAngleX[1]) < 0.00001
+                                            && Math.Abs(nf.RParms.Punchangle.Y - DemoScanner.LastPunchAngleY[1]) < 0.00001))
+                                        {
+                                            DemoScanner.PunchWarnings = 0;
+                                        }
+                                        else
+                                        {
+                                            DemoScanner.PunchWarnings++;
+                                            if (DemoScanner.PunchWarnings >= 1 && DemoScanner.PunchWarnings <= 3)
+                                            {
+                                                DemoScanner.DemoScanner_AddWarn("[NO RECOIL] at (" + CurrentTime +
+                                                "):" + DemoScanner.CurrentTimeString, false );
+                                                DemoScanner.PunchWarnings = 0;
+                                            }
+                                        }
+                                    }
                                 }
                                 else
                                 {
+                                    DemoScanner.NeedCheckPunchAngle = false;
+                                    DemoScanner.PunchWarnings = 0;
                                     DemoScanner.NeedDetectThirdPersonHack = false;
                                     DemoScanner.ThirdPersonHackDetectionTimeout = -1;
                                 }
@@ -4953,12 +4979,6 @@ namespace DemoScanner.DG
                                     subnode.Text += @"UCmd.Msec  = " + nf.UCmd.Msec + "\n";
                                     subnode.Text += @"UCmd.Align1  = " + nf.UCmd.Align1 + "\n";
                                     subnode.Text +=
-                                        @"UCmd.Viewangles.X  = " + nf.UCmd.Viewangles.X + "(" + nf.UCmd.Viewangles_fl.X + ")\n";
-                                    subnode.Text +=
-                                        @"UCmd.Viewangles.Y  = " + nf.UCmd.Viewangles.Y + "(" + nf.UCmd.Viewangles_fl.Y + ")\n";
-                                    subnode.Text +=
-                                        @"UCmd.Viewangles.Z  = " + nf.UCmd.Viewangles.Z + "(" + nf.UCmd.Viewangles_fl.Z + ")\n";
-                                    subnode.Text +=
                                         @"UCmd.Forwardmove  = " + nf.UCmd.Forwardmove + "\n";
                                     subnode.Text +=
                                         @"UCmd.Sidemove  = " + nf.UCmd.Sidemove + "\n";
@@ -5580,7 +5600,7 @@ namespace DemoScanner.DG
             var EndScanTime = Trim(new DateTime((DateTime.Now - DemoScanner.StartScanTime).Ticks), 10);
 
             Console.WriteLine("Scan completed. Scan time: " + EndScanTime.ToString("T"));
-
+        
             if (DemoScanner.ENABLE_LEARN_CLEAN_DEMO)
             {
                 if ((BHOPcount < 2)&&(BadAttackCount < 2)&&(SilentAimDetected < 2)&&(FakeLagAim < 2)&&(JumpHackCount < 02))
@@ -6353,6 +6373,12 @@ namespace DemoScanner.DG
         public static int WarnsAfterGameEnd = 0;
         public static bool SKIP_RESULTS = false;
         public static int EmptyFrames = 0;
+        public static float[] LastPunchAngleX = new float[2];
+        public static float[] LastPunchAngleY = new float[2];
+        public static bool NeedCheckPunchAngle = false;
+        public static int PunchWarnings = 0;
+        public static int ClientDataCountMessages = 0;
+        public static int ClientDataCountDemos = 0;
 
         public static bool IsHookDetected()
         {
@@ -7966,6 +7992,8 @@ namespace DemoScanner.DG
 
         public void MessageClientData()
         {
+            DemoScanner.ClientDataCountMessages++;
+
             if (DemoScanner.SVC_CHOKEMSGID > 0)
             {
                 if (DemoScanner.MessageCount - DemoScanner.SVC_CHOKEMSGID > 1)
@@ -10395,6 +10423,23 @@ namespace DemoScanner.DG
                                         if (DemoScanner.ClientFov == 90 && !DemoScanner.UserAlive)
                                         {
 
+                                        }
+                                    }
+
+                                    if (entryList[index].Name == "punchangle[0]" || entryList[index].Name == "punchangle[1]")
+                                    {
+                                        var angle = value != null ? (float)value : 0.0f;
+                                        if (entryList[index].Name == "punchangle[0]")
+                                        {
+                                            DemoScanner.LastPunchAngleX[0] = DemoScanner.LastPunchAngleX[1];
+                                            DemoScanner.LastPunchAngleX[1] = angle;
+                                        }
+                                        else
+                                        {
+                                            DemoScanner.LastPunchAngleY[0] = DemoScanner.LastPunchAngleY[1];
+                                            DemoScanner.LastPunchAngleY[1] = angle;
+                                            DemoScanner.NeedCheckPunchAngle = true;
+                                           // Console.WriteLine("punchangle[0]/[1]:" + DemoScanner.LastPunchAngleX[1] + "/" + DemoScanner.LastPunchAngleY[1]);
                                         }
                                     }
 
