@@ -3977,7 +3977,7 @@ namespace DemoScanner.DG
                                         DemoScanner.ThirdPersonHackDetectionTimeout = 10;
                                     }
 
-                                    if (DemoScanner.NeedCheckPunchAngleX)
+                                    /*if (DemoScanner.NeedCheckPunchAngleX)
                                     {
                                         DemoScanner.NeedCheckPunchAngleY = false;
                                         DemoScanner.NeedCheckPunchAngleX = false;
@@ -3990,7 +3990,10 @@ namespace DemoScanner.DG
                                             DemoScanner.PunchWarnings++;
                                             if (DemoScanner.PunchWarnings > 1 && DemoScanner.PunchWarnings <= 4)
                                             {
-                                                DemoScanner.DemoScanner_AddWarn("[NO RECOIL X " + CurrentWeapon.ToString() + "] at (" + CurrentTime +
+                                                bool velocity = Math.Abs(nf.RParms.Simvel.X) > 0.1f ||
+                                         Math.Abs(nf.RParms.Simvel.Y) > 0.1f;
+
+                                                    DemoScanner.DemoScanner_AddWarn("[NO RECOIL X " + " " + CurrentFrameOnGround + " " + CurrentWeapon.ToString() + "] at (" + CurrentTime +
                                                  "):" + DemoScanner.CurrentTimeString, false);
                                                 /* Console.WriteLine("[NO RECOIL X = " + nf.RParms.Punchangle.X + "]");
 
@@ -4001,9 +4004,9 @@ namespace DemoScanner.DG
 
                                                   Console.Beep(1000, 1000);
                                                   Console.ReadLine();*/
-                                            }
+                                            /*}
                                         }
-                                    }
+                                    }*/
 
                                     if (DemoScanner.NeedCheckPunchAngleY)
                                     {
@@ -6397,6 +6400,7 @@ namespace DemoScanner.DG
         public static float LastSoundTime = 0;
         public static int DesyncDetects = 0;
         public static float FoundBigVelocityTime = 0.0f;
+        public static float FoundVelocityTime = 0.0f;
         public static float LastBeamFound = 0.0f;
         public static float LastForceCenterView = 0.0f;
         public static int LastIncomingSequence = 0;
@@ -6437,7 +6441,7 @@ namespace DemoScanner.DG
 
         public static bool isAngleInPunchListX(float angle)
         {
-            while (LastPunchAngleX.Count < 20)
+            while (LastPunchAngleX.Count < 5)
                 LastPunchAngleX.Add(0.0f);
 
             if (!(CurrentWeapon == WeaponIdType.WEAPON_ELITE
@@ -6460,7 +6464,6 @@ namespace DemoScanner.DG
             {
                 if (Math.Abs(angle - f) < 0.001)
                     return true;
-
 
                 if (CurrentWeapon == WeaponIdType.WEAPON_XM1014
                     || CurrentWeapon == WeaponIdType.WEAPON_M3)
@@ -6505,12 +6508,13 @@ namespace DemoScanner.DG
                 }
 
             }
+           
             return false;
         }
 
         public static bool isAngleInPunchListY(float angle)
         {
-            while (LastPunchAngleY.Count < 20)
+            while (LastPunchAngleY.Count < 5)
                 LastPunchAngleY.Add(0.0f);
 
             if (!(CurrentWeapon == WeaponIdType.WEAPON_ELITE
@@ -6529,12 +6533,10 @@ namespace DemoScanner.DG
 
             foreach (var f in LastPunchAngleY)
             {
-
                 if (Math.Abs(angle - f) < 0.001)
                 {
                     return true;
                 }
-
             }
             return false;
         }
@@ -6542,7 +6544,7 @@ namespace DemoScanner.DG
         public static void addAngleInPunchListY(float angle)
         {
             //Console.WriteLine("addAngleInPunchListY:" + angle);
-            if (LastPunchAngleY.Count > 20)
+            if (LastPunchAngleY.Count > 5)
             {
                 LastPunchAngleY.RemoveAt(0);
             }
@@ -6552,7 +6554,7 @@ namespace DemoScanner.DG
         public static void addAngleInPunchListX(float angle)
         {
             //Console.WriteLine("addAngleInPunchListX:" + angle);
-            if (LastPunchAngleX.Count > 20)
+            if (LastPunchAngleX.Count > 5)
             {
                 LastPunchAngleX.RemoveAt(0);
             }
@@ -6573,6 +6575,17 @@ namespace DemoScanner.DG
         public static bool IsBigVelocity()
         {
             float retcheck = CurrentTime - FoundBigVelocityTime;
+            bool retval = retcheck < 2.0f && retcheck >= 0;
+
+            /* if (retval)
+                 Console.WriteLine("CurrentTime:" + CurrentTime + ". FoundBigVelocityTime:" + FoundBigVelocityTime);*/
+
+            return retval;
+        }
+
+        public static bool IsVelocity()
+        {
+            float retcheck = CurrentTime - FoundVelocityTime;
             bool retval = retcheck < 2.0f && retcheck >= 0;
 
             /* if (retval)
@@ -10697,7 +10710,11 @@ namespace DemoScanner.DG
                                     if (entryList[index].Name == "velocity[0]" || entryList[index].Name == "velocity[1]")
                                     {
                                         var velocity = value != null ? (float)value : 0.0f;
-                                        if (velocity > 100.0f)
+                                        if (velocity != 0.0f)
+                                        {
+                                            DemoScanner.FoundVelocityTime = DemoScanner.CurrentTime;
+                                        }
+                                        if (velocity > 100.0f || velocity < -100.0f)
                                         {
                                             DemoScanner.FoundBigVelocityTime = DemoScanner.CurrentTime;
                                         }
