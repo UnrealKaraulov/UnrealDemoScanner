@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.60.0 BETA";
+        public const string PROGRAMVERSION = "1.60.1 BETA";
 
         public static bool DEBUG_ENABLED = false;
         public static bool NO_TELEPORT = false;
@@ -2838,7 +2838,7 @@ namespace DemoScanner.DG
                         case GoldSource.DemoFrameType.NetMsg:
                         default:
                             {
-
+                                DemoScanner.MessageId = 0;
                                 //if (frame.Key.Type != GoldSource.DemoFrameType.NetMsg)
                                 //{
                                 //    Console.WriteLine("Invalid");
@@ -4021,7 +4021,7 @@ namespace DemoScanner.DG
                                             DemoScanner.PunchWarnings++;
                                             if (DemoScanner.PunchWarnings > 1 && DemoScanner.PunchWarnings <= 4)
                                             {
-                                                DemoScanner.DemoScanner_AddWarn("[NO RECOIL Y " + CurrentWeapon.ToString() + "] at (" + CurrentTime +
+                                                DemoScanner.DemoScanner_AddWarn("[FALSE NO RECOIL Y " + CurrentWeapon.ToString() + "] at (" + CurrentTime +
                                                 "):" + DemoScanner.CurrentTimeString, false);
                                                 /*Console.WriteLine("[NO RECOIL Y = " + nf.RParms.Punchangle.Y + "]");
                                                 Console.Beep(1000, 1000);
@@ -4934,7 +4934,7 @@ namespace DemoScanner.DG
                                         CurrentTime - LastUseTime > 60)
                                     {
                                         DemoScannerBypassDetected = true;
-                                        DemoScanner_AddWarn("[DEMO SCANER BYPASS] ??? " + CurrentTimeString, false, false);
+                                        DemoScanner_AddWarn("[DEMO SCANER BYPASS] ??? VERY STRANGE ISSUE AT " + CurrentTimeString, false, false);
                                     }
                                 }
 
@@ -5584,21 +5584,6 @@ namespace DemoScanner.DG
                 Console.WriteLine("Warning. Unknown messages detected. Detect count:" + UnknownMessages);
             }
 
-            //if (FrameDuplicates > 0)
-            //{
-            //    Console.WriteLine("Дальше инфа только для отладки. Не обращайте на нее внимания: ");
-            //    Console.WriteLine("1. " + FrameDuplicates + " кадров повторяются");
-            //    Console.WriteLine("2. " + AttackErrors + " подозрительных выстрелов(бинды?)");
-            //    Console.WriteLine("3. Конец");
-            //}
-
-
-            //if (speedhackdetects > 0)
-            //{
-            //    Console.WriteLine("Возможно игрок использует SPEEDHACK. Detect count:" + speedhackdetects);
-            //    Console.WriteLine("Последнее время использования " + speedhackdetect_time + " секунда игрового времени.");
-            //}
-
             if (hackList.Count > 0)
             {
                 Console.WriteLine("Bind/alias from blacklist detected:");
@@ -6223,8 +6208,9 @@ namespace DemoScanner.DG
         public static string LastUername = "";
         public static float LastUsernameCheckTime = 0.0f;
         public static int MessageCount = 0;
+        public static int MessageId = 0;
         public static int SVC_CHOKEMSGID = 0;
-        public static int SVC_CHOKEMSGIDSKIP = 5;
+        public static int SVC_CLIENTUPDATEMSGID = 0;
         public static int SVC_TIMEMSGID = 0;
         public static uint LossPackets = 0;
         public static uint LossPackets2 = 0;
@@ -6438,6 +6424,12 @@ namespace DemoScanner.DG
         public static int PunchWarnings = 0;
         public static int ClientDataCountMessages = 0;
         public static int ClientDataCountDemos = 0;
+
+
+
+        public static int SVC_SETANGLEMSGID = 0;
+        public static float LastFakeLagTime = 0.0f;
+        public static int SVC_ADDANGLEMSGID = 0;
 
         public static bool isAngleInPunchListX(float angle)
         {
@@ -7309,7 +7301,7 @@ namespace DemoScanner.DG
             AddMessageHandler((byte)MessageId.svc_time, MessageTime);
             AddMessageHandler((byte)MessageId.svc_print, MessagePrint);
             AddMessageHandler((byte)MessageId.svc_stufftext, MessageStuffText);
-            AddMessageHandler((byte)MessageId.svc_setangle, 6);
+            AddMessageHandler((byte)MessageId.svc_setangle, MessageSetAngle);
             AddMessageHandler((byte)MessageId.svc_serverinfo, MessageServerInfo);
             AddMessageHandler((byte)MessageId.svc_lightstyle, MessageLightStyle);
             AddMessageHandler((byte)MessageId.svc_updateuserinfo,
@@ -7652,6 +7644,7 @@ namespace DemoScanner.DG
             while (true)
             {
                 DemoScanner.MessageCount += 1;
+                DemoScanner.MessageId += 1;
                 if (DemoScanner.DUMP_ALL_FRAMES)
                 {
                     outDataStr +=
@@ -7918,7 +7911,7 @@ namespace DemoScanner.DG
         public void MessageTime()
         {
             float timemsg = BitBuffer.ReadSingle();
-            DemoScanner.SVC_TIMEMSGID++;
+            DemoScanner.SVC_TIMEMSGID = DemoScanner.MessageId;
         }
 
         public void MessageSound()
@@ -8188,32 +8181,9 @@ namespace DemoScanner.DG
         public void MessageClientData()
         {
             DemoScanner.ClientDataCountMessages++;
+            DemoScanner.SVC_CLIENTUPDATEMSGID = DemoScanner.MessageId;
 
-            if (DemoScanner.SVC_CHOKEMSGID > 0)
-            {
-                if (DemoScanner.MessageCount - DemoScanner.SVC_CHOKEMSGID > 1)
-                {
-                    if (DemoScanner.IsUserAlive() && DemoScanner.IsRealWeapon())
-                    {
-                        if (DemoScanner.SVC_CHOKEMSGIDSKIP < 0)
-                            DemoScanner.DemoScanner_AddWarn(
-                                                    "[Fakelag] at (" + DemoScanner.CurrentTime +
-                                                    "):" + DemoScanner.CurrentTimeString, false);
-                        DemoScanner.SVC_CHOKEMSGIDSKIP--;
-                    }
-                }
-                DemoScanner.SVC_CHOKEMSGID = 0;
-            }
-            if (DemoScanner.SVC_TIMEMSGID > 0)
-            {
-                if (DemoScanner.SVC_TIMEMSGID > 1 && DemoScanner.IsRealWeapon())
-                {
-                    DemoScanner.DemoScanner_AddWarn(
-                                               "[Fakespeed] at (" + DemoScanner.CurrentTime +
-                                               "):" + DemoScanner.CurrentTimeString, false);
-                }
-            }
-            DemoScanner.SVC_TIMEMSGID = 0;
+
 
             if (demo.GsDemoInfo.Header.NetProtocol <= 43)
                 BitBuffer.Endian = BitBuffer.EndianType.Big;
@@ -8237,6 +8207,27 @@ namespace DemoScanner.DG
 
             BitBuffer.SkipRemainingBits();
             BitBuffer.Endian = BitBuffer.EndianType.Little;
+
+
+
+
+            if (DemoScanner.SVC_CHOKEMSGID - 1 == DemoScanner.SVC_TIMEMSGID
+                || DemoScanner.SVC_CLIENTUPDATEMSGID - 1 == DemoScanner.SVC_TIMEMSGID
+                || DemoScanner.SVC_CLIENTUPDATEMSGID - 1 == DemoScanner.SVC_ADDANGLEMSGID
+                || DemoScanner.SVC_CLIENTUPDATEMSGID - 1 == DemoScanner.SVC_SETANGLEMSGID)
+            {
+                ;
+            }
+            else
+            {
+                if (DemoScanner.CurrentTime - DemoScanner.speedhackdetect_time > 5.0)
+                {
+                    DemoScanner.DemoScanner_AddWarn(
+                                                        "[FakeSpeed Type 2] at (" + DemoScanner.CurrentTime +
+                                                        "):" + DemoScanner.CurrentTimeString, false);
+                }
+                DemoScanner.speedhackdetect_time = DemoScanner.CurrentTime;
+            }
         }
 
         public void MessagePings()
@@ -8804,16 +8795,26 @@ namespace DemoScanner.DG
         private void MessageChoke()
         {
             DemoScanner.ChokePackets += 1;
-            DemoScanner.LastChokePacket = DemoScanner.CurrentTime;
-            if (DemoScanner.SVC_CHOKEMSGID > 0)
+            DemoScanner.SVC_CHOKEMSGID = DemoScanner.MessageId;
+
+            if (DemoScanner.SVC_CHOKEMSGID - 1 == DemoScanner.SVC_SETANGLEMSGID ||
+                DemoScanner.SVC_CHOKEMSGID - 1 == DemoScanner.SVC_TIMEMSGID)
             {
-                DemoScanner.DemoScanner_AddWarn(
-                                                "[Fakelag 2.0] at (" + DemoScanner.CurrentTime +
-                                                "):" + DemoScanner.CurrentTimeString, false);
-                DemoScanner.SVC_CHOKEMSGID = 0;
+                ;
             }
-            else
-                DemoScanner.SVC_CHOKEMSGID = DemoScanner.MessageCount;
+            else 
+            {
+                if (DemoScanner.CurrentTime - DemoScanner.LastFakeLagTime > 5.0f)
+                {
+                    DemoScanner.DemoScanner_AddWarn(
+                                                       "[Fakelag Type 2] at (" + DemoScanner.CurrentTime +
+                                                       "):" + DemoScanner.CurrentTimeString, false);
+                }
+                DemoScanner.LastFakeLagTime = DemoScanner.CurrentTime;
+            }
+
+
+            DemoScanner.LastChokePacket = DemoScanner.CurrentTime;
         }
 
         private void MessageNewMoveVars()
@@ -9448,16 +9449,25 @@ namespace DemoScanner.DG
             BitBuffer.ReadString(); // The cvar.
         }
 
+        private void MessageSetAngle()
+        {
+            var AnglePitch = BitBuffer.ReadUInt16();
+            var AngleYaw = BitBuffer.ReadUInt16();
+            var AngleRoll = BitBuffer.ReadUInt16();
+            if (DemoScanner.DUMP_ALL_FRAMES)
+                outDataStr += "Pitch/Yaw/Roll:" + AnglePitch + "/" + AngleYaw + "/" + AngleRoll + ".\n";
+            DemoScanner.SVC_SETANGLEMSGID = DemoScanner.MessageId;
+        }
 
         private void MessageAddAngle()
         {
             var angle = BitBuffer.ReadUInt16();
             DemoScanner.LastAngleManipulation = DemoScanner.CurrentTime;
+            DemoScanner.SVC_ADDANGLEMSGID = DemoScanner.MessageId;
         }
         private void MessageRoomType()
         {
             var roomtype = BitBuffer.ReadUInt16();
-
             if (DemoScanner.DEBUG_ENABLED)
                 Console.WriteLine("Alive 10 at " + DemoScanner.CurrentTimeString);
             DemoScanner.UserAlive = true;
