@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.60.1 BETA";
+        public const string PROGRAMVERSION = "1.60.2 BETA";
 
         public static bool DEBUG_ENABLED = false;
         public static bool NO_TELEPORT = false;
@@ -8339,7 +8339,8 @@ namespace DemoScanner.DG
         private void MessageTempEntity()
         {
             var type = BitBuffer.ReadByte();
-
+           // if (DemoScanner.CurrentTime > 1471 && DemoScanner.CurrentTime < 1472)
+           // Console.WriteLine("Type:" + type);
             switch (type)
             {
                 // obsolete
@@ -8563,7 +8564,14 @@ namespace DemoScanner.DG
                     break;
 
                 case 123: // TE_FIREFIELD
-                    Seek(9);
+                    BitBuffer.ReadInt16();
+                    BitBuffer.ReadInt16();
+                    BitBuffer.ReadInt16();
+                    BitBuffer.ReadInt16();
+                    BitBuffer.ReadInt16();
+                    BitBuffer.ReadByte();
+                    BitBuffer.ReadByte();
+                    BitBuffer.ReadByte();
                     break;
 
                 case 124: // TE_PLAYERATTACHMENT
@@ -8586,6 +8594,7 @@ namespace DemoScanner.DG
                     throw new ApplicationException(
                         string.Format("Unknown tempentity type \"{0}\".", type));
             }
+           // BitBuffer.SkipRemainingBits();
         }
 
         private void MessageSetPause()
@@ -10738,6 +10747,22 @@ namespace DemoScanner.DG
                                         if (DemoScanner.ClientFov == 90 && !DemoScanner.UserAlive)
                                         {
 
+                                        }
+                                    }
+
+                                    if (entryList[index].Name == "health")
+                                    {
+                                        var hp = value != null ? (float)value : 0.0f;
+
+                                        if (DemoScanner.UserAlive && hp <= 0)
+                                        {
+                                            DemoScanner.LastDeathTime = DemoScanner.CurrentTime;
+                                            DemoScanner.FirstUserAlive = false;
+                                            DemoScanner.UserAlive = false;
+                                            DemoScanner.RealAlive = false;
+                                            DemoScanner.DeathsCoount++;
+                                            if (DemoScanner.DEBUG_ENABLED)
+                                                Console.WriteLine("LocalPlayer killed. Method : clientdata_t health! at " + DemoScanner.CurrentTimeString);
                                         }
                                     }
 
