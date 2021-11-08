@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.60.2 BETA";
+        public const string PROGRAMVERSION = "1.60.3 BETA";
 
         public static bool DEBUG_ENABLED = false;
         public static bool NO_TELEPORT = false;
@@ -111,8 +111,6 @@ namespace DemoScanner.DG
 
         public static int UserId = -1;
         public static int UserId2 = -1;
-
-        public static List<string> PlayerUsernames = new List<string>();
 
         public static int jumpscount = 0;
         public static bool isgroundchange = false;
@@ -4938,40 +4936,26 @@ namespace DemoScanner.DG
                                     }
                                 }
 
-                                if (RealAlive || LastUername == "NONAME")
+                                if (ForceUpdateName || LastUsernameCheckTime == 0.0f || CurrentTime - LastUsernameCheckTime > 60.0f || LastUername == "\tNO NAME")
                                 {
-                                    if (LastUsernameCheckTime == 0.0f || CurrentTime - LastUsernameCheckTime > 60 || LastUername == "NONAME")
+                                    ForceUpdateName = false;
+                                    string plname = "\tNO NAME";
+                                    string plsteam = "NOSTEAM";
+                                    foreach (var player in fullPlayerList)
                                     {
-                                        string plname = "NONAME";
-                                        string plsteam = "NOSTEAM";
-                                        foreach (var player in fullPlayerList)
+                                        if (player.Name.Length == 0) continue;
+                                        if (player.Slot == UserId)
                                         {
-                                            if (player.Name.Length == 0) continue;
-                                            if (player.Slot == UserId)
+                                            if ("NOSTEAM" != player.Steam || NeedFirstNickname)
                                             {
-                                                if ("NOSTEAM" != player.Steam || NeedFirstNickname)
-                                                {
-                                                    NeedFirstNickname = false;
-                                                    plname = player.Name;
-                                                    plsteam = player.Steam;
-                                                }
+                                                NeedFirstNickname = false;
+                                                plname = player.Name;
+                                                plsteam = player.Steam;
                                             }
                                         }
-
-                                        bool userfound = false;
-                                        foreach (var playername in PlayerUsernames)
-                                        {
-                                            if (playername == plname)
-                                            {
-                                                userfound = true;
-                                            }
-                                        }
-
-                                        if (!userfound)
-                                        {
-                                            PlayerUsernames.Add(plname);
-                                        }
-
+                                    }
+                                    if (plsteam != "NOSTEAM" && plname != "\tNO NAME")
+                                    {
                                         var tmpcursortop = Console.CursorTop;
                                         var tmpcursorleft = Console.CursorLeft;
                                         Console.CursorTop = UserNameAndSteamIDField;
@@ -4989,9 +4973,9 @@ namespace DemoScanner.DG
                                         Console.ForegroundColor = tmpconsolecolor;
                                         Console.CursorTop = tmpcursortop;
                                         Console.CursorLeft = tmpcursorleft;
-                                        LastUername = plname;
-                                        LastUsernameCheckTime = CurrentTime;
                                     }
+                                    LastUername = plname;
+                                    LastUsernameCheckTime = CurrentTime;
                                 }
 
                                 addresolution(nf.RParms.Viewport.Z, nf.RParms.Viewport.W);
@@ -5799,7 +5783,7 @@ namespace DemoScanner.DG
                                 process.StartInfo.WorkingDirectory = CurrentDir;
                                 process.Start();
                                 process.WaitForExit();
-                                var filename = player.Name + "(" + player.Id + ").wav";
+                                var filename = player.Name + "(" + player.Slot + ").wav";
 
                                 foreach (var c in Path.GetInvalidFileNameChars())
                                     filename = filename.Replace(c, '_');
@@ -5810,7 +5794,7 @@ namespace DemoScanner.DG
                                        File.Exists(@"out\1_" + filename) ||
                                        File.Exists(@"out\2_" + filename))
                                 {
-                                    filename = player.Name + "(" + player.Id + ") (" +
+                                    filename = player.Name + "(" + player.Slot + ") (" +
                                                fileexistcount + ").wav";
                                     foreach (var c in Path.GetInvalidFileNameChars())
                                         filename = filename.Replace(c, '_');
@@ -5849,7 +5833,7 @@ namespace DemoScanner.DG
                             if (player.Name.Length > 0)
                             {
                                 table = new ConsoleTable(
-                                    "Player:" + player.Name + "(" + player.Id + ")");
+                                    "Player:" + player.Name + "(" + player.Slot + ")");
                                 foreach (var keys in player.InfoKeys)
                                     table.AddRow(keys.Key + " = " + keys.Value);
                                 table.AddRow("SLOTID = " + player.Slot);
@@ -5862,7 +5846,7 @@ namespace DemoScanner.DG
                             if (player.Name.Length > 0)
                             {
                                 table = new ConsoleTable(
-                                    "Player:" + player.Name + "(" + player.Id + ")");
+                                    "Player:" + player.Name + "(" + player.Slot + ")");
                                 foreach (var keys in player.InfoKeys)
                                     table.AddRow(keys.Key + " = " + keys.Value);
                                 table.AddRow("SLOTID = " + player.Slot);
@@ -6205,7 +6189,7 @@ namespace DemoScanner.DG
         public static int Aim73FalseSkip = 2;
         public static int UserNameAndSteamIDField;
         public static int UserNameAndSteamIDField2;
-        public static string LastUername = "";
+        public static string LastUername = "\tNO NAME";
         public static float LastUsernameCheckTime = 0.0f;
         public static int MessageCount = 0;
         public static int MessageId = 0;
@@ -6430,6 +6414,8 @@ namespace DemoScanner.DG
         public static int SVC_SETANGLEMSGID = 0;
         public static float LastFakeLagTime = 0.0f;
         public static int SVC_ADDANGLEMSGID = 0;
+        
+        public static bool ForceUpdateName = false;
 
         public static bool isAngleInPunchListX(float angle)
         {
@@ -6722,7 +6708,6 @@ namespace DemoScanner.DG
         {
             public int Slot;
             public string Name;
-            public int Id;
             public Dictionary<string, string> InfoKeys;
             public BinaryWriter voicedata;
             public Stream voicedata_stream;
@@ -6749,13 +6734,12 @@ namespace DemoScanner.DG
                 }
             }
 
-            public Player(int slot, int id)
+            public Player(int slot)
             {
                 this.pid = cipid++;
                 VoiceExploit = 0;
                 Name = string.Empty;
                 Slot = slot;
-                Id = id;
                 InfoKeys = new Dictionary<string, string>();
                 voicedata_stream = new MemoryStream();
                 voicedata = new BinaryWriter(voicedata_stream);
@@ -8029,12 +8013,18 @@ namespace DemoScanner.DG
 
         public void MessageUpdateUserInfo()
         {
+            bool update_name_if_need = false;
             var slot = BitBuffer.ReadByte();
+            if (slot == DemoScanner.UserId)
+            {
+                update_name_if_need = true;
+            }
             var id = BitBuffer.ReadInt32();
             var s = BitBuffer.ReadString();
             //Console.WriteLine(s);
             if (demo.GsDemoInfo.Header.NetProtocol > 43) Seek(16); // string hash
-
+            if (s.Length < 5)
+                return;
             /*
              * Если s пустая значит
              * ищем игрока с id и присваиваем ему новый слот
@@ -8043,111 +8033,79 @@ namespace DemoScanner.DG
 
             DemoScanner.Player player = null;
             var playerfound = false;
-            var i = 0;
+
+            int player_in_struct_id = 0;
 
             // поиск игрока с нужным ID если он существует
-            foreach (var p in DemoScanner.playerList)
+            for (player_in_struct_id = 0; player_in_struct_id < DemoScanner.playerList.Count; player_in_struct_id++)
             {
-                if (p.Id == id)
+                if (DemoScanner.playerList[player_in_struct_id].Slot == slot)
                 {
-                    // игрок существует
                     playerfound = true;
-                    player = p;
+                    player = DemoScanner.playerList[player_in_struct_id];
                     break;
                 }
-
-                i++;
             }
 
             // Если нет создаем нового
             // create player if it doesn't exist
-            if (!playerfound || i == 0 || i >= DemoScanner.playerList.Count)
+            if (!playerfound)
             {
-                player = new DemoScanner.Player(slot, id);
+                player = new DemoScanner.Player(slot);
                 DemoScanner.playerList.Add(player);
-                i = DemoScanner.playerList.Count - 1;
+                player_in_struct_id = DemoScanner.playerList.Count - 1;
             }
 
             if (playerfound)
             {
-                i = 0;
-                playerfound = false;
-                for (var n = 0; n < DemoScanner.playerList.Count;)
-                    if (DemoScanner.playerList[n].Slot == slot)
-                    {
-                        DemoScanner.fullPlayerList.Add(DemoScanner.playerList[n]);
-                        DemoScanner.playerList.RemoveAt(n);
-                    }
-                    else
-                    {
-                        n++;
-                    }
+                DemoScanner.fullPlayerList.Add(player);
+                DemoScanner.playerList.RemoveAt(player_in_struct_id);
+                player = new DemoScanner.Player(slot);
+                DemoScanner.playerList.Add(player);
+                player_in_struct_id = DemoScanner.playerList.Count - 1;
+            }
 
-                foreach (var p in DemoScanner.playerList)
+            var bakaka = s;
+            try
+            {
+                // parse infokey string
+                s = s.Remove(0, 1); // trim leading slash
+                var infoKeyTokens = s.Split('\\');
+                for (var n = 0; n + 1 < infoKeyTokens.Length; n += 2)
                 {
-                    if (p.Id == id)
-                    {
-                        playerfound = true;
-                        player = p;
+                    if (n + 1 >= infoKeyTokens.Length)
+                        // Must be an odd number of strings - a key without a value - ignore it.
                         break;
-                    }
+                    var key = infoKeyTokens[n];
 
-                    i++;
-                }
-
-                if (!playerfound)
-                {
-                    player = new DemoScanner.Player(slot, id);
-                    DemoScanner.playerList.Add(player);
-                    i = DemoScanner.playerList.Count - 1;
-                }
-            }
-
-            // Если стркоа пустая значит игрок SLOT вышел, и на его место пришел новый с ID
-            if (s.Length == 0)
-            {
-                // 0 length text = a player just left and another player's slot is being changed
-                player.Slot = slot;
-                DemoScanner.playerList[i] = player;
-            }
-            else
-            {
-                var bakaka = s;
-                try
-                {
-                    // parse infokey string
-                    s = s.Remove(0, 1); // trim leading slash
-                    var infoKeyTokens = s.Split('\\');
-                    for (var n = 0; n + 1 < infoKeyTokens.Length; n += 2)
+                    if (key == "STEAMID") key = "pid";
+                    if (key.ToLower() == "name")
                     {
-                        if (n + 1 >= infoKeyTokens.Length)
-                            // Must be an odd number of strings - a key without a value - ignore it.
-                            break;
-                        var key = infoKeyTokens[n];
-
-                        if (key == "STEAMID") key = "pid";
-                        if (key.ToLower() == "name") player.Name = infoKeyTokens[n + 1];
-
-                        if (key == "*sid")
+                        player.Name = infoKeyTokens[n + 1];
+                        if (update_name_if_need && player.Name != DemoScanner.LastUername)
                         {
-                            key = "STEAMID";
-                            infoKeyTokens[n + 1] =
-                                CalculateSteamId(infoKeyTokens[n + 1]);
-                            player.Steam = infoKeyTokens[n + 1];
+                            DemoScanner.ForceUpdateName = true;
                         }
-
-                        // If the key already exists, overwrite it.
-                        if (player.InfoKeys.ContainsKey(key))
-                            player.InfoKeys.Remove(key);
-                        player.InfoKeys.Add(key, infoKeyTokens[n + 1]);
+                    }
+                    if (key == "*sid")
+                    {
+                        key = "STEAMID";
+                        infoKeyTokens[n + 1] =
+                            CalculateSteamId(infoKeyTokens[n + 1]);
+                        player.Steam = infoKeyTokens[n + 1];
                     }
 
-                    DemoScanner.playerList[i] = player;
+                    // If the key already exists, overwrite it.
+                    if (player.InfoKeys.ContainsKey(key))
+                        player.InfoKeys.Remove(key);
+                    player.InfoKeys.Add(key, infoKeyTokens[n + 1]);
                 }
-                catch
-                {
-                    Console.WriteLine("Error in parsing:" + bakaka);
-                }
+
+                DemoScanner.playerList[player_in_struct_id] = player;
+            }
+            catch
+            {
+                Console.WriteLine("Error in parsing:" + bakaka);
             }
         }
 
