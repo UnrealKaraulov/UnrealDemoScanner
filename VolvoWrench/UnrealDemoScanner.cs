@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.60.3 BETA";
+        public const string PROGRAMVERSION = "1.60.4 BETA";
 
         public static bool DEBUG_ENABLED = false;
         public static bool NO_TELEPORT = false;
@@ -4234,8 +4234,11 @@ namespace DemoScanner.DG
                                         {
                                             DemoScanner_AddWarn(
                                                 "[AIM TYPE 8.1 " + CurrentWeapon.ToString() + "] at (" + AimType8WarnTime +
-                                                "):" + DemoScanner.CurrentTimeString, false);
+                                                "):" + DemoScanner.CurrentTimeString, !AimType8False && !IsChangeWeapon());
+                                            if (!AimType8False && !IsChangeWeapon())
+                                                SilentAimDetected++;
                                             AimType8WarnTime = 0.0f;
+                                            AimType8False = false;
                                         }
                                         else if (CurrentTime - AimType8WarnTime2 < 0.350f)
                                         {
@@ -4365,17 +4368,17 @@ namespace DemoScanner.DG
                                             if (AimType8Warn == 1 ||
                                                 AimType8Warn == 2)
                                             {
-                                                /*if (!)
-                                                {*/
                                                 if (bAimType8WarnTime != CurrentTime)
                                                     AimType8WarnTime = CurrentTime;
                                                 bAimType8WarnTime = CurrentTime;
-                                                //}
-                                                /* if (!DemoScanner.AimType8False)
-                                                 {
-                                                     DemoScanner.AimType8False = !CurrentFrameOnGround || IsAngleEditByEngine() || IsPlayerLossConnection() || IsChangeWeapon();
-                                                 }*/
-                                                //AimType8Warn = -1;
+                                                if (!DemoScanner.AimType8False)
+                                                {
+                                                    DemoScanner.AimType8False = CurrentWeapon == WeaponIdType.WEAPON_C4
+                                               || CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE
+                                               || CurrentWeapon == WeaponIdType.WEAPON_KNIFE
+                                               || CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE
+                                               || CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG || !CurrentFrameOnGround || IsAngleEditByEngine() || IsPlayerLossConnection() || IsChangeWeapon();
+                                                }
                                             }
                                         }
                                         else if (viewanglesforsearch != nf.UCmd.Viewangles)
@@ -6981,14 +6984,18 @@ namespace DemoScanner.DG
         /// <returns>A Steam ID in the format "STEAM_0:x:y".</returns>
         public static string CalculateSteamId(string sidInfoKeyValue)
         {
-            if (!ulong.TryParse(sidInfoKeyValue, out var sid) || sid == 0)
+            if (!long.TryParse(sidInfoKeyValue, out long id) || id == 0)
                 // HLTV proxy or LAN dedicated server.
                 return null;
 
-            var authId = sid - 76561197960265728;
-            var serverId = authId % 2 == 0 ? 0 : 1;
-            authId = (authId - (ulong)serverId) / 2;
-            return string.Format("STEAM_0:{0}:{1}", serverId, authId);
+            var universe = id >> 56;
+            var type = (id >> 52) & 0xF;
+            var instance = (id >> 32) & 0xFFFFF;
+            var accountid = id & 0xFFFFFFFF;
+            if (universe == 1)
+                universe = 0;
+
+            return string.Format("STEAM_{0}:{1}:{2}", universe, (accountid & 1), accountid >> 1 );
         }
 
         /// <summary>
@@ -9674,9 +9681,20 @@ namespace DemoScanner.DG
                     outDataStr += "LocalPlayer " + iVictim + " killed!\n";
                 if (DemoScanner.DEBUG_ENABLED)
                     Console.WriteLine("LocalPlayer " + iVictim + " killed! at " + DemoScanner.CurrentTimeString);
+                if (DemoScanner.GameEnd && DemoScanner.CurrentTime - DemoScanner.GameEndTime > 5.0)
+                {
+                    DemoScanner.DemoScanner_AddInfo("False game end message. Resetting game status.");
+                    DemoScanner.GameEnd = false;
+                }
             }
             else if (iKiller == DemoScanner.UserId + 1)
             {
+                if (DemoScanner.GameEnd && DemoScanner.CurrentTime - DemoScanner.GameEndTime > 5.0)
+                {
+                    DemoScanner.DemoScanner_AddInfo("False game end message. Resetting game status.");
+                    DemoScanner.GameEnd = false;
+                }
+                   
                 if (!DemoScanner.UserAlive && (DemoScanner.CurrentTime - DemoScanner.LastDeathTime > 5.0f || DemoScanner.FirstUserAlive))
                 {
                     DemoScanner.UserAlive = true;
