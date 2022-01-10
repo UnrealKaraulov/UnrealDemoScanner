@@ -377,7 +377,6 @@ namespace DemoScanner.DemoStuff.GoldSource
             {
                 return obj is NetMsgFrame frame &&
                        EqualityComparer<RefParams>.Default.Equals(RParms, frame.RParms) &&
-                       Timestamp == frame.Timestamp &&
                        EqualityComparer<UserCmd>.Default.Equals(UCmd, frame.UCmd) &&
                        EqualityComparer<Point3D>.Default.Equals(View, frame.View);
             }
