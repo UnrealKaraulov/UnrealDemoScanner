@@ -298,7 +298,7 @@ namespace DemoScanner.DemoStuff.GoldSource
         {
             public float Fov;
             public Point3D Origin;
-            public DPoint3D Viewangles;
+            public FPoint3D Viewangles;
             public int WeaponBits;
             public int ErrAngles;
         }
@@ -315,7 +315,7 @@ namespace DemoScanner.DemoStuff.GoldSource
 
             public struct EventArgs
             {
-                public DPoint3D Angles;
+                public FPoint3D Angles;
                 public int Bparam1;
                 public int Bparam2;
                 public int Ducking;
@@ -404,7 +404,7 @@ namespace DemoScanner.DemoStuff.GoldSource
             [StructLayout(LayoutKind.Sequential, Pack = 1)]
             public struct RefParams
             {
-                public DPoint3D ClViewangles;
+                public FPoint3D ClViewangles;
                 public Point3D Crosshairangle;
                 public int Demoplayback;
                 public Point3D Forward;
@@ -430,7 +430,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                 public int Spectator;
                 public float Time;
                 public Point3D Up;
-                public DPoint3D Viewangles;
+                public FPoint3D Viewangles;
                 public int Viewentity;
                 public Point3D Viewheight;
                 public Point3D Vieworg;
@@ -441,7 +441,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                 public override bool Equals(object obj)
                 {
                     return obj is RefParams @params &&
-                           EqualityComparer<DPoint3D>.Default.Equals(ClViewangles, @params.ClViewangles) &&
+                           EqualityComparer<FPoint3D>.Default.Equals(ClViewangles, @params.ClViewangles) &&
                            EqualityComparer<Point3D>.Default.Equals(Crosshairangle, @params.Crosshairangle) &&
                            Demoplayback == @params.Demoplayback &&
                            EqualityComparer<Point3D>.Default.Equals(Forward, @params.Forward) &&
@@ -466,7 +466,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                            Spectator == @params.Spectator &&
                            Time == @params.Time &&
                            EqualityComparer<Point3D>.Default.Equals(Up, @params.Up) &&
-                           EqualityComparer<DPoint3D>.Default.Equals(Viewangles, @params.Viewangles) &&
+                           EqualityComparer<FPoint3D>.Default.Equals(Viewangles, @params.Viewangles) &&
                            Viewentity == @params.Viewentity &&
                            EqualityComparer<Point3D>.Default.Equals(Viewheight, @params.Viewheight) &&
                            EqualityComparer<Point3D>.Default.Equals(Vieworg, @params.Vieworg) &&
@@ -531,7 +531,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                 public sbyte Msec;
                 public float Sidemove;
                 public float Upmove;
-                public DPoint3D Viewangles;
+                public FPoint3D Viewangles;
                 public sbyte Weaponselect;
 
                 public override bool Equals(object obj)
@@ -551,7 +551,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                            Msec == cmd.Msec &&
                            Sidemove == cmd.Sidemove &&
                            Upmove == cmd.Upmove &&
-                           EqualityComparer<DPoint3D>.Default.Equals(Viewangles, cmd.Viewangles) &&
+                           EqualityComparer<FPoint3D>.Default.Equals(Viewangles, cmd.Viewangles) &&
                            Weaponselect == cmd.Weaponselect;
                 }
 
@@ -1396,40 +1396,10 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             cdframe.Origin.Y = br.ReadSingle();
                                             cdframe.Origin.Z = br.ReadSingle();
                                             float tmpfloat = br.ReadSingle();
-                                            //if (tmpfloat.ToString().IndexOf("E") > 0)
-                                            //    cdframe.ErrAngles++;
-                                            try
-                                            {
-                                                tmpfloat = (float)Math.Round(tmpfloat, 8, MidpointRounding.ToEven);
-                                            }
-                                            catch
-                                            {
-                                              
-                                            }
                                             cdframe.Viewangles.X = tmpfloat;
                                             tmpfloat = br.ReadSingle();
-                                            //if (tmpfloat.ToString().IndexOf("E") > 0)
-                                            //    cdframe.ErrAngles++;
-                                            try
-                                            {
-                                                tmpfloat = (float)Math.Round(tmpfloat, 8, MidpointRounding.ToEven);
-                                            }
-                                            catch
-                                            {
-                                                
-                                            }
                                             cdframe.Viewangles.Y = tmpfloat;
                                             tmpfloat = br.ReadSingle();
-                                            //if (tmpfloat.ToString().IndexOf("E") > 0)
-                                            //    cdframe.ErrAngles++;
-                                            try
-                                            {
-                                                tmpfloat = (float)Math.Round(tmpfloat, 8, MidpointRounding.ToEven);
-                                            }
-                                            catch
-                                            {
-                                                
-                                            }
                                             cdframe.Viewangles.Z = tmpfloat;
                                             cdframe.WeaponBits = br.ReadInt32();
                                             cdframe.Fov = br.ReadSingle();
@@ -1463,38 +1433,14 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             float tmpfloat22 = br.ReadSingle();
                                             //if (tmpfloat.ToString().IndexOf("E") > 0)
                                             //    cdframe.ErrAngles++;
-                                            try
-                                            {
-                                                tmpfloat22 = (float)Math.Round(tmpfloat22, 8, MidpointRounding.ToEven);
-                                            }
-                                            catch
-                                            {
-
-                                            }
 
                                             float tmpfloat222 = br.ReadSingle();
                                             //if (tmpfloat.ToString().IndexOf("E") > 0)
                                             //    cdframe.ErrAngles++;
-                                            try
-                                            {
-                                                tmpfloat222 = (float)Math.Round(tmpfloat222, 8, MidpointRounding.ToEven);
-                                            }
-                                            catch
-                                            {
-
-                                            }
 
                                             float tmpfloat2222 = br.ReadSingle();
                                             //if (tmpfloat.ToString().IndexOf("E") > 0)
                                             //    cdframe.ErrAngles++;
-                                            try
-                                            {
-                                                tmpfloat2222 = (float)Math.Round(tmpfloat2222, 8, MidpointRounding.ToEven);
-                                            }
-                                            catch
-                                            {
-
-                                            }
 
                                             eframe.EventArguments.Angles.X = tmpfloat22;
                                             eframe.EventArguments.Angles.Y = tmpfloat222;
@@ -1600,39 +1546,15 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             float tmpfloat2 = br.ReadSingle();
                                             //if (tmpfloat.ToString().IndexOf("E") > 0)
                                             //    cdframe.ErrAngles++;
-                                            try
-                                            {
-                                                tmpfloat2 = (float)Math.Round(tmpfloat2, 8, MidpointRounding.ToEven);
-                                            }
-                                            catch
-                                            {
-
-                                            }
                                             nf.RParms.Viewangles.X = tmpfloat2;
                                             
                                             tmpfloat2 = br.ReadSingle();
                                             //if (tmpfloat.ToString().IndexOf("E") > 0)
                                             //    cdframe.ErrAngles++;
-                                            try
-                                            {
-                                                tmpfloat2 = (float)Math.Round(tmpfloat2, 8, MidpointRounding.ToEven);
-                                            }
-                                            catch
-                                            {
-
-                                            }
                                             nf.RParms.Viewangles.Y = tmpfloat2;
                                             tmpfloat2 = br.ReadSingle();
                                             //if (tmpfloat.ToString().IndexOf("E") > 0)
                                             //    cdframe.ErrAngles++;
-                                            try
-                                            {
-                                                tmpfloat2 = (float)Math.Round(tmpfloat2, 8, MidpointRounding.ToEven);
-                                            }
-                                            catch
-                                            {
-
-                                            }
                                             nf.RParms.Viewangles.Z = tmpfloat2;
                                             nf.RParms.Forward.X = br.ReadSingle();
                                             nf.RParms.Forward.Y = br.ReadSingle();
@@ -1664,38 +1586,14 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             tmpfloat2 = br.ReadSingle();
                                             //if (tmpfloat.ToString().IndexOf("E") > 0)
                                             //    cdframe.ErrAngles++;
-                                            try
-                                            {
-                                                tmpfloat2 = (float)Math.Round(tmpfloat2, 8, MidpointRounding.ToEven);
-                                            }
-                                            catch
-                                            {
-
-                                            }
                                             nf.RParms.ClViewangles.X = tmpfloat2;
                                             tmpfloat2 = br.ReadSingle();
                                             //if (tmpfloat.ToString().IndexOf("E") > 0)
                                             //    cdframe.ErrAngles++;
-                                            try
-                                            {
-                                                tmpfloat2 = (float)Math.Round(tmpfloat2, 8, MidpointRounding.ToEven);
-                                            }
-                                            catch
-                                            {
-
-                                            }
                                             nf.RParms.ClViewangles.Y = tmpfloat2;
                                             tmpfloat2 = br.ReadSingle();
                                             //if (tmpfloat.ToString().IndexOf("E") > 0)
                                             //    cdframe.ErrAngles++;
-                                            try
-                                            {
-                                                tmpfloat2 = (float)Math.Round(tmpfloat2, 8, MidpointRounding.ToEven);
-                                            }
-                                            catch
-                                            {
-
-                                            }
                                             nf.RParms.ClViewangles.Z = tmpfloat2;
 
                                             nf.RParms.Health = br.ReadInt32();
@@ -1728,39 +1626,15 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             tmpfloat2 = br.ReadSingle();
                                             //if (tmpfloat.ToString().IndexOf("E") > 0)
                                             //    cdframe.ErrAngles++;
-                                            try
-                                            {
-                                                tmpfloat2 = (float)Math.Round(tmpfloat2, 8, MidpointRounding.ToEven);
-                                            }
-                                            catch
-                                            {
-
-                                            }
                                             nf.UCmd.Viewangles.X = tmpfloat2;
                                             
                                             tmpfloat2 = br.ReadSingle();
                                             //if (tmpfloat.ToString().IndexOf("E") > 0)
                                             //    cdframe.ErrAngles++;
-                                            try
-                                            {
-                                                tmpfloat2 = (float)Math.Round(tmpfloat2, 8, MidpointRounding.ToEven);
-                                            }
-                                            catch
-                                            {
-
-                                            }
                                             nf.UCmd.Viewangles.Y = tmpfloat2;
                                             tmpfloat2 = br.ReadSingle();
                                             //if (tmpfloat.ToString().IndexOf("E") > 0)
                                             //    cdframe.ErrAngles++;
-                                            try
-                                            {
-                                                tmpfloat2 = (float)Math.Round(tmpfloat2, 8, MidpointRounding.ToEven);
-                                            }
-                                            catch
-                                            {
-
-                                            }
                                             nf.UCmd.Viewangles.Z = tmpfloat2;
 
 
@@ -1903,6 +1777,7 @@ Parsing bxt data:{s3.ElapsedMilliseconds}ms");*/
                 //Main.//Log("Exception happened in the goldsource parser: " + e.Message);
                 gDemo.ParsingErrors.Add(e.Message);
             }
+            
             return gDemo;
         }
 
