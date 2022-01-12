@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.61.1 BETA";
+        public const string PROGRAMVERSION = "1.61.2 BETA";
 
         public static bool DEBUG_ENABLED = false;
         public static bool NO_TELEPORT = false;
@@ -2937,7 +2937,6 @@ namespace DemoScanner.DG
                                     //}
                                     //else
                                     //{
-                                    DemoScanner.FPS_OVERFLOW++;
                                     //}
                                 }
 
@@ -4333,6 +4332,27 @@ namespace DemoScanner.DG
                                             AimType8Warn = 0;
                                         }
                                     }
+                                    else
+                                    {
+                                        if (viewanglesforsearch != nf.UCmd.Viewangles
+                                            && viewanglesforsearch != nf.RParms.ClViewangles)
+                                        {
+                                            if (CurrentTime - FpsOverflowTime < 1.0f)
+                                            {
+                                                FPS_OVERFLOW++;
+                                                if (FPS_OVERFLOW == 20)
+                                                {
+                                                    DemoScanner.DemoScanner_AddWarn( "[FPS HACK TYPE 1] at (" +
+                                            CurrentTime + "):" + DemoScanner.CurrentTimeString);
+                                                }
+                                            }
+                                            else
+                                            {
+                                                FPS_OVERFLOW = 0;
+                                            }
+                                            FpsOverflowTime = CurrentTime;
+                                        }
+                                    }
                                 }
 
                                 if (Math.Abs(CurrentTime) > float.Epsilon && Math.Abs(PreviousTime) > float.Epsilon &&
@@ -5392,13 +5412,9 @@ namespace DemoScanner.DG
                 DemoScanner.DemoScanner_AddInfo("Lost attack flag: " + NeedIgnoreAttackFlagCount + ".");
             }
 
-            if (RealFpsMax > MAX_DEFAULT_FPS_LIMIT)
+            if (RealFpsMax > MAX_MONITOR_REFRESHRATE)
             {
                 DemoScanner.DemoScanner_AddInfo("Player playing with non default fps. Max fps: " + RealFpsMax);
-                if (RealFpsMax > MAX_MONITOR_REFRESHRATE && FPS_OVERFLOW > 1000)
-                {
-                    DemoScanner.DemoScanner_AddInfo("[FPS SKIP HACK DETECTED] Frame overflow times:" + FPS_OVERFLOW);
-                }
             }
             /*
             if (BadAnglesFoundCount > 0)
@@ -6547,7 +6563,7 @@ namespace DemoScanner.DG
         public static bool IsViewChanged()
         {
             float retcheck = CurrentTime - LastViewChange;
-            bool retval = retcheck < 4.5f && retcheck >= 0f;
+            bool retval = retcheck < 1.5f && retcheck >= 0f;
 
             /*if (retval)
                 Console.WriteLine("CurrentTime:" + CurrentTime + ". LastViewChange:" + LastViewChange);*/
@@ -6561,7 +6577,7 @@ namespace DemoScanner.DG
             return retval;
         }
 
-        public static bool IsTakeDamage(float val = 0.25f)
+        public static bool IsTakeDamage(float val = 0.50f)
         {
             float retcheck = CurrentTime - LastDamageTime;
             bool retval = retcheck < val && retcheck >= 0.0f;
@@ -6585,7 +6601,7 @@ namespace DemoScanner.DG
         public static bool IsPlayerTeleport()
         {
             float retcheck = CurrentTime - LastTeleportusTime;
-            bool retval = retcheck < 2.25f && retcheck >= 0f;
+            bool retval = retcheck < 0.50f && retcheck >= 0f;
 
             /*if (retval)
                 Console.WriteLine("CurrentTime:" + CurrentTime + ". LastTeleportusTime:" + LastTeleportusTime);*/
@@ -6599,13 +6615,13 @@ namespace DemoScanner.DG
                 return false;
             return
                 IsPlayerTeleport() ||
-                CurrentTime - LastAngleManipulation < 0.80f ||
+                CurrentTime - LastAngleManipulation < 0.50f ||
                 CurrentTime - LastDuckUnduckTime < 1.25f ||
                 IsTakeDamage() ||
                 IsPlayerFrozen() ||
                 IsViewChanged() ||
                 HideWeapon ||
-                CurrentTime - LastLookDisabled < 1.0f;
+                CurrentTime - LastLookDisabled < 0.75f;
         }
 
 
