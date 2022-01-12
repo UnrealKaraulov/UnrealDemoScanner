@@ -9192,10 +9192,16 @@ namespace DemoScanner.DG
             }
         }
 
+        public double UnFixedUnsigned16(ushort value)
+        {
+            double output = Math.Round(value / Convert.ToDouble(1 << 12), 4, MidpointRounding.ToEven);
+            return output;
+        }
+
         private void MessageScreenFade()
         {
-            var duration = BitBuffer.ReadUInt16();
-            var holdTime = BitBuffer.ReadUInt16();
+            var duration = UnFixedUnsigned16(BitBuffer.ReadUInt16());
+            var holdTime = UnFixedUnsigned16(BitBuffer.ReadUInt16());
             var fadeFlags = BitBuffer.ReadUInt16();
 
             if ((fadeFlags & 4) > 0 && !DemoScanner.IsScreenFade)
