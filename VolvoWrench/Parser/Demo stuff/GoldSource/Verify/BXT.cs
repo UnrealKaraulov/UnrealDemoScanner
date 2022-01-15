@@ -163,7 +163,6 @@ namespace DemoScanner.DemoStuff.GoldSource.Verify
             }
         }
 
-        [Serializable]
         public class CustomTriggerCommand : BXTData
         {
             public string command;

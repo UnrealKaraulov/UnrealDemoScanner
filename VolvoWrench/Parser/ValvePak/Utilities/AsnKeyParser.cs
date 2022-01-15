@@ -39,6 +39,7 @@ using System.Text;
 
 namespace DemoScanner.ValvePak.Utilities
 {
+    [Serializable]
     internal sealed class BerDecodeException : Exception
     {
         private readonly int _position;

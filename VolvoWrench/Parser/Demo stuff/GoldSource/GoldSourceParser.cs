@@ -438,6 +438,16 @@ namespace DemoScanner.DemoStuff.GoldSource
                 public float Viewsize;
                 public int Waterlevel;
 
+                public static bool operator ==(RefParams left, RefParams right)
+                {
+                    return left.Equals(right);
+                }
+
+                public static bool operator !=(RefParams left, RefParams right)
+                {
+                    return !(left == right);
+                }
+
                 public override bool Equals(object obj)
                 {
                     return obj is RefParams @params &&

@@ -12,14 +12,15 @@ namespace DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil
         private BitArray array;
         private int RemainingInCurrentChunk = -1;
 
-        public BitArrayStream()
-        {
-        }
-
         public BitArrayStream(byte[] data)
         {
             array = new BitArray(data);
             Position = 0;
+        }
+
+        public void Dispose()
+        {
+            array = null;
         }
 
         public int Position { get; private set; }
@@ -79,11 +80,6 @@ namespace DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil
         {
             // Read the int normally and then shift it back and forth to extend the sign bit.
             return ((int) ReadInt(numBits) << (32 - numBits)) >> (32 - numBits);
-        }
-
-        public void Dispose()
-        {
-            array = null;
         }
 
         public float ReadFloat()

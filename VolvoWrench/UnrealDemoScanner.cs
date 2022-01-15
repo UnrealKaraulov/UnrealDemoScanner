@@ -2,18 +2,12 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Diagnostics;
-using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
-using System.Threading;
-using System.Windows;
-using System.Windows.Data;
 using System.Windows.Forms;
-using System.Xml.Serialization;
 using DemoScanner.DemoStuff;
 using DemoScanner.DemoStuff.GoldSource;
 using static DemoScanner.DG.BitWriter;
@@ -26,7 +20,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.61.2 BETA";
+        public const string PROGRAMVERSION = "1.62";
 
         public static bool DEBUG_ENABLED = false;
         public static bool NO_TELEPORT = false;
@@ -472,14 +466,16 @@ namespace DemoScanner.DG
                 return;
             }
             LastWarnTime = CurrentTime;
-            WarnStruct warnStruct = new WarnStruct();
-            warnStruct.Warn = warn;
-            warnStruct.WarnTime = LastWarnTime;
-            warnStruct.Detected = detected;
-            warnStruct.Log = log;
-            warnStruct.SkipAllChecks = skipallchecks;
-            warnStruct.Visited = false;
-            warnStruct.Plugin = uds_plugin;
+            WarnStruct warnStruct = new WarnStruct
+            {
+                Warn = warn,
+                WarnTime = LastWarnTime,
+                Detected = detected,
+                Log = log,
+                SkipAllChecks = skipallchecks,
+                Visited = false,
+                Plugin = uds_plugin
+            };
             DemoScannerWarnList.Add(warnStruct);
         }
 
@@ -1230,7 +1226,7 @@ namespace DemoScanner.DG
         }
 
 
-        public static void addresolution(int x, int y)
+        public static void AddResolution(int x, int y)
         {
             if (x != 0 && y != 0)
             {
@@ -1261,7 +1257,6 @@ namespace DemoScanner.DG
             val1 *= 10;
             val2 *= 10;
 
-            val3 = 100;
             if (angle < 0.0001f)
                 val3 = 10;
             else if (angle < 0.001f)
@@ -2025,7 +2020,8 @@ namespace DemoScanner.DG
                                             averageangle += PlayerSensitivityHistory[i];
                                             averageangles++;
                                         }
-                                        if (averageangles > 0)
+
+                                        if (averageangles > 1)
                                             averageangle /= averageangles;
                                     }
 
@@ -2154,9 +2150,9 @@ namespace DemoScanner.DG
                                         CurrentWeapon == WeaponIdType.WEAPON_G3SG1 ||
                                         CurrentWeapon == WeaponIdType.WEAPON_SG550)
                                     {
-                                        anglecheat = anglecheat / 100.0f;
-                                        anglecheat2 = anglecheat2 / 150.0f;
-                                        anglecheat3 = anglecheat3 / 150.0f;
+                                        anglecheat /= 100.0f;
+                                        anglecheat2 /= 150.0f;
+                                        anglecheat3 /= 150.0f;
                                     }
                                     else if (
                                         CurrentWeapon == WeaponIdType.WEAPON_SG552 ||
@@ -3366,7 +3362,6 @@ namespace DemoScanner.DG
                                 {
                                     if (PreviousFrameAttacked && !CurrentFrameAttacked)
                                     {
-                                        var duplicheck = nf;
                                         int tmpframeattacked = 0;
                                         for (int n = frameindex + 1;
                                             n < CurrentDemoFile.GsDemoInfo.DirectoryEntries[index].Frames.Count;
@@ -3405,7 +3400,6 @@ namespace DemoScanner.DG
                                                     var tmpnetmsgframe1 = (GoldSource.NetMsgFrame)tmpframe.Value;
                                                     if (tmpnetmsgframe1 != nf)
                                                     {
-                                                        duplicheck = tmpnetmsgframe1;
                                                         if ((tmpnetmsgframe1.UCmd.Buttons & 1) > 0)
                                                         {
                                                             tmpframeattacked = -1;
@@ -4194,7 +4188,7 @@ namespace DemoScanner.DG
                                                 }
 
 
-                                                if (Math.Abs(DemoScanner.NoSpreadDetectionTime - CurrentTime) > float.Epsilon && spreadtest > MAX_SPREAD_CONST && nospreadtest > MAX_SPREAD_CONST)
+                                                if (Math.Abs(DemoScanner.NoSpreadDetectionTime - CurrentTime) > float.Epsilon && spreadtest > MAX_SPREAD_CONST && spreadtest2 > MAX_SPREAD_CONST)
                                                 {
                                                     DemoScanner.NoSpreadDetectionTime = CurrentTime;
                                                     DemoScanner_AddWarn(
@@ -4910,7 +4904,7 @@ namespace DemoScanner.DG
                                     LastUsernameCheckTime = CurrentTime;
                                 }
 
-                                addresolution(nf.RParms.Viewport.Z, nf.RParms.Viewport.W);
+                                AddResolution(nf.RParms.Viewport.Z, nf.RParms.Viewport.W);
 
                                 if (DUMP_ALL_FRAMES)
                                 {
@@ -5556,10 +5550,8 @@ namespace DemoScanner.DG
             var EndScanTime = Trim(new DateTime((DateTime.Now - DemoScanner.StartScanTime).Ticks), 10);
 
             TimeSpan time1 = TimeSpan.FromSeconds(Math.Min(CurrentGameSecond2, CurrentGameSecond));
-            DateTime dateTime1 = DateTime.Today.Add(time1);
 
             TimeSpan time2 = TimeSpan.FromSeconds(Math.Min(CurrentGameSecond2, CurrentGameSecond));
-            DateTime dateTime2 = DateTime.Today.Add(time2);
 
             Console.WriteLine("Scan completed. Scan time: " + EndScanTime.ToString("T"));
             Console.WriteLine("Demo playing time: " + time1.ToString("T") + " ~ " + time2.ToString("T") + " seconds.");
@@ -6089,10 +6081,6 @@ namespace DemoScanner.DG
         public static DateTime Trim(this DateTime date, long ticks)
         {
             return new DateTime(date.Ticks - (date.Ticks % ticks), date.Kind);
-        }
-        private static void record_angles_stop()
-        {
-
         }
 
         public static void ForceFlushScanResults()
@@ -7731,8 +7719,10 @@ namespace DemoScanner.DG
 
         static Int32 Swap(Int32 value)
         {
-            UInt32Union src = new UInt32Union();
-            src.Value = value;
+            UInt32Union src = new UInt32Union
+            {
+                Value = value
+            };
 
             UInt32Union dest = new UInt32Union
             {
@@ -9405,12 +9395,10 @@ namespace DemoScanner.DG
             if (CurrentBit + 1 > data.Count * 8)
                 throw new BitBufferOutOfRangeException();
 
-            var result =
-                (data[CurrentBit / 8] & (Endian == EndianType.Little
+            var result =  (data[CurrentBit / 8] & (Endian == EndianType.Little
                     ? 1 << (CurrentBit % 8)
-                    : 128 >> (CurrentBit % 8))) == 0
-                    ? false
-                    : true;
+                    : 128 >> (CurrentBit % 8))) != 0;
+
             CurrentBit++;
             return result;
         }
@@ -9962,8 +9950,8 @@ namespace DemoScanner.DG
 
             public void ReadDelta(BitBuffer bitBuffer, HalfLifeDelta delta)
             {
-                Byte[] bitmaskBytes;
-                ReadDelta(bitBuffer, delta, out bitmaskBytes);
+                ReadDelta(bitBuffer, delta, out Byte[] bitmaskBytes);
+                
             }
 
             public void ReadDelta(BitBuffer bitBuffer, HalfLifeDelta delta,
@@ -10589,7 +10577,8 @@ namespace DemoScanner.DG
         {
             public List<float> anglescheck;
         }
-        public List<CheckAnglesStruct> ANGLES_DB;
+
+        private List<CheckAnglesStruct> ANGLES_DB;
         private string filename;
         public bool is_file_exists = true;
 
@@ -10664,7 +10653,7 @@ namespace DemoScanner.DG
             }
         }
 
-        private static bool cmdtwoanglesarray(List<float> a1, List<float> a2, float precision)
+        private static bool CmpTwoAngleArray(List<float> a1, List<float> a2, float precision)
         {
             if (a1.Count != a2.Count)
             {
@@ -10685,7 +10674,7 @@ namespace DemoScanner.DG
         {
             foreach (var a in ANGLES_DB)
             {
-                if (cmdtwoanglesarray(a.anglescheck, angles_in, precision))
+                if (CmpTwoAngleArray(a.anglescheck, angles_in, precision))
                     return true;
             }
             return false;
@@ -10710,8 +10699,10 @@ namespace DemoScanner.DG
                 return;
             }
             Console.WriteLine("NEW ANGLES");
-            CheckAnglesStruct checkAnglesStruct = new CheckAnglesStruct();
-            checkAnglesStruct.anglescheck = angles_out;
+            CheckAnglesStruct checkAnglesStruct = new CheckAnglesStruct
+            {
+                anglescheck = angles_out
+            };
             ANGLES_DB.Add(checkAnglesStruct);
         }
     }
