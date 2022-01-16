@@ -7,6 +7,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows.Forms;
 using DemoScanner.DemoStuff;
 using DemoScanner.DemoStuff.GoldSource;
@@ -24,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.62.1";
+        public const string PROGRAMVERSION = "1.62.2";
 
         public static bool DEBUG_ENABLED = false;
         public static bool NO_TELEPORT = false;
@@ -1374,8 +1375,23 @@ namespace DemoScanner.DG
 
             try
             {
+                Console.WriteLine("Search for updates...");
                 WebClient myWebClient = new WebClient();
-               // string str_from_github = myWebClient.DownloadString()ж
+                string str_from_github = myWebClient.
+                    DownloadString("https://raw.githubusercontent.com/UnrealKaraulov/UnrealDemoScanner/main/SourceCode/UnrealDemoScanner.cs");
+                Console.Clear();
+                if (str_from_github.IndexOf("PROGRAMVERSION") > 0)
+                {
+                    Regex regex = new Regex(@"PROGRAMVERSION\s+=\s+""(.*?)"";");
+                    Match match = regex.Match(str_from_github);
+                    if (match.Success)
+                    {
+                        if (match.Groups[1].Value != PROGRAMVERSION)
+                        {
+                            Console.WriteLine("Found new version " + match.Groups[1].Value + "! Please download latest version:" + match.Groups[1].Value);
+                        }
+                    }
+                }
             }
             catch
             {
