@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.62.2";
+        public const string PROGRAMVERSION = "1.62.1";
 
         public static bool DEBUG_ENABLED = false;
         public static bool NO_TELEPORT = false;
@@ -1388,10 +1388,15 @@ namespace DemoScanner.DG
                     {
                         if (match.Groups[1].Value != PROGRAMVERSION)
                         {
-                            Console.WriteLine("Found new version " + match.Groups[1].Value + "! Please download latest version:" + match.Groups[1].Value);
+                            Console.WriteLine("Found new version \"" + match.Groups[1].Value + "\"! Current version:\"" + PROGRAMVERSION +"\".");
+                        }
+                        else
+                        {
+                            Console.WriteLine("version " + match.Groups[1].Value);
                         }
                     }
                 }
+                Thread.Sleep(1000);
             }
             catch
             {
