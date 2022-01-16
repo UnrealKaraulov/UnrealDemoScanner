@@ -17,7 +17,7 @@ Unreal Demo Scanner for CS 1.6
 **CheatDemos/CheatDemos2** - Demos with AIM/BHOP/etc
 
 Main code:
-https://github.com/2020karaulov2020/UnrealDemoScanner/blob/DemoScanner/VolvoWrench/UnrealDemoScanner.cs 
+https://github.com/2020karaulov2020/UnrealDemoScanner/blob/DemoScanner/SourceCode/UnrealDemoScanner.cs 
 
 
 Command line:

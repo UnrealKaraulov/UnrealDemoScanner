@@ -4,8 +4,15 @@ using System.Drawing;           // NOTE: Project + Add Reference required
 using System.Windows.Forms;     // NOTE: Project + Add Reference required
 using System.Runtime.InteropServices;
 
-public static class NativeMethods
+public static class ConsoleHelper
 {
+    public static void ClearCurrentConsoleLine()
+    {
+        int currentLineCursor = Console.CursorTop;
+        Console.SetCursorPosition(0, Console.CursorTop);
+        Console.Write(new string(' ', Console.WindowWidth));
+        Console.SetCursorPosition(0, currentLineCursor);
+    }
     public static void CenterConsole()
     {
         IntPtr hWin = GetConsoleWindow();

@@ -16,7 +16,6 @@ x64/
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*
 *.config
-*.exe
 *_i.c
 *_p.c
 *_i.h
@@ -132,7 +131,8 @@ $RECYCLE.BIN/
 _NCrunch*
 ClearDemos/Commands.txt
 CheatDemos2/Commands.txt
-VolvoWrench/bin/Release/UnrealDemoScanner.zip
+SourceCode/bin/Release/UnrealDemoScanner.zip
+SourceCode/bin/Release/UnrealDemoScanner.exe
 CheatDemos3/DemosPack1/Demo_3Special_Zone_1.dem
 CheatDemos3/DemosPack3/Demo_Special_Zone_2 (5).dem
 CheatDemos4/Zver2.dem
@@ -162,3 +162,4 @@ ClearDemos5/DemoPack4/nukakakka.dem
 ClearDemos5/DemoPack4/softershaaaa.dem
 ClearDemos5/DemoPack4/demo.dem
 *.txt
+SourceCode/bin/Release/UnrealDemoScanner2.exe
