@@ -163,3 +163,5 @@ ClearDemos5/DemoPack4/softershaaaa.dem
 ClearDemos5/DemoPack4/demo.dem
 *.txt
 SourceCode/bin/Release/UnrealDemoScanner2.exe
+SourceCode/bin/Release/lang.ru
+SourceCode/bin/Release/lang.en

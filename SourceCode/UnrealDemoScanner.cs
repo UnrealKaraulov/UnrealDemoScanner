@@ -294,7 +294,7 @@ namespace DemoScanner.DG
         public static int RealFpsMax2 = int.MinValue;
         public static float LastFpsCheckTime2 = 0.0f;
         public static float LastCmdTime = 0.0f;
-        public static string LastCmdTimeString;
+        public static string LastCmdTimeString = "00h:00m:00s:000ms";
         public static int LastCmdFrameId = 0;
         public static string LastCmd = "";
         public static int CurrentFrameId = 0;
@@ -476,6 +476,13 @@ namespace DemoScanner.DG
             DemoScannerWarnList.Add(warnStruct);
         }
 
+        public static string Rusifikator(string str)
+        {
+            str = str.Replace(" at ", " на ");
+
+            return str;
+        }
+
         public static void UpdateWarnList(bool force = false)
         {
             for (int i = 0; i < DemoScannerWarnList.Count; i++)
@@ -491,12 +498,18 @@ namespace DemoScanner.DG
                         if (curwarn.Plugin)
                         {
                             Console.ForegroundColor = ConsoleColor.Magenta;
-                            Console.Write("[PLUGIN] ");
+                            if (IsRussia)
+                                Console.Write("[Модуль] ");
+                            else
+                                Console.Write("[PLUGIN] ");
                         }
                         else
                         {
                             Console.ForegroundColor = ConsoleColor.Cyan;
-                            Console.Write("[DETECTED] ");
+                            if (IsRussia)
+                                Console.Write("[ОБНАРУЖЕНО] ");
+                            else
+                                Console.Write("[DETECTED] ");
                         }
                         Console.ForegroundColor = ConsoleColor.Cyan;
                         Console.WriteLine(curwarn.Warn);
@@ -506,25 +519,46 @@ namespace DemoScanner.DG
                         if (curwarn.Plugin)
                         {
                             Console.ForegroundColor = ConsoleColor.Magenta;
-                            Console.Write("[PLUGIN] ");
+                            if (IsRussia)
+                                Console.Write("[Модуль] ");
+                            else
+                                Console.Write("[PLUGIN] ");
                         }
                         else
                         {
                             Console.ForegroundColor = ConsoleColor.Gray;
-                            Console.Write("[WARN] ");
+                            if (IsRussia)
+                                Console.Write("[ПРЕДУПРЕЖДЕНИЕ] ");
+                            else
+                                Console.Write("[WARNING] ");
                         }
 
                         Console.ForegroundColor = ConsoleColor.Gray;
                         Console.Write(curwarn.Warn);
                         Console.ForegroundColor = ConsoleColor.Red;
                         if (IsPlayerLossConnection(curwarn.WarnTime))
-                            Console.WriteLine(" (LAG)");
+                        {
+                            if (IsRussia)
+                                Console.Write(" (ЛАГ)");
+                            else
+                                Console.Write(" (LAG)");
+                        }
                         else if (!RealAlive)
-                            Console.WriteLine(" (DEAD)");
+                        {
+                            if (IsRussia)
+                                Console.Write(" (УМЕР)");
+                            else
+                                Console.Write(" (DEAD)");
+                        }
                         /* else if (Math.Abs(curwarn.WarnTime - FpsOverflowTime) <= 0.22)
-                             Console.WriteLine(" (BAD FPS)");*/
-                        else
-                            Console.WriteLine(" (FALSE)");
+                        //     Console.WriteLine(" (BAD FPS)");*/
+                        //else
+                        //{
+                        //    if (IsRussia)
+                        //        Console.Write(" (ИНФА)");
+                        //    else
+                        //        Console.Write(" (FALSE)");
+                        //}
                     }
 
 
@@ -565,7 +599,10 @@ namespace DemoScanner.DG
             {
                 LastStuffCmdCommand = "";
                 CommandsDump.Add("wait" + (CurrentFrameId - LastCmdFrameId) + ";");
-                CommandsDump.Add(DemoScanner.CurrentTimeString + " : " + s + "(" + DemoScanner.CurrentTime + ") --> EXECUTED BY SERVER");
+                if (IsRussia)
+                    CommandsDump.Add(DemoScanner.CurrentTimeString + " : " + s + "(" + DemoScanner.CurrentTime + ") --> ВЫПОЛНЕНО СЕРВЕРОМ");
+                else
+                    CommandsDump.Add(DemoScanner.CurrentTimeString + " : " + s + "(" + DemoScanner.CurrentTime + ") --> EXECUTED BY SERVER");
                 return;
             }
 
@@ -583,8 +620,7 @@ namespace DemoScanner.DG
 
             if (s.ToLower().IndexOf("-showscores") > -1)
             {
-                if (LastCmdTimeString != String.Empty)
-                    DemoScanner.LastAltTabStart = LastCmdTimeString;
+                DemoScanner.LastAltTabStart = LastCmdTimeString;
                 DemoScanner.AltTabEndSearch = true;
             }
 
@@ -597,7 +633,12 @@ namespace DemoScanner.DG
                     DemoScanner.AltTabCount2++;
                     DemoScanner.AltTabEndSearch = false;
                     DemoScanner.MINIMIZED = true;
-                    DemoScanner.DemoScanner_AddInfo("Player minimized game from " + LastAltTabStart + " to " + CurrentTimeString);
+
+                    if (IsRussia)
+                        DemoScanner.DemoScanner_AddInfo("Игрок свернул игру с " + LastAltTabStart + " по " + CurrentTimeString);
+                    else
+                        DemoScanner.DemoScanner_AddInfo("Player minimized game from " + LastAltTabStart + " to " + CurrentTimeString);
+
                     DemoScanner.LastGameMaximizeTime = CurrentTime;
                 }
             }
@@ -633,7 +674,7 @@ namespace DemoScanner.DG
                     {
                         if (JumpHackCount < 10)
                         {
-                            DemoScanner_AddWarn("[XTREMEHACK] jump at (" + CurrentTime + ") " + DemoScanner.CurrentTimeString);
+                            DemoScanner_AddWarn("[XTREME JUMP HACK] at (" + CurrentTime + ") " + DemoScanner.CurrentTimeString);
                         }
 
                         JumpHackCount++;
@@ -1388,11 +1429,7 @@ namespace DemoScanner.DG
                     {
                         if (match.Groups[1].Value != PROGRAMVERSION)
                         {
-                            Console.WriteLine("Found new version \"" + match.Groups[1].Value + "\"! Current version:\"" + PROGRAMVERSION +"\".");
-                        }
-                        else
-                        {
-                            Console.WriteLine("version " + match.Groups[1].Value);
+                            Console.WriteLine("Found new version \"" + match.Groups[1].Value + "\"! Current version:\"" + PROGRAMVERSION + "\".");
                         }
                     }
                 }
@@ -1401,6 +1438,31 @@ namespace DemoScanner.DG
             catch
             {
 
+            }
+
+            string CurrentDir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+
+            if (!File.Exists(CurrentDir + @"\lang.ru") && !File.Exists(CurrentDir + @"\lang.en"))
+            {
+                Console.Write("Enter language EN - Engish / RU - Russian:");
+                string lang = Console.ReadLine();
+                if (lang.ToLower() == "en")
+                {
+                    File.Create(CurrentDir + @"\lang.en").Close();
+                }
+                else
+                {
+                    File.Create(CurrentDir + @"\lang.ru").Close();
+                }
+            }
+
+            if (File.Exists(CurrentDir + @"\lang.en"))
+            {
+                IsRussia = false;
+            }
+            else
+            {
+                IsRussia = true;
             }
 
 
@@ -1418,14 +1480,17 @@ namespace DemoScanner.DG
                 else if (arg.IndexOf("-debug") > -1)
                 {
                     DemoScanner.DEBUG_ENABLED = true;
+                    Console.WriteLine("Debug mode activated.");
                 }
                 else if (arg.IndexOf("-noteleport") > -1)
                 {
                     DemoScanner.NO_TELEPORT = true;
+                    Console.WriteLine("Ignore teleport mode activated.");
                 }
                 else if (arg.IndexOf("-dump") > -1)
                 {
                     DemoScanner.DUMP_ALL_FRAMES = true;
+                    Console.WriteLine("Dump mode activated.");
                 }
                 else if (arg.IndexOf("-skip") > -1)
                 {
@@ -1434,12 +1499,18 @@ namespace DemoScanner.DG
                 else if (arg.IndexOf("-learn_clearn") > -1)
                 {
                     DemoScanner.ENABLE_LEARN_CLEAN_DEMO = true;
-                    Console.WriteLine("ACTIVATED MACHINE LEARN FEATURE FOR CLEAN DEMOS!");
+                    if (IsRussia)
+                        Console.WriteLine("Активировано машинное обучение чистых демо файлов!");
+                    else
+                        Console.WriteLine("ACTIVATED MACHINE LEARN FEATURE FOR CLEAN DEMOS!");
                 }
                 else if (arg.IndexOf("-learn_hack") > -1)
                 {
                     DemoScanner.AUTO_LEARN_HACK_DB = true;
-                    Console.WriteLine("ACTIVATED MACHINE LEARN FEATURE FOR CHEAT DEMOS!");
+                    if (IsRussia)
+                        Console.WriteLine("Активировано машинное демо файлов только с читами!");
+                    else
+                        Console.WriteLine("ACTIVATED MACHINE LEARN FEATURE FOR CHEAT DEMOS!");
                 }
                 else if (arg.IndexOf("-alive") > -1)
                 {
@@ -1450,7 +1521,10 @@ namespace DemoScanner.DG
                     DemoScanner.RealAlive = true;
                     DemoScanner.UserAlive = true;
                     DemoScanner.FirstUserAlive = false;
-                    Console.WriteLine("SCAN WITH FORCE USER ALIVE AT START DEMO!");
+                    if (IsRussia)
+                        Console.WriteLine("ИГРОК ОТМЕЧЕН ЖИВЫМ С НАЧАЛА ДЕМО!");
+                    else
+                        Console.WriteLine("SCAN WITH FORCE USER ALIVE AT START DEMO!");
                 }
             }
 
@@ -1462,10 +1536,16 @@ namespace DemoScanner.DG
                 Console.ForegroundColor = ConsoleColor.DarkRed;
                 Console.WriteLine("Unreal Demo Scanner " + PROGRAMVERSION + " " + TotalFreewareTool);
                 Console.ForegroundColor = ConsoleColor.Yellow;
-                Console.WriteLine("Download latest version or source code :");
+                if (IsRussia)
+                    Console.WriteLine("Скачивайте последнюю версию по ссылке :");
+                else
+                    Console.WriteLine("Download latest version or source code :");
                 Console.WriteLine(GetSourceCodeString());
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("THIS BASE CONTAIN NEXT CHEAT/HACK:");
+                if (IsRussia)
+                    Console.WriteLine("БАЗА ДАННЫХ СОДЕРЖИТ СЛЕДУЮЩИЕ ВИДЫ ЧИТОВ И ХАКОВ:");
+                else
+                    Console.WriteLine("THIS BASE CONTAIN NEXT CHEAT/HACK:");
             }
             catch
             {
@@ -1482,7 +1562,11 @@ namespace DemoScanner.DG
             Console.WriteLine("[WHEELJUMP]");
             Console.ForegroundColor = ConsoleColor.DarkGray;
 
-            Console.WriteLine("Drag & drop .dem file. Or enter path manually:");
+
+            if (IsRussia)
+                Console.WriteLine("Перетащите демо файл в это окно или введите путь вручную:");
+            else
+                Console.WriteLine("Drag & drop .dem file. Or enter path manually:");
 
 
             if (!filefound)
@@ -1667,7 +1751,7 @@ namespace DemoScanner.DG
             ViewDemoHelperComments.Write(1751611137);
             ViewDemoHelperComments.Write(0);
 
-            Console.WriteLine("DEMO " + Path.GetFileName(CurrentDemoFilePath) + " INFO");
+            Console.WriteLine("DEMO " + Path.GetFileName(CurrentDemoFilePath));
             DemoName = Truncate(Path.GetFileName(CurrentDemoFilePath), 25);
 
             if (CurrentDemoFile.GsDemoInfo.ParsingErrors.Count > 0)
@@ -1679,7 +1763,10 @@ namespace DemoScanner.DG
             }
 
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.WriteLine("Start demo analyze.....");
+            if (IsRussia)
+                Console.WriteLine("Начинается анализ демо файла. Пожалуйста подождите...");
+            else
+                Console.WriteLine("Start demo analyze.....");
             halfLifeDemoParser = new HalfLifeDemoParser(CurrentDemoFile);
 
             if (usagesrccode != 1)
@@ -1688,25 +1775,33 @@ namespace DemoScanner.DG
 
 
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.Write("Demo protocol : ");
+            if (IsRussia)
+                Console.Write("Протокол демо файла и игры : ");
+            else
+                Console.Write("Demo / Game protocol : ");
 
             Console.ForegroundColor = ConsoleColor.Red;
             Console.Write(CurrentDemoFile.GsDemoInfo.Header.DemoProtocol);
 
-            Console.ForegroundColor = ConsoleColor.Green;
-            Console.Write(". Net protocol : ");
+            Console.Write(" / ");
 
-            Console.ForegroundColor = ConsoleColor.Red;
             Console.WriteLine(CurrentDemoFile.GsDemoInfo.Header.NetProtocol);
 
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.Write("Game directory : ");
+            if (IsRussia)
+                Console.Write("Игра : ");
+            else
+                Console.Write("Game : ");
 
             Console.ForegroundColor = ConsoleColor.Red;
             Console.Write(CurrentDemoFile.GsDemoInfo.Header.GameDir);
 
             Console.ForegroundColor = ConsoleColor.Green;
-            Console.Write(". Map name : ");
+
+            if (IsRussia)
+                Console.Write("  Карта : ");
+            else
+                Console.Write("  Map : ");
 
             Console.ForegroundColor = ConsoleColor.Red;
             Console.Write("\"maps/" + CurrentDemoFile.GsDemoInfo.Header.MapName + ".bsp\" ");
@@ -1715,8 +1810,10 @@ namespace DemoScanner.DG
             Console.WriteLine();
             Console.ForegroundColor = ConsoleColor.Green;
 
-
-            Console.Write("Username and steamid : ");
+            if (IsRussia)
+                Console.Write("Никнейм и стим : ");
+            else
+                Console.Write("Username and steamid : ");
             DemoScanner.UserNameAndSteamIDField = Console.CursorTop;
             DemoScanner.UserNameAndSteamIDField2 = Console.CursorLeft;
             Console.WriteLine();
@@ -1803,7 +1900,10 @@ namespace DemoScanner.DG
                     {
                         NeedRescanDemoForce = false;
                         Console.WriteLine();
-                        Console.WriteLine("Sorry but need rescan demo ^_^! This action is automatically!");
+                        if (IsRussia)
+                            Console.WriteLine("Извините возникла критическая ошибка при сканировании демо. Повтор...");
+                        else
+                            Console.WriteLine("Sorry but need rescan demo ^_^! This action is automatically!");
                         Console.WriteLine();
                         frameindex = 0;
                     }
@@ -1912,7 +2012,10 @@ namespace DemoScanner.DG
                                     if (Math.Abs(DemoScanner.LastGameMaximizeTime) > float.Epsilon && Math.Abs(DemoScanner.LastTeleportusTime) > float.Epsilon && Math.Abs(DemoScanner.LastGameMaximizeTime - CurrentTime) < float.Epsilon)
                                     {
                                         DemoScanner.ReturnToGameDetects++;
-                                        DemoScanner_AddWarn("['RETURN TO GAME' FEATURE]", DemoScanner.ReturnToGameDetects > 2, true, true);
+                                        if (DemoScanner.IsRussia)
+                                            DemoScanner_AddWarn("['RETURN TO GAME' FEATURE]", DemoScanner.ReturnToGameDetects > 2, true, true);
+                                        else
+                                            DemoScanner_AddWarn("[Функция возврата в игру]", DemoScanner.ReturnToGameDetects > 2, true, true);
                                     }
                                     DemoScanner.LastTeleportusTime = CurrentTime;
                                 }
@@ -2669,6 +2772,7 @@ namespace DemoScanner.DG
                             }
                         case GoldSource.DemoFrameType.Event:
                             {
+                                CurrentEvents++;
                                 LASTFRAMEISCLIENTDATA = false;
                                 if (DUMP_ALL_FRAMES) subnode.Text = "{\n";
                                 var eframe = (GoldSource.EventFrame)frame.Value;
@@ -2764,7 +2868,7 @@ namespace DemoScanner.DG
                                             DemoScanner.LastWeaponAnim = DemoScanner.CurrentWeapon;
                                             if (DemoScanner.WeaponAnimWarn > 50)
                                             {
-                                                DemoScanner_AddWarn("[NO WEAPON ANIM " + CurrentWeapon.ToString() + "] hack at (" + CurrentTime + ") " + CurrentTimeString);
+                                                DemoScanner_AddWarn("[NO WEAPON ANIM " + CurrentWeapon.ToString() + "] at (" + CurrentTime + ") " + CurrentTimeString);
                                                 DemoScanner.WeaponAnimWarn = 0;
                                             }
                                         }
@@ -2906,7 +3010,7 @@ namespace DemoScanner.DG
                                     DemoScanner.EmptyFrames++;
                                     if (DemoScanner.EmptyFrames > 5 && DemoScanner.EmptyFrames < 7)
                                     {
-                                        DemoScanner.DemoScanner_AddWarn("MORE THAN ONE EMPTY FRAMES:" + CurrentTimeString, false);
+                                        // DemoScanner.DemoScanner_AddWarn("MORE THAN ONE EMPTY FRAMES:" + CurrentTimeString, false);
                                     }
                                 }
 
@@ -3044,7 +3148,7 @@ namespace DemoScanner.DG
                                     if (CurrentTime - LastMovementHackTime > 1.5)
                                     {
                                         DemoScanner_AddWarn(
-                                            "[FORWARD HACK TYPE 1] hack at (" +
+                                            "[FORWARD HACK TYPE 1] at (" +
                                             CurrentTime + ") " + CurrentTimeString);
                                         LastMovementHackTime = CurrentTime;
                                     }
@@ -3572,7 +3676,7 @@ namespace DemoScanner.DG
                                             //Console.WriteLine("1:" + (CurrentTime - LastUnDuckTime));
                                             //Console.WriteLine("2:" + (CurrentTime - LastDuckTime));
                                             DemoScanner_AddWarn(
-                                                "[DUCK HACK TYPE 2]  at (" +
+                                                "[DUCK HACK TYPE 2] at (" +
                                                 CurrentTime + ") " + CurrentTimeString, !IsAngleEditByEngine() && !IsPlayerLossConnection());
                                             LastJumpHackTime = CurrentTime;
                                             JumpHackCount++;
@@ -3596,7 +3700,7 @@ namespace DemoScanner.DG
                                                 //Console.WriteLine("11:" + (CurrentTime - LastUnDuckTime));
                                                 //Console.WriteLine("22:" + (CurrentTime - LastDuckTime));
                                                 DemoScanner_AddWarn(
-                                                    "[DUCK HACK TYPE 1] duck at (" +
+                                                    "[DUCK HACK TYPE 1] at (" +
                                                     CurrentTime + ") " + CurrentTimeString, !IsAngleEditByEngine() && !IsPlayerLossConnection());
                                                 LastJumpHackTime = CurrentTime;
                                                 JumpHackCount++;
@@ -3836,6 +3940,8 @@ namespace DemoScanner.DG
                                 {
                                     Aim7PunchangleY = 0.0f;
                                 }
+
+                                AddLerpAndMs(nf.UCmd.LerpMsec, nf.UCmd.Msec);
 
                                 CurrentFrameLerp = nf.UCmd.LerpMsec;
 
@@ -4646,7 +4752,7 @@ namespace DemoScanner.DG
                                                     if (CurrentTime - LastJumpHackTime > 2.5f && Math.Abs(LastJumpHackFalseDetectionTime) < float.Epsilon)
                                                     {
                                                         DemoScanner_AddWarn(
-                                                            "[JUMPHACK] jump at (" +
+                                                            "[JUMPHACK] at (" +
                                                             CurrentTime + ") " + DemoScanner.CurrentTimeString, !IsAngleEditByEngine());
 
                                                         LastJumpHackTime = CurrentTime;
@@ -4661,7 +4767,7 @@ namespace DemoScanner.DG
                                                         && !IsAngleEditByEngine() && Math.Abs(LastJumpHackFalseDetectionTime) < float.Epsilon)
                                                     {
                                                         DemoScanner_AddWarn(
-                                                             "[JUMPHACK] jump at (" +
+                                                             "[JUMPHACK] at (" +
                                                              CurrentTime + ") " + DemoScanner.CurrentTimeString, false);
 
                                                         LastJumpHackTime = CurrentTime;
@@ -4675,7 +4781,7 @@ namespace DemoScanner.DG
                                                         && !IsAngleEditByEngine() && Math.Abs(LastJumpHackFalseDetectionTime) < float.Epsilon)
                                                     {
                                                         DemoScanner_AddWarn(
-                                                            "[JUMPHACK] jump at (" +
+                                                            "[JUMPHACK] at (" +
                                                             CurrentTime + ") " + DemoScanner.CurrentTimeString, false, false);
 
                                                         LastJumpHackTime = CurrentTime;
@@ -4707,8 +4813,13 @@ namespace DemoScanner.DG
                                 }
                                 else if (DemoScanner.KnownSkyName != nf.MVars.SkyName)
                                 {
-                                    DemoScanner_AddInfo("Player changed sky name from \"" + DemoScanner.KnownSkyName + "\" to \"" + nf.MVars.SkyName + "\" at (" + CurrentTime +
+                                    if (IsRussia)
+                                        DemoScanner_AddInfo("Сменилось небо с \"" + DemoScanner.KnownSkyName + "\" на \"" + nf.MVars.SkyName + "\" (" + CurrentTime +
                                                           "):" + DemoScanner.CurrentTimeString);
+                                    else
+                                        DemoScanner_AddInfo("Player changed sky name from \"" + DemoScanner.KnownSkyName + "\" to \"" + nf.MVars.SkyName + "\" at (" + CurrentTime +
+                                                          "):" + DemoScanner.CurrentTimeString);
+
                                     DemoScanner.KnownSkyName = nf.MVars.SkyName;
                                 }
 
@@ -4883,7 +4994,7 @@ namespace DemoScanner.DG
                                         CurrentTime - LastUseTime > 60)
                                     {
                                         DemoScannerBypassDetected = true;
-                                        DemoScanner_AddWarn("[DEMO SCANER BYPASS] ??? VERY STRANGE ISSUE AT " + CurrentTimeString, false, false);
+                                        DemoScanner_AddWarn("ERROR [DEMO SCANER BYPASS] ??? VERY STRANGE ISSUE AT " + CurrentTimeString, false, false);
                                     }
                                 }
 
@@ -5408,7 +5519,10 @@ namespace DemoScanner.DG
             if (LastCmd == "-strafe")
             {
                 DemoScanner.MINIMIZED = true;
-                DemoScanner.DemoScanner_AddInfo("Player minimized game from " + LastAltTabStart + " to \"FINAL\"");
+                if (IsRussia)
+                    DemoScanner.DemoScanner_AddInfo("Игрок свернул игру с " + LastAltTabStart + " и до конца игры.");
+                else
+                    DemoScanner.DemoScanner_AddInfo("Player minimized game from " + LastAltTabStart + " to \"FINAL\"");
             }
             //else
             //{
@@ -5419,8 +5533,10 @@ namespace DemoScanner.DG
 
             DemoScanner.ForceFlushScanResults();
 
-            Console.WriteLine("Unreal Demo Scanner [ " + PROGRAMVERSION + " ] scan result:");
-
+            if (IsRussia)
+                Console.WriteLine("Unreal Demo Scanner [ " + PROGRAMVERSION + " ] результаты анализа:");
+            else
+                Console.WriteLine("Unreal Demo Scanner [ " + PROGRAMVERSION + " ] scan result:");
             //Console.WriteLine(AngleLenMaxX);
             //Console.WriteLine(AngleLenMaxY);
             //Console.WriteLine(nospreadtest.ToString("F8"));
@@ -5429,12 +5545,18 @@ namespace DemoScanner.DG
 
             if (NeedIgnoreAttackFlagCount > 0)
             {
-                DemoScanner.DemoScanner_AddInfo("Lost attack flag: " + NeedIgnoreAttackFlagCount + ".");
+                if (IsRussia)
+                    DemoScanner.DemoScanner_AddInfo("Незавршенных атак: " + NeedIgnoreAttackFlagCount + ".");
+                else
+                    DemoScanner.DemoScanner_AddInfo("Lost attack flag: " + NeedIgnoreAttackFlagCount + ".");
             }
 
             if (RealFpsMax > MAX_MONITOR_REFRESHRATE)
             {
-                DemoScanner.DemoScanner_AddInfo("Player playing with non default fps. Max fps: " + RealFpsMax);
+                if (IsRussia)
+                    DemoScanner.DemoScanner_AddInfo("Игрок играет с высоким фпс: " + RealFpsMax);
+                else
+                    DemoScanner.DemoScanner_AddInfo("Player playing with non default fps. Max fps: " + RealFpsMax);
             }
             /*
             if (BadAnglesFoundCount > 0)
@@ -5444,17 +5566,28 @@ namespace DemoScanner.DG
 
             if (FoundForceCenterView > 0)
             {
-                DemoScanner.DemoScanner_AddInfo("Used illegal force_centerview commands: " + FoundForceCenterView + " " + (FoundForceCenterView > 50 ? "\n. (Check demo manually for possible demoscanner bypass)" : ""));
+
+                if (IsRussia)
+                    DemoScanner.DemoScanner_AddInfo("Использование запрещенной команды force_centerview: " + FoundForceCenterView + " " + (FoundForceCenterView > 50 ? "\n. (Подозрительно. Проверьте демку вручную.)" : ""));
+                else
+                    DemoScanner.DemoScanner_AddInfo("Used illegal force_centerview commands: " + FoundForceCenterView + " " + (FoundForceCenterView > 50 ? "\n. (Check demo manually for possible demoscanner bypass)" : ""));
+
             }
 
             if (ModifiedDemoFrames > 0)
             {
-                DemoScanner.DemoScanner_AddInfo("Possible demoscanner bypass. Tried to kill frames:" + ModifiedDemoFrames);
+                if (IsRussia)
+                    DemoScanner.DemoScanner_AddInfo("Обнаружены проблемы с кадрами, возможно они были изменены:" + ModifiedDemoFrames);
+                else
+                    DemoScanner.DemoScanner_AddInfo("Possible demoscanner bypass. Tried to kill frames:" + ModifiedDemoFrames);
             }
 
             if (WarnsAfterGameEnd > 8)
             {
-                DemoScanner.DemoScanner_AddInfo("Possible demoscanner bypass. Detects after game end:" + WarnsAfterGameEnd);
+                if (IsRussia)
+                    DemoScanner.DemoScanner_AddInfo("Есть срабатывания после конца игры: " + WarnsAfterGameEnd);
+                else
+                    DemoScanner.DemoScanner_AddInfo("Possible demoscanner bypass. Detects after game end: " + WarnsAfterGameEnd);
             }
 
             Console.ForegroundColor = ConsoleColor.DarkRed;
@@ -5469,57 +5602,123 @@ namespace DemoScanner.DG
 
             if (MouseJumps > 0)
             {
-                TextComments.WriteLine("Detected [MOUSE JUMP] bind. Detect count:" + MouseJumps);
-                Console.WriteLine("Detected [MOUSE JUMP] bind. Detect count:" + MouseJumps);
+                if (IsRussia)
+                {
+                    TextComments.WriteLine("Обнаружен бинд прыжка на колесо мыши. Количество прыжков:" + MouseJumps);
+                    Console.WriteLine("Обнаружен бинд прыжка на колесо мыши. Количество прыжков:" + MouseJumps);
+                }
+                else
+                {
+                    TextComments.WriteLine("Detected [MOUSE JUMP] bind. Detect count:" + MouseJumps);
+                    Console.WriteLine("Detected [MOUSE JUMP] bind. Detect count:" + MouseJumps);
+                }
             }
 
             if (JumpWithAlias > 0)
             {
-                TextComments.WriteLine("Detected \"+jump;wait;-jump; like alias\". Detect count:" + JumpWithAlias);
-                Console.WriteLine("Detected \"+jump;wait;-jump; like alias\". Detect count:" + JumpWithAlias);
-                if (MouseJumps > JumpWithAlias && MouseJumps > 0)
+                if (IsRussia)
                 {
-                    Console.WriteLine("Mouse jump / alias ratio: " + Math.Round(Convert.ToSingle(JumpWithAlias) / Convert.ToSingle(MouseJumps) * 100.0f, 1) + "%");
+                    TextComments.WriteLine("Обнаружен алиас \"+jump;wait;-jump; like alias\". Количество:" + JumpWithAlias);
+                    Console.WriteLine("Обнаружен алиас \"+jump;wait;-jump; like alias\". Количество:" + JumpWithAlias);
+                    if (MouseJumps > JumpWithAlias && MouseJumps > 0)
+                    {
+                        Console.WriteLine("Вероятность использования: " + Math.Round(Convert.ToSingle(JumpWithAlias) / Convert.ToSingle(MouseJumps) * 100.0f, 1) + "%");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Низкая вероятность использования.");
+                    }
+                }
+                else
+                {
+                    TextComments.WriteLine("Detected \"+jump;wait;-jump; like alias\". Detect count:" + JumpWithAlias);
+                    Console.WriteLine("Detected \"+jump;wait;-jump; like alias\". Detect count:" + JumpWithAlias);
+                    if (MouseJumps > JumpWithAlias && MouseJumps > 0)
+                    {
+                        Console.WriteLine("Mouse jump / alias ratio: " + Math.Round(Convert.ToSingle(JumpWithAlias) / Convert.ToSingle(MouseJumps) * 100.0f, 1) + "%");
+                    }
                 }
             }
 
-            if (BHOPcount > 0)
+            if ((BHOPcount / 2) > 0)
             {
-                TextComments.WriteLine("Detected hack with [BHOP]. Detect count:" + (BHOPcount / 2));
-                Console.WriteLine("Detected hack with [BHOP]. Detect count:" + (BHOPcount / 2));
+                if (IsRussia)
+                {
+                    TextComments.WriteLine("Обнаружен хак для распрыжки [BHOP]. Детектов:" + (BHOPcount / 2));
+                    Console.WriteLine("Обнаружен хак для распрыжки [BHOP]. Детектов:" + (BHOPcount / 2));
+                }
+                else
+                {
+                    TextComments.WriteLine("Detected hack with [BHOP]. Detect count:" + (BHOPcount / 2));
+                    Console.WriteLine("Detected hack with [BHOP]. Detect count:" + (BHOPcount / 2));
+                }
             }
 
             if (BadAttackCount > 0)
             {
-                TextComments.WriteLine(
-                    "Detected [TRIGGERBOT]. Detect count:" + BadAttackCount);
-                Console.WriteLine("Detected [TRIGGERBOT]. Detect count:" + BadAttackCount);
-                //Console.WriteLine("Last using at " + LastBadAttackCount + " second game time.");
+                if (IsRussia)
+                {
+                    TextComments.WriteLine("Обнаружен [Триппер бот]. Обнаружений:" + BadAttackCount);
+                    Console.WriteLine("Обнаружен [Триппер бот]. Обнаружений:" + BadAttackCount);
+                }
+                else
+                {
+                    TextComments.WriteLine(
+                        "Detected [TRIGGERBOT]. Detect count:" + BadAttackCount);
+                    Console.WriteLine("Detected [TRIGGERBOT]. Detect count:" + BadAttackCount);
+                }
             }
 
             if (SilentAimDetected > 0)
             {
-                TextComments.WriteLine("Detected [AIM]. Detect count:" + SilentAimDetected);
-                Console.WriteLine("Detected [AIM]. Detect count:" + SilentAimDetected);
-                //Console.WriteLine("Last using at " + LastSilentAim + " second game time.");
+                if (IsRussia)
+                {
+                    TextComments.WriteLine("Обнаружен [AIM]. Количество обнаружений:" + SilentAimDetected);
+                    Console.WriteLine("Обнаружен [AIM]. Количество обнаружений:" + SilentAimDetected);
+                }
+                else
+                {
+                    TextComments.WriteLine("Detected [AIM]. Detect count:" + SilentAimDetected);
+                    Console.WriteLine("Detected [AIM]. Detect count:" + SilentAimDetected);
+                }
             }
 
 
 
             if (FakeLagAim > 0)
             {
-                TextComments.WriteLine("Detected [FAKELAG]. Detect count:" + FakeLagAim);
-                Console.WriteLine("Detected [FAKELAG]. Detect count:" + FakeLagAim);
+                if (IsRussia)
+                {
+                    TextComments.WriteLine("Обнаружен [ФЕЙК ЛАГ]. Количество обнаружений:" + FakeLagAim);
+                    Console.WriteLine("Обнаружен [ФЕЙК ЛАГ]. Количество обнаружений:" + FakeLagAim);
+                }
+                else
+                {
+                    TextComments.WriteLine("Detected [FAKELAG]. Detect count:" + FakeLagAim);
+                    Console.WriteLine("Detected [FAKELAG]. Detect count:" + FakeLagAim);
+                }
             }
 
             if (JumpHackCount > 0)
             {
-                TextComments.WriteLine(
-                    "Detected [STRAFE/GROUND/FASTRUN HACK]. Detect count:" +
-                    JumpHackCount /*+ ". Found " + JumpCount + " +jump commands"*/);
-                Console.WriteLine(
-                    "Detected [STRAFE/GROUND/FASTRUN HACK]. Detect count:" +
-                    JumpHackCount /*+ ". Found " + JumpCount + " +jump commands*/);
+                if (IsRussia)
+                {
+                    TextComments.WriteLine(
+                        "Обнаружен один из [STRAFE/GROUND/FASTRUN ХАКОВ]. Количество:" +
+                        JumpHackCount /*+ ". Found " + JumpCount + " +jump commands"*/);
+                    Console.WriteLine(
+                        "Обнаружен один из [STRAFE/GROUND/FASTRUN ХАКОВ]. Количество:" +
+                        JumpHackCount /*+ ". Found " + JumpCount + " +jump commands*/);
+                }
+                else
+                {
+                    TextComments.WriteLine(
+                        "Detected [STRAFE/GROUND/FASTRUN HACK]. Detect count:" +
+                        JumpHackCount /*+ ". Found " + JumpCount + " +jump commands"*/);
+                    Console.WriteLine(
+                        "Detected [STRAFE/GROUND/FASTRUN HACK]. Detect count:" +
+                        JumpHackCount /*+ ". Found " + JumpCount + " +jump commands*/);
+                }
             }
 
             if (UnknownMessages > 0)
@@ -5579,8 +5778,16 @@ namespace DemoScanner.DG
 
             TimeSpan time2 = TimeSpan.FromSeconds(Math.Min(CurrentGameSecond2, CurrentGameSecond));
 
-            Console.WriteLine("Scan completed. Scan time: " + EndScanTime.ToString("T"));
-            Console.WriteLine("Demo playing time: " + time1.ToString("T") + " ~ " + time2.ToString("T") + " seconds.");
+            if (IsRussia)
+            {
+                Console.WriteLine("Анализ завершен, потрачено " + EndScanTime.ToString("T") + " времени");
+                Console.WriteLine("Игровое время демо начинается с " + time1.ToString("T") + " по " + time2.ToString("T") + " секунд.");
+            }
+            else
+            {
+                Console.WriteLine("Scan completed. Scan time: " + EndScanTime.ToString("T"));
+                Console.WriteLine("Demo playing time: " + time1.ToString("T") + " ~ " + time2.ToString("T") + " seconds.");
+            }
 
             if (DemoScanner.ENABLE_LEARN_CLEAN_DEMO)
             {
@@ -5601,15 +5808,34 @@ namespace DemoScanner.DG
             while (true)
             {
                 Console.ForegroundColor = ConsoleColor.Gray;
-                Console.WriteLine("Choose next actions:");
+                ConsoleTable table = null;
+                if (IsRussia)
+                    Console.WriteLine("Выберите следующее действие:");
+                else
+                    Console.WriteLine("Choose next actions:");
+
                 Console.WriteLine();
-                var table = new ConsoleTable("Save CDB", "Save TXT", "Demo info",
-                    "Player info", "Wav Player", "Sens History", "Commands");
-                table.AddRow("1", "2", "3", "4", "5", "6", "7");
-                table.Write(Format.Alternative);
-                table = new ConsoleTable("Help", "Download", "Exit");
-                table.AddRow("8", "9", "0/Enter");
-                table.Write(Format.Alternative);
+
+                if (IsRussia)
+                {
+                    table = new ConsoleTable("в CDB", "в TXT", "Демо инфо",
+                        "Игроки", "Голоса", "История мыши", "Команды");
+                    table.AddRow("1", "2", "3", "4", "5", "6", "7");
+                    table.Write(Format.Alternative);
+                    table = new ConsoleTable("Помощь", "Скачать", "Выход");
+                    table.AddRow("8", "9", "0/Enter");
+                    table.Write(Format.Alternative);
+                }
+                else
+                {
+                    table = new ConsoleTable("Save CDB", "Save TXT", "Demo info",
+                  "Player info", "Wav Player", "Sens History", "Commands");
+                    table.AddRow("1", "2", "3", "4", "5", "6", "7");
+                    table.Write(Format.Alternative);
+                    table = new ConsoleTable("Help", "Download", "Exit");
+                    table.AddRow("8", "9", "0/Enter");
+                    table.Write(Format.Alternative);
+                }
 
                 var command = Console.ReadLine();
 
@@ -5719,6 +5945,18 @@ namespace DemoScanner.DG
                     Console.WriteLine(" * (DEAD)            ———  Игрок умер");
                     Console.WriteLine(
                         " * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ");
+                    Console.WriteLine(
+                        " * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ");
+                    Console.WriteLine(" * DETECTED - требуется всего несколько за демо что бы с точностью сказать");
+                    Console.WriteLine(" *            что игрок пользовался запрещенными программами.  ");
+                    Console.WriteLine(" * WARN - несколько срабатвыаний за демо не говорит об наличии читов");
+                    Console.WriteLine(" *        но указывает на необходимость проверить игрока вручную.");
+                    Console.WriteLine(" * ");
+                    Console.WriteLine(" *                НО ВНИМАНИЕ!");
+                    Console.WriteLine(" * ");
+                    Console.WriteLine(" * Учитывайте остальные факторы указанные вам в консоли (Лаги, и т.п)");
+                    Console.WriteLine(
+                        " * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ");
                 }
 
                 if (command == "7")
@@ -5756,7 +5994,6 @@ namespace DemoScanner.DG
 
                 if (command == "5")
                 {
-                    string CurrentDir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
                     if (!File.Exists(CurrentDir +
                             @"\wav\decoder.exe"))
                     {
@@ -6116,6 +6353,34 @@ namespace DemoScanner.DG
             }
         }
 
+        public struct UcmdLerpAndMs
+        {
+            public int lerp;
+            public sbyte msec;
+        }
+
+        public static List<UcmdLerpAndMs> historyUcmdLerpAndMs = new List<UcmdLerpAndMs>();
+
+        private static void AddLerpAndMs(int lerpMsec, sbyte msec)
+        {
+            while (historyUcmdLerpAndMs.Count > 10)
+                historyUcmdLerpAndMs.RemoveAt(0);
+            UcmdLerpAndMs tmpUcmdLerpAndMs = new UcmdLerpAndMs();
+            tmpUcmdLerpAndMs.lerp = lerpMsec;
+            tmpUcmdLerpAndMs.msec = msec;
+            historyUcmdLerpAndMs.Add(tmpUcmdLerpAndMs);
+        }
+
+        public static bool FindLerpAndMs(int lerpMsec, sbyte msec)
+        {
+            foreach (var v in historyUcmdLerpAndMs)
+            {
+                if (v.msec < 0 || v.lerp < 0 || (v.lerp == lerpMsec && v.msec == msec))
+                    return true;
+            }
+            return false;
+        }
+
         private static void WriteLearnAngles()
         {
             List<float> newLearnAngles = new List<float>();
@@ -6140,19 +6405,19 @@ namespace DemoScanner.DG
 
             if (MachineLearnAnglesHACK.IsAnglesInDB(newLearnAngles, 0.01f) && !MachineLearnAnglesCLEAN.IsAnglesInDB(newLearnAngles, 0.01f))
             {
-                DemoScanner.DemoScanner_AddWarn("[BETA] MACHINE LEARN AIM 1.1: " + DemoScanner.CurrentTimeString, false, false);
+                DemoScanner.DemoScanner_AddWarn("[BETA] MACHINE LEARN AIM 1.1: at " + DemoScanner.CurrentTimeString, false, false);
             }
             else
             {
                 if (MachineLearnAnglesHACK.IsAnglesInDB(newLearnAngles, 0.1f) && !MachineLearnAnglesCLEAN.IsAnglesInDB(newLearnAngles, 0.1f))
                 {
-                    DemoScanner.DemoScanner_AddWarn("[BETA] MACHINE LEARN AIM 1.2: " + DemoScanner.CurrentTimeString, false, false);
+                    DemoScanner.DemoScanner_AddWarn("[BETA] MACHINE LEARN AIM 1.2: at " + DemoScanner.CurrentTimeString, false, false);
                 }
                 else
                 {
                     if (MachineLearnAnglesHACK.IsAnglesInDB(newLearnAngles, 1.0f) && !MachineLearnAnglesCLEAN.IsAnglesInDB(newLearnAngles, 1.0f))
                     {
-                        DemoScanner.DemoScanner_AddWarn("[BETA] MACHINE LEARN AIM 1.3: " + DemoScanner.CurrentTimeString, false, false);
+                        DemoScanner.DemoScanner_AddWarn("[BETA] MACHINE LEARN AIM 1.3: at " + DemoScanner.CurrentTimeString, false, false);
                     }
                     else
                     {
@@ -6826,6 +7091,10 @@ namespace DemoScanner.DG
             }
         }
 
+        public static int PluginEvents = -1;
+        public static int CurrentEvents = 0;
+        public static bool IsRussia = false;
+
         public static void ProcessPluginMessage(string cmd)
         {
             string[] cmdList = cmd.Split('/');
@@ -6849,23 +7118,62 @@ namespace DemoScanner.DG
                                     ". Record date:" + DemoScanner.RecordDate, true, false, true, true);
                             }
                         }
-                        else if (cmdList[1] == "ANGLE")
+                        else if (cmdList[1] == "UCMD")
                         {
-                            float angle = 0.0f;
-                            try
-                            {
-                                angle = BitConverter.ToSingle(BitConverter.GetBytes(int.Parse(cmdList[2])), 0);
-                            }
-                            catch
-                            {
-
-                            }
-                            Console.WriteLine(angle);
+                            int lerpms = int.Parse(cmdList[2]);
+                            sbyte ms = Convert.ToSByte(int.Parse(cmdList[3]));
                             if (DUMP_ALL_FRAMES)
                             {
-                                DemoScanner.OutDumpString += "\n{ATTACK ANGLE: " + angle + " " + CurrentTimeString + " " + CurrentTime + " }\n";
+                                DemoScanner.OutDumpString += "\n{ UCMD PLUGIN. Lerp " + lerpms + ". ms " + ms + "}\n";
+                            }
+                            if (!FindLerpAndMs(lerpms, ms))
+                            {
+                                DemoScanner.DemoScanner_AddWarn("[EXPERIMENTAL][FAKELAG] at (" + CurrentTime +
+                                                    "):" + DemoScanner.CurrentTimeString, true, true, false, true);
                             }
                         }
+                        else if (cmdList[1] == "EVENT")
+                        {
+                            if (DUMP_ALL_FRAMES)
+                            {
+                                DemoScanner.OutDumpString += "\n{ EVENT PLUGIN }\n";
+                            }
+                            if (DemoScanner.PluginEvents == -1)
+                            {
+                                DemoScanner.CurrentEvents = 0;
+                                DemoScanner.PluginEvents = 0;
+                            }
+                            else
+                            {
+                                if (Math.Abs(DemoScanner.PluginEvents - DemoScanner.CurrentEvents) > 4)
+                                {
+                                    DemoScanner.DemoScanner_AddWarn("[EXPERIMENTAL][UNKNOWN HACK] at (" + CurrentTime +
+                                                   "):" + DemoScanner.CurrentTimeString, true, true, false, true);
+                                    DemoScanner.CurrentEvents = 0;
+                                    DemoScanner.PluginEvents = 0;
+                                }
+                                DemoScanner.PluginEvents++;
+                            }
+
+                        }
+
+                        /* else if (cmdList[1] == "ANGLE")
+                         {
+                             float angle = 0.0f;
+                             try
+                             {
+                                 angle = BitConverter.ToSingle(BitConverter.GetBytes(int.Parse(cmdList[2])), 0);
+                             }
+                             catch
+                             {
+
+                             }
+                             Console.WriteLine(angle);
+                             if (DUMP_ALL_FRAMES)
+                             {
+                                 DemoScanner.OutDumpString += "\n{ATTACK ANGLE: " + angle + " " + CurrentTimeString + " " + CurrentTime + " }\n";
+                             }
+                         }*/
                     }
                 }
             }
@@ -8172,10 +8480,19 @@ namespace DemoScanner.DG
                         DemoScanner.LossFalseDetection = true;
                         var col = Console.ForegroundColor;
                         Console.ForegroundColor = ConsoleColor.Red;
-                        Console.WriteLine("[LAG] Warning! Player has lag and previous detection can be false!");
+
+                        if (DemoScanner.BadAttackCount > 0)
+                            DemoScanner.BadAttackCount--;
+
+                        if (DemoScanner.SilentAimDetected > 0)
+                            DemoScanner.SilentAimDetected--;
+                        if (DemoScanner.IsRussia)
+                            Console.WriteLine("[ЛАГ] Предупреждение! Игрок завис и один детект может быть ложным!");
+                        else
+                            Console.WriteLine("[LAG] Warning! Player has lag and previous detection can be false!");
                         Console.ForegroundColor = col;
+                        DemoScanner.LastLossPacket = DemoScanner.CurrentTime;
                     }
-                    DemoScanner.LastLossPacket = DemoScanner.CurrentTime;
                 }
             }
 
@@ -8524,7 +8841,12 @@ namespace DemoScanner.DG
             var pause = BitBuffer.ReadByte() > 0;
             var tmpcolor = Console.ForegroundColor;
             Console.ForegroundColor = ConsoleColor.Gray;
-            Console.WriteLine("[POSSIBLE FALSE DETECTION BELLOW!] Warning!!! Server " + (pause ? "paused" : "unpaused") + " at " + DemoScanner.CurrentTimeString + ". ");
+
+            if (DemoScanner.IsRussia)
+                Console.WriteLine("[ПАУЗА] Сервер был поставлен на паузу. Срабатывание может быть ложным! Время " + DemoScanner.CurrentTimeString + ". ");
+            else
+                Console.WriteLine("[POSSIBLE FALSE DETECTION BELLOW!] Warning!!! Server " + (pause ? "paused" : "unpaused") + " at " + DemoScanner.CurrentTimeString + ". ");
+
             Console.ForegroundColor = tmpcolor;
         }
 
@@ -8928,7 +9250,16 @@ namespace DemoScanner.DG
             if (tmpDownLocation.ToLower().StartsWith("http"))
                 DemoScanner.DownloadLocation = tmpDownLocation;
             else
-                DemoScanner.ProcessPluginMessage(tmpDownLocation);
+            {
+                try
+                {
+                    DemoScanner.ProcessPluginMessage(tmpDownLocation);
+                }
+                catch
+                {
+                    Console.WriteLine("Error in demo scanner AMXX plugin. Please update to new version.");
+                }
+            }
 
         }
 
@@ -10453,6 +10784,21 @@ namespace DemoScanner.DG
                         if ((bitmaskBytes[i] & (1 << j)) != 0)
                             WriteEntry(delta, bitWriter, entryList[index]);
                     }
+            }
+
+            public static float ConvertToDelta(float val, float iDivisor, int nBits, bool isAngle)
+            {
+                bool negative = val < 0.0f;
+                if (!isAngle)
+                {
+                    uint uval = (uint)Math.Abs(val * iDivisor);
+                    return uval / iDivisor * (negative ? -1.0f : 1.0f);
+                }
+                else
+                {
+                    uint uval = (uint)Math.Abs(val / (360.0f / (1 << (int)nBits)));
+                    return uval * (360.0f / (1 << (int)nBits)) * (negative ? -1.0f : 1.0f);
+                }
             }
 
             private object ParseEntry(BitBuffer bitBuffer, Entry e)
