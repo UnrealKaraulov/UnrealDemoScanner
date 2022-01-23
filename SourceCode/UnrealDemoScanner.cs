@@ -87,8 +87,8 @@ namespace DemoScanner.DG
         public static bool ENABLE_LEARN_HACK_DEMO_FORCE_SAVE = false;
         public const int LEARN_FLOAT_COUNT = 4;
         public static int current_learn_float_count = -1;
-        public static MachineLearn_CheckAngles MachineLearnAnglesCLEAN = new MachineLearn_CheckAngles("Y_ATTACK_DB.bin", LEARN_FLOAT_COUNT - 1);
-        public static MachineLearn_CheckAngles MachineLearnAnglesHACK = new MachineLearn_CheckAngles("Y_ATTACK_DB_HACK.bin", LEARN_FLOAT_COUNT - 1);
+        public static MachineLearn_CheckAngles MachineLearnAnglesCLEAN = new MachineLearn_CheckAngles("Y_ATTACK_DB_v2.bin", LEARN_FLOAT_COUNT - 1);
+        public static MachineLearn_CheckAngles MachineLearnAnglesHACK = new MachineLearn_CheckAngles("Y_ATTACK_DB_HACK_v2.bin", LEARN_FLOAT_COUNT - 1);
 
         public static List<string> outFrames = null;
 
