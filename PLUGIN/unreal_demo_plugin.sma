@@ -5,24 +5,27 @@
 
 #define PLUGIN "Unreal Demo Plugin"
 #define AUTHOR "karaulov"
-#define VERSION "1.0"
+#define VERSION "1.1"
 
 public plugin_init() 
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
+	register_cvar( "unreal_demoplug", VERSION, FCVAR_SERVER | FCVAR_SPONLY | FCVAR_UNLOGGED );
 	register_clcmd("fullupdate", "UnrealDemoHelpInitialize");
 	RegisterHookChain(RG_PM_Move, "PM_Move")
-	//register_forward(FM_PlaybackEvent, "fw_PlaybackEvent", 1)	
+	register_forward(FM_PlaybackEvent, "fw_PlaybackEvent")	
 }
 
 /*
 Server not processed angles. Always empty.*/
-public pfn_playbackevent(flags, entid, eventid, Float:delay, Float:Origin[3], Float:Angles[3], Float:fparam1, Float:fparam2, iparam1, iparam2, bparam1, bparam2)
+public fw_PlaybackEvent( iFlags, id, eventIndex )
 {
-	if(entid > 0 && entid < 33)
+	if(id > 0 && id < 33)
 	{
-		WriteDemoInfo(entid, "UDS/EVENT/1");
+		WriteDemoInfo(id, "UDS/EVENT/1");
 	}
+	
+	return FMRES_IGNORED;
 }
 
 public PM_Move(const id)

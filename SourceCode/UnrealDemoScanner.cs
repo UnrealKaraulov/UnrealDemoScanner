@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.62.1";
+        public const string PROGRAMVERSION = "1.62.2";
 
         public static bool DEBUG_ENABLED = false;
         public static bool NO_TELEPORT = false;
@@ -441,9 +441,18 @@ namespace DemoScanner.DG
         public static string LastWarnStr = "";
         public static float LastWarnTime = 0.0f;
 
+        public static string Rusifikator(string str)
+        {
+            str = str.Replace(" at ", " на ");
+
+            return str;
+        }
+
         public static void DemoScanner_AddInfo(string info)
         {
             var tmpcol = Console.ForegroundColor;
+            if (IsRussia)
+                info = Rusifikator(info);
             Console.ForegroundColor = ConsoleColor.DarkYellow;
             Console.WriteLine("[INFO] " + info);
             Console.ForegroundColor = tmpcol;
@@ -452,6 +461,8 @@ namespace DemoScanner.DG
 
         public static void DemoScanner_AddWarn(string warn, bool detected = true, bool log = true, bool skipallchecks = false, bool uds_plugin = false)
         {
+            if (IsRussia)
+                warn = Rusifikator(warn);
             if (GameEnd)
             {
                 if (detected)
@@ -474,13 +485,6 @@ namespace DemoScanner.DG
                 Plugin = uds_plugin
             };
             DemoScannerWarnList.Add(warnStruct);
-        }
-
-        public static string Rusifikator(string str)
-        {
-            str = str.Replace(" at ", " на ");
-
-            return str;
         }
 
         public static void UpdateWarnList(bool force = false)
@@ -550,6 +554,7 @@ namespace DemoScanner.DG
                             else
                                 Console.Write(" (DEAD)");
                         }
+                        Console.WriteLine();
                         /* else if (Math.Abs(curwarn.WarnTime - FpsOverflowTime) <= 0.22)
                         //     Console.WriteLine(" (BAD FPS)");*/
                         //else
@@ -2064,6 +2069,8 @@ namespace DemoScanner.DG
 
                                             SecondFound = true;
                                             LastFpsCheckTime = CurrentTime;
+
+
                                             averagefps.Add(CurrentFps);
                                             CurrentFps = 0;
                                             DemoScanner.CurrentGameSecond++;
@@ -2957,6 +2964,11 @@ namespace DemoScanner.DG
 
                                 PreviousTime = CurrentTime;
                                 CurrentTime = nf.RParms.Time;
+
+                                if (Math.Abs(CurrentTime) > float.Epsilon && StartGameSecond > CurrentTime / 60.0f)
+                                {
+                                    StartGameSecond = Convert.ToInt32(CurrentTime / 60.0f);
+                                }
 
                                 if (Math.Abs(CurrentTime - PreviousTime) > 0.20f)
                                 {
@@ -5774,9 +5786,9 @@ namespace DemoScanner.DG
             DemoScanner.ForceFlushScanResults();
             var EndScanTime = Trim(new DateTime((DateTime.Now - DemoScanner.StartScanTime).Ticks), 10);
 
-            TimeSpan time1 = TimeSpan.FromSeconds(Math.Min(CurrentGameSecond2, CurrentGameSecond));
+            TimeSpan time1 = TimeSpan.FromSeconds(Math.Min(StartGameSecond, CurrentGameSecond));
 
-            TimeSpan time2 = TimeSpan.FromSeconds(Math.Min(CurrentGameSecond2, CurrentGameSecond));
+            TimeSpan time2 = TimeSpan.FromSeconds(Math.Max(StartGameSecond, CurrentGameSecond));
 
             if (IsRussia)
             {
@@ -6637,6 +6649,7 @@ namespace DemoScanner.DG
         public static int DesyncHackWarns = 0;
         public static float LastDesyncDetectTime = 0.0f;
         public static float LastDamageTime = 0.0f;
+        public static int StartGameSecond = int.MaxValue;
         public static int CurrentGameSecond = 0;
         public static int CurrentGameSecond2 = 0;
         public static float LastRealJumpTime = 0.0f;
@@ -7145,9 +7158,9 @@ namespace DemoScanner.DG
                             }
                             else
                             {
-                                if (Math.Abs(DemoScanner.PluginEvents - DemoScanner.CurrentEvents) > 4)
+                                if (Math.Abs(DemoScanner.PluginEvents - DemoScanner.CurrentEvents) > 8)
                                 {
-                                    DemoScanner.DemoScanner_AddWarn("[EXPERIMENTAL][UNKNOWN HACK] at (" + CurrentTime +
+                                    DemoScanner.DemoScanner_AddWarn("[EXPERIMENTAL][UNKNOWN HACK<"+ DemoScanner.CurrentEvents + "><"+ DemoScanner.PluginEvents + ">] at (" + CurrentTime +
                                                    "):" + DemoScanner.CurrentTimeString, true, true, false, true);
                                     DemoScanner.CurrentEvents = 0;
                                     DemoScanner.PluginEvents = 0;
@@ -8486,6 +8499,13 @@ namespace DemoScanner.DG
 
                         if (DemoScanner.SilentAimDetected > 0)
                             DemoScanner.SilentAimDetected--;
+
+                        if (DemoScanner.JumpHackCount > 0)
+                            DemoScanner.JumpHackCount--;
+
+                        if (DemoScanner.JumpHackCount2 > 0)
+                            DemoScanner.JumpHackCount2--;
+
                         if (DemoScanner.IsRussia)
                             Console.WriteLine("[ЛАГ] Предупреждение! Игрок завис и один детект может быть ложным!");
                         else
