@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.62.2";
+        public const string PROGRAMVERSION = "1.62.3";
 
         public static bool DEBUG_ENABLED = false;
         public static bool NO_TELEPORT = false;
@@ -100,7 +100,10 @@ namespace DemoScanner.DG
         public static float PreviousTime2 = 0.0f;
         public static float PreviousTime3 = 0.0f;
 
-        public static List<string> hackList = new List<string>();
+        public static List<string> whiteListCMDLIST = new List<string>();
+
+        public static List<string> unknownCMDLIST = new List<string>();
+
         public static bool IsJump = false;
         public static bool FirstJump = false;
         public static bool FirstAttack = false;
@@ -514,6 +517,7 @@ namespace DemoScanner.DG
                                 Console.Write("[ОБНАРУЖЕНО] ");
                             else
                                 Console.Write("[DETECTED] ");
+                            DemoScanner.LastLossPacket = 0.0f;
                         }
                         Console.ForegroundColor = ConsoleColor.Cyan;
                         Console.WriteLine(curwarn.Warn);
@@ -584,9 +588,28 @@ namespace DemoScanner.DG
             }
         }
 
+        public static void CheckConsoleCheat(string s)
+        {
+            string s2 = s;
+            if (s[0] == '+' || s[0] == '-')
+                s2 = s.Remove(0, 1);
+            if (!whiteListCMDLIST.Contains(s2) && !unknownCMDLIST.Contains(s2))
+            {
+                if (IsRussia)
+                    unknownCMDLIST.Add("[ОБНАРУЖЕНА] [НЕИЗВЕСТНАЯ КОМАНДА] : \"" + s + "\" at (" + CurrentTime + ")" + CurrentTimeString);
+                else
+                    unknownCMDLIST.Add("[DETECTED] [UNKNOWN CMD] : \"" + s + "\" at (" + CurrentTime + ")" + CurrentTimeString);
+            }
+        }
+
         public static void CheckConsoleCommand(string s2, bool isstuff = false)
         {
             var s = s2.Trim().TrimBad();
+
+            if (!isstuff)
+            {
+                CheckConsoleCheat(s);
+            }
 
             if (FrameCrash > 4)
             {
@@ -1567,6 +1590,87 @@ namespace DemoScanner.DG
             Console.WriteLine("[WHEELJUMP]");
             Console.ForegroundColor = ConsoleColor.DarkGray;
 
+            /* WHITELIST CMDS */
+
+
+            whiteListCMDLIST.Add("forward");
+            whiteListCMDLIST.Add("autobuy");
+            whiteListCMDLIST.Add("attack");
+            whiteListCMDLIST.Add("moveright");
+            whiteListCMDLIST.Add("back");
+            whiteListCMDLIST.Add("moveleft");
+            whiteListCMDLIST.Add("duck");
+            whiteListCMDLIST.Add("reload");
+            whiteListCMDLIST.Add("invnext");
+            whiteListCMDLIST.Add("invprev");
+            whiteListCMDLIST.Add("slot1");
+            whiteListCMDLIST.Add("speed");
+            whiteListCMDLIST.Add("showscores");
+            whiteListCMDLIST.Add("buy");
+            whiteListCMDLIST.Add("attack2");
+            whiteListCMDLIST.Add("slot2");
+            whiteListCMDLIST.Add("slot3");
+            whiteListCMDLIST.Add("slot4");
+            whiteListCMDLIST.Add("slot5");
+            whiteListCMDLIST.Add("slot6");
+            whiteListCMDLIST.Add("slot7");
+            whiteListCMDLIST.Add("slot8");
+            whiteListCMDLIST.Add("slot9");
+            whiteListCMDLIST.Add("slot10");
+            whiteListCMDLIST.Add("strafe");
+            whiteListCMDLIST.Add("jump");
+            whiteListCMDLIST.Add("moveup");
+            whiteListCMDLIST.Add("movedown");
+            whiteListCMDLIST.Add("mlook");
+            whiteListCMDLIST.Add("use");
+            whiteListCMDLIST.Add("commandmenu");
+            whiteListCMDLIST.Add("left");
+            whiteListCMDLIST.Add("right");
+            whiteListCMDLIST.Add("klook");
+            whiteListCMDLIST.Add("lookdown");
+            whiteListCMDLIST.Add("lookup");
+            whiteListCMDLIST.Add("impulse");
+            whiteListCMDLIST.Add("rebuy");
+            whiteListCMDLIST.Add("drawradar");
+            whiteListCMDLIST.Add("hideradar");
+            whiteListCMDLIST.Add("jlook");
+            whiteListCMDLIST.Add("spec_menu");
+            whiteListCMDLIST.Add("force_centerview");
+            whiteListCMDLIST.Add("adjust_crosshair");
+            whiteListCMDLIST.Add("joyadvancedupdate");
+            whiteListCMDLIST.Add("cancelselect");
+            whiteListCMDLIST.Add("trackplayer");
+            whiteListCMDLIST.Add("clearplayers");
+            whiteListCMDLIST.Add("gunsmoke");
+            whiteListCMDLIST.Add("credits");
+            whiteListCMDLIST.Add("spec_mode");
+            whiteListCMDLIST.Add("spec_toggleinset");
+            whiteListCMDLIST.Add("spec_decal");
+            whiteListCMDLIST.Add("spec_help");
+            whiteListCMDLIST.Add("togglescores");
+            whiteListCMDLIST.Add("spec_drawnames");
+            whiteListCMDLIST.Add("spec_drawcone");
+            whiteListCMDLIST.Add("spec_autodirector");
+            whiteListCMDLIST.Add("spec_drawstatus");
+            whiteListCMDLIST.Add("campitchup");
+            whiteListCMDLIST.Add("campitchdown");
+            whiteListCMDLIST.Add("camyawleft");
+            whiteListCMDLIST.Add("camyawright");
+            whiteListCMDLIST.Add("camin");
+            whiteListCMDLIST.Add("camout");
+            whiteListCMDLIST.Add("thirdperson");
+            whiteListCMDLIST.Add("firstperson");
+            whiteListCMDLIST.Add("cammousemove");
+            whiteListCMDLIST.Add("camdistance");
+            whiteListCMDLIST.Add("snapto");
+            whiteListCMDLIST.Add("alt1");
+            whiteListCMDLIST.Add("score");
+            whiteListCMDLIST.Add("graph");
+            whiteListCMDLIST.Add("break");
+            whiteListCMDLIST.Add("nvgadjust");
+            whiteListCMDLIST.Add("hud_saytext");
+            whiteListCMDLIST.Add("buy_preset_edit");
+            whiteListCMDLIST.Add("voice_showbanned");
 
             if (IsRussia)
                 Console.WriteLine("Перетащите демо файл в это окно или введите путь вручную:");
@@ -3518,7 +3622,7 @@ namespace DemoScanner.DG
                                                 if (tmpframeattacked > 2)
                                                 {
                                                     DemoScanner.LostStopAttackButton += 1;
-                                                    CheckConsoleCommand("-attack(PROGRAM)");
+                                                    CheckConsoleCommand("-attack(PROGRAM)",true);
                                                 }
                                                 break;
                                             }
@@ -3803,7 +3907,7 @@ namespace DemoScanner.DG
                                 {
                                     if (DemoScanner.DEBUG_ENABLED)
                                     {
-                                        CheckConsoleCommand("over ground");
+                                        CheckConsoleCommand("over ground",true);
                                     }
                                     if ((CurrentFrameId - LastJumpFrame) <= 3)
                                     {
@@ -5739,11 +5843,12 @@ namespace DemoScanner.DG
                 Console.WriteLine("Warning. Unknown messages detected. Detect count:" + UnknownMessages);
             }
 
-            if (hackList.Count > 0)
+
+            if (unknownCMDLIST.Count > 0)
             {
                 Console.WriteLine("Bind/alias from blacklist detected:");
                 TextComments.WriteLine("Bind/alias from blacklist detected:");
-                foreach (var chet in hackList)
+                foreach (var chet in unknownCMDLIST)
                 {
                     TextComments.WriteLine(chet);
                     Console.WriteLine(chet);
@@ -6862,12 +6967,12 @@ namespace DemoScanner.DG
 
         public static bool IsPlayerLossConnection()
         {
-            float retcheck = CurrentTime - LastLossPacket;
-            float retcheck2 = CurrentTime - LastLossTimeEnd;
-            bool retval = (retcheck < 1.5f && retcheck >= 0) || (retcheck2 < 1.5f && retcheck2 >= 0f);
+            float retcheck = Math.Abs(CurrentTime - LastLossPacket);
+            float retcheck2 = Math.Abs(CurrentTime - LastLossTimeEnd);
+            bool retval = retcheck < 1.5f || retcheck2 < 1.5f;
 
-            /*if (retval)
-            Console.WriteLine("CurrentTime:" + CurrentTime + ". LastLossPacket:" + LastLossPacket + ". LastLossTimeEnd:" + LastLossTimeEnd);*/
+           // if (retval)
+           //      Console.WriteLine("CurrentTime:" + CurrentTime + ". LastLossPacket:" + LastLossPacket + ". LastLossTimeEnd:" + LastLossTimeEnd);
 
 
             return retval;
@@ -6875,16 +6980,12 @@ namespace DemoScanner.DG
 
         public static bool IsPlayerLossConnection(float CurrTime)
         {
-            if (LastLossPacket >= CurrTime)
-                return true;
-            if (LastLossTimeEnd >= CurrTime)
-                return true;
-            float retcheck = CurrTime - LastLossPacket;
-            float retcheck2 = CurrTime - LastLossTimeEnd;
-            bool retval = (retcheck < 2.0f && retcheck >= 0f) || (retcheck2 < 2.0f && retcheck2 >= 0f);
+            float retcheck = Math.Abs(CurrTime - LastLossPacket);
+            float retcheck2 = Math.Abs(CurrTime - LastLossTimeEnd);
+            bool retval = retcheck < 1.5f || retcheck2 < 1.5f;
 
-            /*if (retval)
-            Console.WriteLine("CurrentTime:" + CurrentTime + ". LastLossPacket:" + LastLossPacket + ". LastLossTimeEnd:" + LastLossTimeEnd);*/
+            //if (retval)
+            //    Console.WriteLine("CurrentTime:" + CurrentTime + ". LastLossPacket:" + LastLossPacket + ". LastLossTimeEnd:" + LastLossTimeEnd);
 
 
             return retval;
@@ -7160,7 +7261,7 @@ namespace DemoScanner.DG
                             {
                                 if (Math.Abs(DemoScanner.PluginEvents - DemoScanner.CurrentEvents) > 8)
                                 {
-                                    DemoScanner.DemoScanner_AddWarn("[EXPERIMENTAL][UNKNOWN HACK<"+ DemoScanner.CurrentEvents + "><"+ DemoScanner.PluginEvents + ">] at (" + CurrentTime +
+                                    DemoScanner.DemoScanner_AddWarn("[EXPERIMENTAL][UNKNOWN HACK<" + DemoScanner.CurrentEvents + "><" + DemoScanner.PluginEvents + ">] at (" + CurrentTime +
                                                    "):" + DemoScanner.CurrentTimeString, true, true, false, true);
                                     DemoScanner.CurrentEvents = 0;
                                     DemoScanner.PluginEvents = 0;
@@ -7891,7 +7992,7 @@ namespace DemoScanner.DG
                     if (messageId != 0)
                     {
                         DemoScanner.UnknownMessages++;
-                        DemoScanner.CheckConsoleCommand("Unknown message id:" + messageId);
+                        DemoScanner.CheckConsoleCommand("Unknown message id:" + messageId,true);
                     }
                     break;
                 }
@@ -8162,7 +8263,10 @@ namespace DemoScanner.DG
                 //    DemoScanner.DemoScanner_AddWarn("Player tried to got black screenshot at " + DemoScanner.CurrentTimeString, false, false);
                 //}
                 DemoScanner.LastScreenshotTime = DemoScanner.CurrentTime;
-                DemoScanner.DemoScanner_AddInfo("Server request player screenshot at " + DemoScanner.CurrentTimeString);
+                if (DemoScanner.IsRussia)
+                    DemoScanner.DemoScanner_AddInfo("Администратор сделал скриншот игроку, время " + DemoScanner.CurrentTimeString);
+                else
+                    DemoScanner.DemoScanner_AddInfo("Server request player screenshot at " + DemoScanner.CurrentTimeString);
             }
         }
 
@@ -8485,10 +8589,10 @@ namespace DemoScanner.DG
                 uint loss = BitBuffer.ReadUnsignedBits(7);
                 if (slotid == DemoScanner.UserId && loss > 0)
                 {
-                    DemoScanner.CheckConsoleCommand("PLAYER HAS LAG " + loss + " / " + pings);
+                    DemoScanner.CheckConsoleCommand("PLAYER HAS LAG " + loss + " / " + pings,true);
                     DemoScanner.LossPackets += loss;
 
-                    if (!DemoScanner.LossFalseDetection && (Math.Abs(DemoScanner.LastLossPacket) < float.Epsilon || DemoScanner.CurrentTime - DemoScanner.LastLossPacket > 60.0f))
+                    if (!DemoScanner.LossFalseDetection && (Math.Abs(DemoScanner.LastLossPacket) <= float.Epsilon || DemoScanner.CurrentTime - DemoScanner.LastLossPacket > 60.0f))
                     {
                         DemoScanner.LossFalseDetection = true;
                         var col = Console.ForegroundColor;
@@ -10648,15 +10752,23 @@ namespace DemoScanner.DG
                                         {
                                             DemoScanner.PlayerFrozen = true;
                                             DemoScanner.PlayerFrozenTime = DemoScanner.CurrentTime;
-                                            DemoScanner.DemoScanner_AddInfo("Player been froze at (" + DemoScanner.CurrentTime +
-                                                                                    "):" + DemoScanner.CurrentTimeString);
+                                            if (DemoScanner.IsRussia)
+                                                DemoScanner.DemoScanner_AddInfo("Игрок был поставлен на паузу (" + DemoScanner.CurrentTime +
+                                                                                        "):" + DemoScanner.CurrentTimeString);
+                                            else
+                                                DemoScanner.DemoScanner_AddInfo("Player been froze at (" + DemoScanner.CurrentTime +
+                                                                                        "):" + DemoScanner.CurrentTimeString);
                                         }
                                         else if (!((flags & 4096) > 0) && DemoScanner.PlayerFrozen)
                                         {
                                             DemoScanner.PlayerUnFrozenTime = DemoScanner.CurrentTime;
                                             DemoScanner.PlayerFrozen = false;
-                                            DemoScanner.DemoScanner_AddInfo("Player has been unfrozen at (" + DemoScanner.CurrentTime +
-                                                                                    "):" + DemoScanner.CurrentTimeString);
+                                            if (DemoScanner.IsRussia)
+                                                DemoScanner.DemoScanner_AddInfo("Игрок снят с паузы (" + DemoScanner.CurrentTime +
+                                                                                        "):" + DemoScanner.CurrentTimeString);
+                                            else
+                                                DemoScanner.DemoScanner_AddInfo("Player has been unfrozen at (" + DemoScanner.CurrentTime +
+                                                                                        "):" + DemoScanner.CurrentTimeString);
                                         }
                                     }
                                 }
