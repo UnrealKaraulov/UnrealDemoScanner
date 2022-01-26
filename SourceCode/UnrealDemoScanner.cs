@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.62.3";
+        public const string PROGRAMVERSION = "1.62.4";
 
         public static bool DEBUG_ENABLED = false;
         public static bool NO_TELEPORT = false;
@@ -2069,6 +2069,47 @@ namespace DemoScanner.DG
                                 prev_viewanglesforsearch = viewanglesforsearch;
                                 viewanglesforsearch = cdframe.Viewangles;
 
+                                if (IsUserAlive() &&
+                                    (
+                                    (!IsPlayerLossConnection() && !IsAngleEditByEngine() && !IsChangeWeapon() && CurrentFrameOnGround)
+                                    || ENABLE_LEARN_CLEAN_DEMO && CurrentFrameOnGround)
+                                    )
+                                {
+                                    if (NewAttack)
+                                    {
+                                        DemoScanner.LearnAngles.Clear();
+                                        DemoScanner.LearnAngles.Add(PreviousNetMsgFrame.RParms.Viewangles.Y);
+                                        current_learn_float_count = 2;
+                                        DemoScanner.LearnAngles.Add(viewanglesforsearch.Y);
+                                    }
+                                    else if (current_learn_float_count != -1)
+                                    {
+                                        current_learn_float_count++;
+                                        DemoScanner.LearnAngles.Add(viewanglesforsearch.Y);
+                                    }
+                                    if (current_learn_float_count == LEARN_FLOAT_COUNT)
+                                    {
+                                        current_learn_float_count = -1;
+                                        if (DemoScanner.ENABLE_LEARN_CLEAN_DEMO || DemoScanner.ENABLE_LEARN_HACK_DEMO || DemoScanner.ENABLE_LEARN_HACK_DEMO_SAVE_ALL_ANGLES)
+                                        {
+                                            DemoScanner.ENABLE_LEARN_HACK_DEMO = false;
+                                            WriteLearnAngles();
+                                            DemoScanner.LearnAngles = new List<float>();
+                                        }
+                                        else if (MachineLearnAnglesCLEAN.is_file_exists
+                                            && MachineLearnAnglesHACK.is_file_exists)
+                                        {
+                                            CheckLearnAngles();
+                                            DemoScanner.LearnAngles = new List<float>();
+                                        }
+                                    }
+                                }
+                                else
+                                {
+                                    DemoScanner.LearnAngles = new List<float>();
+                                    current_learn_float_count = -1;
+                                }
+
                                 if (DUMP_ALL_FRAMES)
                                 {
                                     subnode.Text += @"Origin.X = " + cdframe.Origin.X + "\n";
@@ -2643,10 +2684,10 @@ namespace DemoScanner.DG
                                         if (Math.Abs(CurrentSensitivity - 1000.0f) > float.Epsilon &&
                                             Math.Abs(CurrentSensitivity) > float.Epsilon)
                                         {
-                                            PlayerAngleLenHistory.Add(Convert.ToSingle(
-                                                   AngleLenMinX + AngleLenMinY));
+                                            PlayerAngleLenHistory.Add(
+                                                   AngleLenMinX + AngleLenMinY);
                                             PlayerSensitivityHistory.Add(
-                                                Convert.ToSingle(CurrentSensitivity));
+                                                CurrentSensitivity);
                                             PlayerSensitivityHistoryStr.Add(Math
                                                 .Round(CurrentSensitivity, 8,
                                                     MidpointRounding.AwayFromZero)
@@ -3293,8 +3334,6 @@ namespace DemoScanner.DG
                                        )
                                 {
                                     DemoScanner.ReloadWarns = 0;
-                                    DemoScanner.LearnAngles = new List<float>();
-                                    current_learn_float_count = -1;
                                 }
 
                                 if (DemoScanner.CurrentWeapon == DemoScanner.WeaponIdType.WEAPON_XM1014
@@ -3320,37 +3359,6 @@ namespace DemoScanner.DG
                                             Console.WriteLine("Aim8DetectionTimeY warn!");
                                         }
                                     }
-                                    if (NewAttack)
-                                    {
-                                        DemoScanner.LearnAngles.Clear();
-                                        DemoScanner.LearnAngles.Add(Convert.ToSingle(PreviousNetMsgFrame.RParms.Viewangles.Y));
-                                        current_learn_float_count = 2;
-                                        DemoScanner.LearnAngles.Add(Convert.ToSingle(nf.RParms.Viewangles.Y));
-                                    }
-                                    else if (current_learn_float_count != -1)
-                                    {
-                                        current_learn_float_count++;
-                                        DemoScanner.LearnAngles.Add(Convert.ToSingle(nf.RParms.Viewangles.Y));
-                                    }
-                                    if (current_learn_float_count == LEARN_FLOAT_COUNT)
-                                    {
-                                        current_learn_float_count = -1;
-                                        if (DemoScanner.ENABLE_LEARN_CLEAN_DEMO || DemoScanner.ENABLE_LEARN_HACK_DEMO || DemoScanner.ENABLE_LEARN_HACK_DEMO_SAVE_ALL_ANGLES)
-                                        {
-                                            DemoScanner.ENABLE_LEARN_HACK_DEMO = false;
-                                            WriteLearnAngles();
-                                            DemoScanner.LearnAngles = new List<float>();
-                                        }
-                                        else if (MachineLearnAnglesCLEAN.is_file_exists
-                                            && MachineLearnAnglesHACK.is_file_exists)
-                                        {
-                                            if (IsUserAlive() && !IsPlayerLossConnection() && !IsAngleEditByEngine() && !IsChangeWeapon() && CurrentFrameOnGround)
-                                                CheckLearnAngles();
-                                            DemoScanner.LearnAngles = new List<float>();
-                                        }
-                                    }
-
-
 
                                     //if (CurrentTime - DemoScanner.NewAttackTimeAim9 > 0.2
                                     //    && CurrentTime - DemoScanner.NewAttackTimeAim9 < 0.5)
@@ -3622,7 +3630,7 @@ namespace DemoScanner.DG
                                                 if (tmpframeattacked > 2)
                                                 {
                                                     DemoScanner.LostStopAttackButton += 1;
-                                                    CheckConsoleCommand("-attack(PROGRAM)",true);
+                                                    CheckConsoleCommand("-attack(PROGRAM)", true);
                                                 }
                                                 break;
                                             }
@@ -3907,7 +3915,7 @@ namespace DemoScanner.DG
                                 {
                                     if (DemoScanner.DEBUG_ENABLED)
                                     {
-                                        CheckConsoleCommand("over ground",true);
+                                        CheckConsoleCommand("over ground", true);
                                     }
                                     if ((CurrentFrameId - LastJumpFrame) <= 3)
                                     {
@@ -4996,7 +5004,7 @@ namespace DemoScanner.DG
                                 }
 
                                 if (nf.RParms.Frametime > float.Epsilon)
-                                    averagefps2.Add(Convert.ToSingle(1000.0f / (1000.0f * nf.RParms.Frametime)));
+                                    averagefps2.Add(1000.0f / (1000.0f * nf.RParms.Frametime));
 
                                 if (DUMP_ALL_FRAMES)
                                 {
@@ -5931,6 +5939,13 @@ namespace DemoScanner.DG
                 else
                     Console.WriteLine("Choose next actions:");
 
+
+                if (IsRussia)
+                    Console.WriteLine("Нажмите получения 8 для инструкции!");
+                else
+                    Console.WriteLine("Choose 8 for read help!");
+
+
                 Console.WriteLine();
 
                 if (IsRussia)
@@ -6044,20 +6059,20 @@ namespace DemoScanner.DG
                     Console.WriteLine(" ");
                     Console.WriteLine(
                        " * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ");
-                    Console.WriteLine(" * (DETECTED)        ———  Cheat detected with very big possibility ");
-                    Console.WriteLine(" * (WARN)            ———  Scanner think that this moment very strange ");
+                    Console.WriteLine(" * (DETECTED)        ———  Cheat detected with very big possibility! ");
+                    Console.WriteLine(" * (WARNING)         ———  Scanner think that this moment very strange ");
+                    Console.WriteLine(" *                   ———  need check demo manually in game! ");
                     Console.WriteLine(" * Warn types: ");
-                    Console.WriteLine(" * (FALSE)           ———  Cheat detected with 50/50 possibility");
                     Console.WriteLine(" * (LAG)             ———  Player with unstable connection");
                     Console.WriteLine(" * (DEAD)            ———  Player is dead");
                     Console.WriteLine(
                         " * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ");
                     Console.WriteLine(
                         " * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ");
-                    Console.WriteLine(" * (DETECTED)        ———  С большой вероятность игрок использует чит ");
-                    Console.WriteLine(" * (WARN)            ———  Сканер считает этот момент странным ");
+                    Console.WriteLine(" * (ОБНАРУЖЕНО)        ———  С большой вероятность игрок использует чит ");
+                    Console.WriteLine(" * (ПРЕДУПРЕЖДЕНИЕ)    ———  Сканер считает этот момент странным ");
+                    Console.WriteLine(" *                     ———  требуется ручная проверка в игре! ");
                     Console.WriteLine(" * Warn types: ");
-                    Console.WriteLine(" * (FALSE)           ———  Странный момент с 50/50 вероятностью чита");
                     Console.WriteLine(" * (LAG)             ———  У игрока были лаги во время этого варна");
                     Console.WriteLine(" * (DEAD)            ———  Игрок умер");
                     Console.WriteLine(
@@ -6503,7 +6518,7 @@ namespace DemoScanner.DG
             List<float> newLearnAngles = new List<float>();
             for (int i = 1; i < LearnAngles.Count; i++)
             {
-                newLearnAngles.Add(AngleBetween(LearnAngles[0], LearnAngles[i]));
+                newLearnAngles.Add(Convert.ToSingle(Math.Round(AngleBetween(LearnAngles[0], LearnAngles[i]), 5, MidpointRounding.ToEven)));
             }
             if (ENABLE_LEARN_HACK_DEMO_FORCE_SAVE || ENABLE_LEARN_HACK_DEMO_SAVE_ALL_ANGLES)
                 MachineLearnAnglesHACK.AddAnglesToDB(newLearnAngles);
@@ -6517,31 +6532,26 @@ namespace DemoScanner.DG
             List<float> newLearnAngles = new List<float>();
             for (int i = 1; i < LearnAngles.Count; i++)
             {
-                newLearnAngles.Add(AngleBetween(LearnAngles[0], LearnAngles[i]));
+                newLearnAngles.Add(Convert.ToSingle(Math.Round(AngleBetween(LearnAngles[0], LearnAngles[i]), 5, MidpointRounding.ToEven)));
             }
 
-            if (MachineLearnAnglesHACK.IsAnglesInDB(newLearnAngles, 0.01f) && !MachineLearnAnglesCLEAN.IsAnglesInDB(newLearnAngles, 0.01f))
+            if (MachineLearnAnglesHACK.IsAnglesInDB(newLearnAngles, 1.0f) && !MachineLearnAnglesCLEAN.IsAnglesInDB(newLearnAngles, 1.0f))
             {
-                DemoScanner.DemoScanner_AddWarn("[BETA] MACHINE LEARN AIM 1.1: at " + DemoScanner.CurrentTimeString, false, false);
+                DemoScanner.DemoScanner_AddWarn("[BETA] MACHINE LEARN AIM 100% MATCH: at " + DemoScanner.CurrentTimeString, false);
             }
-            else
+            else if (MachineLearnAnglesHACK.IsAnglesInDB(newLearnAngles, 0.1f) && !MachineLearnAnglesCLEAN.IsAnglesInDB(newLearnAngles, 0.1f))
             {
-                if (MachineLearnAnglesHACK.IsAnglesInDB(newLearnAngles, 0.1f) && !MachineLearnAnglesCLEAN.IsAnglesInDB(newLearnAngles, 0.1f))
-                {
-                    DemoScanner.DemoScanner_AddWarn("[BETA] MACHINE LEARN AIM 1.2: at " + DemoScanner.CurrentTimeString, false, false);
-                }
-                else
-                {
-                    if (MachineLearnAnglesHACK.IsAnglesInDB(newLearnAngles, 1.0f) && !MachineLearnAnglesCLEAN.IsAnglesInDB(newLearnAngles, 1.0f))
-                    {
-                        DemoScanner.DemoScanner_AddWarn("[BETA] MACHINE LEARN AIM 1.3: at " + DemoScanner.CurrentTimeString, false, false);
-                    }
-                    else
-                    {
+                DemoScanner.DemoScanner_AddWarn("[BETA] MACHINE LEARN AIM 85% MATCH: at " + DemoScanner.CurrentTimeString, false);
+            }
+            else if (MachineLearnAnglesHACK.IsAnglesInDB(newLearnAngles, 0.01f) && !MachineLearnAnglesCLEAN.IsAnglesInDB(newLearnAngles, 0.01f))
+            {
+                DemoScanner.DemoScanner_AddWarn("[BETA] MACHINE LEARN AIM 60% MATCH: at " + DemoScanner.CurrentTimeString, false, false);
+            }
+            else if (MachineLearnAnglesHACK.IsAnglesInDB(newLearnAngles, 0.001f) && !MachineLearnAnglesCLEAN.IsAnglesInDB(newLearnAngles, 0.001f))
+            {
+                DemoScanner.DemoScanner_AddWarn("[BETA] MACHINE LEARN AIM 50% MATCH: at " + DemoScanner.CurrentTimeString, false, false);
+            }
 
-                    }
-                }
-            }
 
 
             LearnAngles.Clear();
@@ -6564,14 +6574,21 @@ namespace DemoScanner.DG
             return Math.Abs(CurrentTime - RoundEndTime) < 10.0f;
         }
 
+        private static double truncate(float x)
+        {
+            return x < 0 ? -Math.Floor(-x) : Math.Floor(x);
+        }
+
+        private static float MyFmod(float x, float y)
+        {
+            return Convert.ToSingle(x - truncate(x / y) * y);
+        }
+
         private static float normalizeangle(float angle)
         {
-            if (angle > 360.0f || angle < -360.0f)
-                angle = angle % 360.0f;
-            if (angle < 0.0f)
+            angle = MyFmod(angle, 360.0f);
+            if (angle < 0)
                 angle += 360.0f;
-            if (angle > 360.0f)
-                angle -= 360.0f;
             return angle;
         }
 
@@ -6584,7 +6601,6 @@ namespace DemoScanner.DG
                 return 360.0f - angle;
         }
 
-
         public static string GetSourceCodeString()
         {
             usagesrccode++;
@@ -6593,6 +6609,7 @@ namespace DemoScanner.DG
                 throw new Exception("ANAL ERROR");
             return SourceCode;
         }
+
         private static void ParseGameData(byte[] msgBytes)
         {
             halfLifeDemoParser.ParseGameDataMessages(msgBytes);
@@ -6971,8 +6988,8 @@ namespace DemoScanner.DG
             float retcheck2 = Math.Abs(CurrentTime - LastLossTimeEnd);
             bool retval = retcheck < 1.5f || retcheck2 < 1.5f;
 
-           // if (retval)
-           //      Console.WriteLine("CurrentTime:" + CurrentTime + ". LastLossPacket:" + LastLossPacket + ". LastLossTimeEnd:" + LastLossTimeEnd);
+            // if (retval)
+            //      Console.WriteLine("CurrentTime:" + CurrentTime + ". LastLossPacket:" + LastLossPacket + ". LastLossTimeEnd:" + LastLossTimeEnd);
 
 
             return retval;
@@ -7992,7 +8009,7 @@ namespace DemoScanner.DG
                     if (messageId != 0)
                     {
                         DemoScanner.UnknownMessages++;
-                        DemoScanner.CheckConsoleCommand("Unknown message id:" + messageId,true);
+                        DemoScanner.CheckConsoleCommand("Unknown message id:" + messageId, true);
                     }
                     break;
                 }
@@ -8589,7 +8606,7 @@ namespace DemoScanner.DG
                 uint loss = BitBuffer.ReadUnsignedBits(7);
                 if (slotid == DemoScanner.UserId && loss > 0)
                 {
-                    DemoScanner.CheckConsoleCommand("PLAYER HAS LAG " + loss + " / " + pings,true);
+                    DemoScanner.CheckConsoleCommand("PLAYER HAS LAG " + loss + " / " + pings, true);
                     DemoScanner.LossPackets += loss;
 
                     if (!DemoScanner.LossFalseDetection && (Math.Abs(DemoScanner.LastLossPacket) <= float.Epsilon || DemoScanner.CurrentTime - DemoScanner.LastLossPacket > 60.0f))
@@ -11274,7 +11291,7 @@ namespace DemoScanner.DG
             return false;
         }
 
-        public void AddAnglesToDB(List<float> angles_in)
+        public void AddAnglesToDB(List<float> angles_in, float precision = 0.0001f)
         {
             List<float> angles_out = new List<float>();
             foreach (float angle in angles_in)
@@ -11287,7 +11304,7 @@ namespace DemoScanner.DG
                 Console.WriteLine("ERROR AddAnglesToDB VALUE");
                 return;
             }
-            if (IsAnglesInDB(angles_out, 0.0001f))
+            if (IsAnglesInDB(angles_out, precision))
             {
                 Console.WriteLine("IsAnglesInDB !!");
                 return;
