@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.62.4";
+        public const string PROGRAMVERSION = "1.62.5";
 
         public static bool DEBUG_ENABLED = false;
         public static bool NO_TELEPORT = false;
@@ -85,10 +85,9 @@ namespace DemoScanner.DG
         public static bool ENABLE_LEARN_HACK_DEMO = false;
         public static bool ENABLE_LEARN_HACK_DEMO_SAVE_ALL_ANGLES = false;
         public static bool ENABLE_LEARN_HACK_DEMO_FORCE_SAVE = false;
-        public const int LEARN_FLOAT_COUNT = 4;
-        public static int current_learn_float_count = -1;
-        public static MachineLearn_CheckAngles MachineLearnAnglesCLEAN = new MachineLearn_CheckAngles("Y_ATTACK_DB_v2.bin", LEARN_FLOAT_COUNT - 1);
-        public static MachineLearn_CheckAngles MachineLearnAnglesHACK = new MachineLearn_CheckAngles("Y_ATTACK_DB_HACK_v2.bin", LEARN_FLOAT_COUNT - 1);
+        public const int LEARN_FLOAT_COUNT = 3;
+        public static MachineLearn_CheckAngles MachineLearnAnglesCLEAN = new MachineLearn_CheckAngles("Y_ATTACK_DB_v3.bin", LEARN_FLOAT_COUNT);
+        public static MachineLearn_CheckAngles MachineLearnAnglesHACK = new MachineLearn_CheckAngles("Y_ATTACK_DB_HACK_v3.bin", LEARN_FLOAT_COUNT);
 
         public static List<string> outFrames = null;
 
@@ -152,10 +151,6 @@ namespace DemoScanner.DG
         public static float Aim8CurrentFrameViewanglesX = 0.0f;
         public static float Aim8CurrentFrameViewanglesY = 0.0f;
 
-        public static float CurrentFrameViewanglesX = 0.0f;
-        public static float CurrentFrameViewanglesY = 0.0f;
-        public static float PreviousFrameViewanglesX = 0.0f;
-        public static float PreviousFrameViewanglesY = 0.0f;
         public static int AutoAttackStrikes = 0;
         public static int AutoAttackStrikesID = 0;
         public static int AutoAttackStrikesLastID = 0;
@@ -324,8 +319,8 @@ namespace DemoScanner.DG
         public static int CurrentFrameIdAll = 0;
         private static float LastClientDataTime;
         public static int NeedSearchID = 0;
-        public static FPoint3D viewanglesforsearch = new FPoint3D();
-        public static FPoint3D prev_viewanglesforsearch = new FPoint3D();
+        public static FPoint3D CDFRAME_ViewAngles = new FPoint3D();
+        public static FPoint3D PREV_CDFRAME_ViewAngles = new FPoint3D();
 
         public static bool CurrentMovementLeft = false;
         public static int LeftRightMovements = 0;
@@ -348,6 +343,7 @@ namespace DemoScanner.DG
         public static bool NeedWriteAim = false;
 
         public static bool NewAttack = false;
+        public static bool NewAttackForLearn = false;
 
         public static BinaryWriter ViewDemoHelperComments;
         public static TextWriter TextComments;
@@ -827,8 +823,8 @@ namespace DemoScanner.DG
                         }
                         LastFrameDiff = CurrentFrameId - LastCmdFrameId;
 
-                        ViewanglesXBeforeBeforeAttack = PreviousFrameViewanglesX;
-                        ViewanglesYBeforeBeforeAttack = PreviousFrameViewanglesY;
+                        ViewanglesXBeforeBeforeAttack = PREV_CDFRAME_ViewAngles.X;
+                        ViewanglesYBeforeBeforeAttack = PREV_CDFRAME_ViewAngles.Y;
 
                         NeedSearchViewAnglesAfterAttack++;
                         LerpBeforeAttack = CurrentFrameLerp;
@@ -1441,59 +1437,6 @@ namespace DemoScanner.DG
                 Console.WriteLine("Error Fatal");
                 return;
             }
-
-            try
-            {
-                Console.WriteLine("Search for updates...");
-                WebClient myWebClient = new WebClient();
-                string str_from_github = myWebClient.
-                    DownloadString("https://raw.githubusercontent.com/UnrealKaraulov/UnrealDemoScanner/main/SourceCode/UnrealDemoScanner.cs");
-                Console.Clear();
-                if (str_from_github.IndexOf("PROGRAMVERSION") > 0)
-                {
-                    Regex regex = new Regex(@"PROGRAMVERSION\s+=\s+""(.*?)"";");
-                    Match match = regex.Match(str_from_github);
-                    if (match.Success)
-                    {
-                        if (match.Groups[1].Value != PROGRAMVERSION)
-                        {
-                            Console.WriteLine("Found new version \"" + match.Groups[1].Value + "\"! Current version:\"" + PROGRAMVERSION + "\".");
-                        }
-                    }
-                }
-                Thread.Sleep(1000);
-            }
-            catch
-            {
-
-            }
-
-            string CurrentDir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
-
-            if (!File.Exists(CurrentDir + @"\lang.ru") && !File.Exists(CurrentDir + @"\lang.en"))
-            {
-                Console.Write("Enter language EN - Engish / RU - Russian:");
-                string lang = Console.ReadLine();
-                if (lang.ToLower() == "en")
-                {
-                    File.Create(CurrentDir + @"\lang.en").Close();
-                }
-                else
-                {
-                    File.Create(CurrentDir + @"\lang.ru").Close();
-                }
-            }
-
-            if (File.Exists(CurrentDir + @"\lang.en"))
-            {
-                IsRussia = false;
-            }
-            else
-            {
-                IsRussia = true;
-            }
-
-
             var CurrentDemoFilePath = "";
             var filefound = false;
 
@@ -1503,7 +1446,6 @@ namespace DemoScanner.DG
                 if (File.Exists(CurrentDemoFilePath))
                 {
                     filefound = true;
-                    break;
                 }
                 else if (arg.IndexOf("-debug") > -1)
                 {
@@ -1556,6 +1498,66 @@ namespace DemoScanner.DG
                 }
             }
 
+
+
+            if (!DemoScanner.SKIP_RESULTS)
+            {
+                try
+                {
+                    Console.WriteLine("Search for updates...");
+                    WebClient myWebClient = new WebClient();
+                    string str_from_github = myWebClient.
+                        DownloadString("https://raw.githubusercontent.com/UnrealKaraulov/UnrealDemoScanner/main/SourceCode/UnrealDemoScanner.cs");
+                    Console.Clear();
+                    if (str_from_github.IndexOf("PROGRAMVERSION") > 0)
+                    {
+                        Regex regex = new Regex(@"PROGRAMVERSION\s+=\s+""(.*?)"";");
+                        Match match = regex.Match(str_from_github);
+                        if (match.Success)
+                        {
+                            if (match.Groups[1].Value != PROGRAMVERSION)
+                            {
+                                Console.WriteLine("Found new version \"" + match.Groups[1].Value + "\"! Current version:\"" + PROGRAMVERSION + "\".");
+                            }
+                        }
+                    }
+                    Thread.Sleep(1000);
+                }
+                catch
+                {
+
+                }
+            }
+
+            string CurrentDir = Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().Location);
+
+            if (!DemoScanner.SKIP_RESULTS)
+            {
+
+
+                if (!File.Exists(CurrentDir + @"\lang.ru") && !File.Exists(CurrentDir + @"\lang.en"))
+                {
+                    Console.Write("Enter language EN - Engish / RU - Russian:");
+                    string lang = Console.ReadLine();
+                    if (lang.ToLower() == "en")
+                    {
+                        File.Create(CurrentDir + @"\lang.en").Close();
+                    }
+                    else
+                    {
+                        File.Create(CurrentDir + @"\lang.ru").Close();
+                    }
+                }
+
+                if (File.Exists(CurrentDir + @"\lang.en"))
+                {
+                    IsRussia = false;
+                }
+                else
+                {
+                    IsRussia = true;
+                }
+            }
 
 
             try
@@ -1671,6 +1673,7 @@ namespace DemoScanner.DG
             whiteListCMDLIST.Add("hud_saytext");
             whiteListCMDLIST.Add("buy_preset_edit");
             whiteListCMDLIST.Add("voice_showbanned");
+            whiteListCMDLIST.Add("vgui_runscript");
 
             if (IsRussia)
                 Console.WriteLine("Перетащите демо файл в это окно или введите путь вручную:");
@@ -2066,48 +2069,47 @@ namespace DemoScanner.DG
                                 if (DUMP_ALL_FRAMES) subnode.Text = "{\n";
 
                                 var cdframe = (GoldSource.ClientDataFrame)frame.Value;
-                                prev_viewanglesforsearch = viewanglesforsearch;
-                                viewanglesforsearch = cdframe.Viewangles;
+
+                                var tmpPrevViewAngles = CDFRAME_ViewAngles;
+                                CDFRAME_ViewAngles = cdframe.Viewangles;
 
                                 if (IsUserAlive() &&
-                                    (
-                                    (!IsPlayerLossConnection() && !IsAngleEditByEngine() && !IsChangeWeapon() && CurrentFrameOnGround)
-                                    || ENABLE_LEARN_CLEAN_DEMO && CurrentFrameOnGround)
+                                    CurrentFrameOnGround && (!IsAngleEditByEngineForLearn() || ENABLE_LEARN_CLEAN_DEMO)
                                     )
                                 {
-                                    if (NewAttack)
+                                    if (DemoScanner.LearnAngles.Count > 0 && NewAttackForLearn)
+                                        DemoScanner.LearnAngles = new List<float>();
+
+                                    if (NewAttackForLearn)
                                     {
-                                        DemoScanner.LearnAngles.Clear();
-                                        DemoScanner.LearnAngles.Add(PreviousNetMsgFrame.RParms.Viewangles.Y);
-                                        current_learn_float_count = 2;
-                                        DemoScanner.LearnAngles.Add(viewanglesforsearch.Y);
+                                        NewAttackForLearn = false;
+                                        DemoScanner.LearnAngles = new List<float>();
+                                        DemoScanner.LearnAngles.Add(PREV_CDFRAME_ViewAngles.Y);
+                                        DemoScanner.LearnAngles.Add(CDFRAME_ViewAngles.Y);
                                     }
-                                    else if (current_learn_float_count != -1)
+                                    else if (DemoScanner.LearnAngles.Count > 0)
                                     {
-                                        current_learn_float_count++;
-                                        DemoScanner.LearnAngles.Add(viewanglesforsearch.Y);
+                                        DemoScanner.LearnAngles.Add(CDFRAME_ViewAngles.Y);
                                     }
-                                    if (current_learn_float_count == LEARN_FLOAT_COUNT)
+                                    if (DemoScanner.LearnAngles.Count == LEARN_FLOAT_COUNT)
                                     {
-                                        current_learn_float_count = -1;
                                         if (DemoScanner.ENABLE_LEARN_CLEAN_DEMO || DemoScanner.ENABLE_LEARN_HACK_DEMO || DemoScanner.ENABLE_LEARN_HACK_DEMO_SAVE_ALL_ANGLES)
                                         {
                                             DemoScanner.ENABLE_LEARN_HACK_DEMO = false;
                                             WriteLearnAngles();
-                                            DemoScanner.LearnAngles = new List<float>();
                                         }
                                         else if (MachineLearnAnglesCLEAN.is_file_exists
                                             && MachineLearnAnglesHACK.is_file_exists)
                                         {
                                             CheckLearnAngles();
-                                            DemoScanner.LearnAngles = new List<float>();
                                         }
+                                        DemoScanner.LearnAngles = new List<float>();
                                     }
                                 }
                                 else
                                 {
+                                    NewAttackForLearn = false;
                                     DemoScanner.LearnAngles = new List<float>();
-                                    current_learn_float_count = -1;
                                 }
 
                                 if (DUMP_ALL_FRAMES)
@@ -2227,12 +2229,8 @@ namespace DemoScanner.DG
                                     }
                                 }
 
-                                CurrentFrameViewanglesX = cdframe.Viewangles.X;
-                                CurrentFrameViewanglesY = cdframe.Viewangles.Y;
 
-
-
-                                var tmpAngleDirY = GetAngleDirection(PreviousFrameViewanglesY, CurrentFrameViewanglesY);
+                                var tmpAngleDirY = GetAngleDirection(PREV_CDFRAME_ViewAngles.Y, CDFRAME_ViewAngles.Y);
 
 
                                 if (tmpAngleDirY == AngleDirection.AngleDirectionLeft)
@@ -2284,8 +2282,8 @@ namespace DemoScanner.DG
 
                                 if (RealAlive)
                                 {
-                                    var tmpXangle = AngleBetween(PreviousFrameViewanglesX, CurrentFrameViewanglesX);
-                                    var tmpYangle = AngleBetween(PreviousFrameViewanglesY, CurrentFrameViewanglesY);
+                                    var tmpXangle = AngleBetween(PREV_CDFRAME_ViewAngles.X, CDFRAME_ViewAngles.X);
+                                    var tmpYangle = AngleBetween(PREV_CDFRAME_ViewAngles.Y, CDFRAME_ViewAngles.Y);
 
                                     AngleLenMinX = tmpXangle * (1.0f / CurrentFrameTime);
                                     AngleLenMinY = tmpYangle * (1.0f / CurrentFrameTime);
@@ -2741,18 +2739,18 @@ namespace DemoScanner.DG
                                                     DemoScanner.Aim73FalseSkip--;
                                                 }
                                                 if (Math.Abs(Aim8CurrentFrameViewanglesY -
-                                                    CurrentFrameViewanglesY) > float.Epsilon &&
+                                                    CDFRAME_ViewAngles.Y) > float.Epsilon &&
                                                     Math.Abs(Aim8CurrentFrameViewanglesX -
-                                                    CurrentFrameViewanglesX) > float.Epsilon && !IsAngleEditByEngine() && !IsPlayerLossConnection() && CurrentFrameOnGround)
+                                                    CDFRAME_ViewAngles.X) > float.Epsilon && !IsAngleEditByEngine() && !IsPlayerLossConnection() && CurrentFrameOnGround)
                                                 {
                                                     if (AimType7Event == 4 && DemoScanner.Aim73FalseSkip < 0)
                                                     {
                                                         var tmpangle2 =
                                                             AngleBetween(
-                                                                    Aim8CurrentFrameViewanglesX, CurrentFrameViewanglesX);
+                                                                    Aim8CurrentFrameViewanglesX, CDFRAME_ViewAngles.X);
                                                         tmpangle2 +=
                                                             AngleBetween(
-                                                                    Aim8CurrentFrameViewanglesY, CurrentFrameViewanglesY);
+                                                                    Aim8CurrentFrameViewanglesY, CDFRAME_ViewAngles.Y);
 
                                                         int Aim7var1 = OldAimType7Frames;
                                                         int Aim7var2 = AimType7Frames;
@@ -2770,10 +2768,10 @@ namespace DemoScanner.DG
                                                     {
                                                         var tmpangle2 =
                                                             AngleBetween(
-                                                                    Aim8CurrentFrameViewanglesX, CurrentFrameViewanglesX);
+                                                                    Aim8CurrentFrameViewanglesX, CDFRAME_ViewAngles.X);
                                                         tmpangle2 +=
                                                             AngleBetween(
-                                                                    Aim8CurrentFrameViewanglesY, CurrentFrameViewanglesY);
+                                                                    Aim8CurrentFrameViewanglesY, CDFRAME_ViewAngles.Y);
 
                                                         int Aim7var1 = OldAimType7Frames;
                                                         int Aim7var2 = AimType7Frames;
@@ -2791,17 +2789,17 @@ namespace DemoScanner.DG
                                             }
 
                                             if (Math.Abs(Aim8CurrentFrameViewanglesY -
-                                                    CurrentFrameViewanglesY) < float.Epsilon && !IsAngleEditByEngine() && !IsPlayerLossConnection() && CurrentFrameOnGround/* &&
+                                                    CDFRAME_ViewAngles.Y) < float.Epsilon && !IsAngleEditByEngine() && !IsPlayerLossConnection() && CurrentFrameOnGround/* &&
                                                     Aim8CurrentFrameViewanglesX !=
                                                     CurrentFrameViewanglesX*/)
                                             {
                                                 AimType7Event += 10;
                                                 var tmpangle2 =
                                                     AngleBetween(
-                                                            Aim8CurrentFrameViewanglesX, CurrentFrameViewanglesX);
+                                                            Aim8CurrentFrameViewanglesX, CDFRAME_ViewAngles.X);
                                                 tmpangle2 +=
                                                     AngleBetween(
-                                                            Aim8CurrentFrameViewanglesY, CurrentFrameViewanglesY);
+                                                            Aim8CurrentFrameViewanglesY, CDFRAME_ViewAngles.Y);
 
 
                                                 int Aim7var1 = OldAimType7Frames;
@@ -2863,9 +2861,9 @@ namespace DemoScanner.DG
                                         {
                                             // Console.WriteLine("3");
                                             Aim8CurrentFrameViewanglesY =
-                                                CurrentFrameViewanglesY;
+                                                CDFRAME_ViewAngles.Y;
                                             Aim8CurrentFrameViewanglesX =
-                                                CurrentFrameViewanglesX;
+                                                CDFRAME_ViewAngles.X;
                                             // if (!CurrentFrameDuplicated)
                                             AimType7Frames++;
                                         }
@@ -2910,9 +2908,8 @@ namespace DemoScanner.DG
                                 oldoriginpos.X = cdframe.Origin.X;
                                 oldoriginpos.Y = cdframe.Origin.Y;
 
+                                PREV_CDFRAME_ViewAngles = tmpPrevViewAngles;
 
-                                PreviousFrameViewanglesX = CurrentFrameViewanglesX;
-                                PreviousFrameViewanglesY = CurrentFrameViewanglesY;
                                 break;
                             }
                         case GoldSource.DemoFrameType.NextSection:
@@ -2979,7 +2976,7 @@ namespace DemoScanner.DG
 
                                 if (Math.Abs(CurrentTime - LastClientDataTime) < float.Epsilon)
                                 {
-                                    if (Math.Abs(viewanglesforsearch.Y - eframe.EventArguments.Angles.Y) > float.Epsilon)
+                                    if (Math.Abs(CDFRAME_ViewAngles.Y - eframe.EventArguments.Angles.Y) > float.Epsilon)
                                     {
                                         // Console.WriteLine("AIM IM IM:" + viewanglesforsearch.Y + ":" + eframe.EventArguments.Angles.Y);
                                     }
@@ -3317,6 +3314,7 @@ namespace DemoScanner.DG
                                 {
                                     FirstAttack = true;
                                     NewAttack = true;
+                                    NewAttackForLearn = true;
                                     attackscounter3++;
                                 }
 
@@ -4426,17 +4424,17 @@ namespace DemoScanner.DG
                                             AimType8False = false;
                                         }
                                     }
-                                    if (nf.RParms.ClViewangles.Y != prev_viewanglesforsearch.Y
-                                       || nf.UCmd.Viewangles.Y != prev_viewanglesforsearch.Y)
+                                    if (nf.RParms.ClViewangles.Y != PREV_CDFRAME_ViewAngles.Y
+                                       || nf.UCmd.Viewangles.Y != PREV_CDFRAME_ViewAngles.Y)
                                     {
-                                        if (!IsForceCenterView() && !IsAngleEditByEngine() && Math.Abs(viewanglesforsearch.X - nf.RParms.Viewangles.X) > float.Epsilon
-                                        && Math.Abs(prev_viewanglesforsearch.X - nf.RParms.Viewangles.X) > float.Epsilon)
+                                        if (!IsForceCenterView() && !IsAngleEditByEngine() && Math.Abs(CDFRAME_ViewAngles.X - nf.RParms.Viewangles.X) > float.Epsilon
+                                        && Math.Abs(PREV_CDFRAME_ViewAngles.X - nf.RParms.Viewangles.X) > float.Epsilon)
                                         {
                                             if (CurrentFrameAttacked && CurrentFrameOnGround && CurrentTime - LastDeathTime > 2.0f
                                                 && CurrentTime - LastAliveTime > 2.0f)
                                             {
-                                                var spreadtest = viewanglesforsearch.X - nf.RParms.Viewangles.X + nf.RParms.Punchangle.X;
-                                                var spreadtest2 = prev_viewanglesforsearch.X - nf.RParms.Viewangles.X + nf.RParms.Punchangle.X;
+                                                var spreadtest = CDFRAME_ViewAngles.X - nf.RParms.Viewangles.X + nf.RParms.Punchangle.X;
+                                                var spreadtest2 = PREV_CDFRAME_ViewAngles.X - nf.RParms.Viewangles.X + nf.RParms.Punchangle.X;
                                                 if (spreadtest > nospreadtest)
                                                 {
                                                     nospreadtest = spreadtest;
@@ -4470,17 +4468,17 @@ namespace DemoScanner.DG
                                             //    Console.WriteLine("NONE(" + nf.UCmd.Buttons + ")");
                                             //}
                                         }
-                                        if (Math.Abs(viewanglesforsearch.Y - nf.RParms.Viewangles.Y) > float.Epsilon
-                                            && Math.Abs(prev_viewanglesforsearch.Y - nf.RParms.Viewangles.Y) > float.Epsilon)
+                                        if (Math.Abs(CDFRAME_ViewAngles.Y - nf.RParms.Viewangles.Y) > float.Epsilon
+                                            && Math.Abs(PREV_CDFRAME_ViewAngles.Y - nf.RParms.Viewangles.Y) > float.Epsilon)
                                         {
                                             if (CurrentFrameAttacked && CurrentFrameOnGround && CurrentTime - LastDeathTime > 2.0f
                                                 && CurrentTime - LastAliveTime > 2.0f)
                                             {
-                                                var spreadtest2 = viewanglesforsearch.Y - nf.RParms.Viewangles.Y + nf.RParms.Punchangle.Y;
-                                                var spreadtest3 = viewanglesforsearch.Y - nf.RParms.Viewangles.Y + nf.RParms.Punchangle.Y;
+                                                var spreadtest2 = CDFRAME_ViewAngles.Y - nf.RParms.Viewangles.Y + nf.RParms.Punchangle.Y;
+                                                var spreadtest3 = CDFRAME_ViewAngles.Y - nf.RParms.Viewangles.Y + nf.RParms.Punchangle.Y;
                                                 if (spreadtest2 > nospreadtest2)
                                                 {
-                                                    nospreadtest2 = viewanglesforsearch.Y - nf.RParms.Viewangles.Y + nf.RParms.Punchangle.Y;
+                                                    nospreadtest2 = CDFRAME_ViewAngles.Y - nf.RParms.Viewangles.Y + nf.RParms.Punchangle.Y;
                                                     //Console.WriteLine(nospreadtest.ToString("F8"));
                                                 }
 
@@ -4513,10 +4511,10 @@ namespace DemoScanner.DG
                                     //    //    Console.WriteLine("NONE(" + nf.UCmd.Buttons + ")");
                                     //    //}
                                     //}
-                                    if (nf.RParms.ClViewangles.Y != prev_viewanglesforsearch.Y
-                                        || nf.UCmd.Viewangles.Y != prev_viewanglesforsearch.Y)
+                                    if (nf.RParms.ClViewangles.Y != PREV_CDFRAME_ViewAngles.Y
+                                        || nf.UCmd.Viewangles.Y != PREV_CDFRAME_ViewAngles.Y)
                                     {
-                                        if (viewanglesforsearch != nf.RParms.ClViewangles)
+                                        if (CDFRAME_ViewAngles != nf.RParms.ClViewangles)
                                         {
                                             if (DemoScanner.AUTO_LEARN_HACK_DB)
                                             {
@@ -4550,7 +4548,7 @@ namespace DemoScanner.DG
                                         {
                                             AimType8Warn = 0;
                                         }
-                                        if (viewanglesforsearch != nf.UCmd.Viewangles)
+                                        if (CDFRAME_ViewAngles != nf.UCmd.Viewangles)
                                         {
                                             if (DemoScanner.AUTO_LEARN_HACK_DB)
                                             {
@@ -4584,8 +4582,8 @@ namespace DemoScanner.DG
                                     }
                                     else
                                     {
-                                        if (viewanglesforsearch != nf.UCmd.Viewangles
-                                            && viewanglesforsearch != nf.RParms.ClViewangles)
+                                        if (CDFRAME_ViewAngles != nf.UCmd.Viewangles
+                                            && CDFRAME_ViewAngles != nf.RParms.ClViewangles)
                                         {
                                             if (CurrentTime - FpsOverflowTime < 1.0f)
                                             {
@@ -4747,8 +4745,8 @@ namespace DemoScanner.DG
 
                                 if (NeedSearchViewAnglesAfterAttack == 1)
                                 {
-                                    ViewanglesXBeforeAttack = CurrentFrameViewanglesX;
-                                    ViewanglesYBeforeAttack = CurrentFrameViewanglesY;
+                                    ViewanglesXBeforeAttack = CDFRAME_ViewAngles.X;
+                                    ViewanglesYBeforeAttack = CDFRAME_ViewAngles.Y;
                                     //Console.WriteLine("Aim3 0:" + ViewanglesXBeforeBeforeAttack + ":" + ViewanglesYBeforeBeforeAttack);
                                     //Console.WriteLine("Aim3 1:" + ViewanglesXBeforeAttack + ":" + ViewanglesYBeforeAttack);
                                     NeedSearchViewAnglesAfterAttack++;
@@ -4770,8 +4768,8 @@ namespace DemoScanner.DG
                                     else if (CurrentFrameAttacked)
                                     {
                                         NeedSearchViewAnglesAfterAttack = 0;
-                                        ViewanglesXAfterAttack = CurrentFrameViewanglesX;
-                                        ViewanglesYAfterAttack = CurrentFrameViewanglesY;
+                                        ViewanglesXAfterAttack = CDFRAME_ViewAngles.X;
+                                        ViewanglesYAfterAttack = CDFRAME_ViewAngles.Y;
                                         NeedSearchViewAnglesAfterAttackNext = true;
                                     }
                                 }
@@ -4783,9 +4781,9 @@ namespace DemoScanner.DG
                                     {
                                         NeedSearchViewAnglesAfterAttackNext = false;
                                         ViewanglesXAfterAttackNext =
-                                            CurrentFrameViewanglesX;
+                                            CDFRAME_ViewAngles.X;
                                         ViewanglesYAfterAttackNext =
-                                            CurrentFrameViewanglesY;
+                                            CDFRAME_ViewAngles.Y;
 
                                         if (Math.Abs(ViewanglesXBeforeBeforeAttack - ViewanglesXAfterAttack) < float.Epsilon &&
                                            Math.Abs(ViewanglesYBeforeBeforeAttack - ViewanglesYAfterAttack) < float.Epsilon &&
@@ -5916,7 +5914,7 @@ namespace DemoScanner.DG
 
             if (DemoScanner.ENABLE_LEARN_CLEAN_DEMO)
             {
-                if ((BHOPcount < 2) && (BadAttackCount < 2) && (SilentAimDetected < 2) && (FakeLagAim < 2) && (JumpHackCount < 02))
+                if ((BHOPcount < 4) && (BadAttackCount < 4) && (SilentAimDetected < 4) && (FakeLagAim < 4) && (JumpHackCount < 4))
                 {
                     MachineLearnAnglesCLEAN.WriteAnglesDB();
                 }
@@ -5941,7 +5939,7 @@ namespace DemoScanner.DG
 
 
                 if (IsRussia)
-                    Console.WriteLine("Нажмите получения 8 для инструкции!");
+                    Console.WriteLine("Нажмите 8 получения для инструкции!");
                 else
                     Console.WriteLine("Choose 8 for read help!");
 
@@ -6516,45 +6514,84 @@ namespace DemoScanner.DG
         private static void WriteLearnAngles()
         {
             List<float> newLearnAngles = new List<float>();
-            for (int i = 1; i < LearnAngles.Count; i++)
+            bool anyfromzero = false;
+            double math = Math.Round(Math.Abs(AngleBetween(LearnAngles[0], LearnAngles[LearnAngles.Count - 1])), 3, MidpointRounding.AwayFromZero);
+            if (Math.Abs(math) > float.Epsilon)
             {
-                newLearnAngles.Add(Convert.ToSingle(Math.Round(AngleBetween(LearnAngles[0], LearnAngles[i]), 5, MidpointRounding.ToEven)));
+                anyfromzero = true;
+            }
+            newLearnAngles.Add(Convert.ToSingle(math));
+            for (int i = 0; i < LearnAngles.Count - 1; i++)
+            {
+                math = Math.Round(Math.Abs(AngleBetween(LearnAngles[i], LearnAngles[i + 1])), 3, MidpointRounding.AwayFromZero);
+                if (Math.Abs(math) > float.Epsilon)
+                {
+                    anyfromzero = true;
+                }
+                newLearnAngles.Add(Convert.ToSingle(math));
+            }
+            if (!anyfromzero)
+            {
+                return;
             }
             if (ENABLE_LEARN_HACK_DEMO_FORCE_SAVE || ENABLE_LEARN_HACK_DEMO_SAVE_ALL_ANGLES)
                 MachineLearnAnglesHACK.AddAnglesToDB(newLearnAngles);
             else
                 MachineLearnAnglesCLEAN.AddAnglesToDB(newLearnAngles);
-            LearnAngles.Clear();
         }
 
         private static void CheckLearnAngles()
         {
             List<float> newLearnAngles = new List<float>();
-            for (int i = 1; i < LearnAngles.Count; i++)
+            bool anyfromzero = false;
+            double math = Math.Round(Math.Abs(AngleBetween(LearnAngles[0], LearnAngles[LearnAngles.Count - 1])), 3, MidpointRounding.AwayFromZero);
+            if (Math.Abs(math) > float.Epsilon)
             {
-                newLearnAngles.Add(Convert.ToSingle(Math.Round(AngleBetween(LearnAngles[0], LearnAngles[i]), 5, MidpointRounding.ToEven)));
+                anyfromzero = true;
+            }
+            newLearnAngles.Add(Convert.ToSingle(math));
+            for (int i = 0; i < LearnAngles.Count - 1; i++)
+            {
+                math = Math.Round(Math.Abs(AngleBetween(LearnAngles[i], LearnAngles[i + 1])), 3, MidpointRounding.AwayFromZero);
+                if (Math.Abs(math) > float.Epsilon)
+                {
+                    anyfromzero = true;
+                }
+                newLearnAngles.Add(Convert.ToSingle(math));
+            }
+            if (!anyfromzero)
+            {
+                return;
             }
 
             if (MachineLearnAnglesHACK.IsAnglesInDB(newLearnAngles, 1.0f) && !MachineLearnAnglesCLEAN.IsAnglesInDB(newLearnAngles, 1.0f))
             {
-                DemoScanner.DemoScanner_AddWarn("[BETA] MACHINE LEARN AIM 100% MATCH: at " + DemoScanner.CurrentTimeString, false);
+                if (DemoScanner.IsRussia)
+                    DemoScanner.DemoScanner_AddWarn("[МАШИННОЕ ОБУЧЕНИЕ] ПОДОЗРИТЕЛЬНЫЙ МОМЕНТ 100% СОВПАДЕНИЕ at " + DemoScanner.CurrentTimeString, false);
+                else
+                    DemoScanner.DemoScanner_AddWarn("[BETA] MACHINE LEARN AIM 100% MATCH: at " + DemoScanner.CurrentTimeString, false);
             }
             else if (MachineLearnAnglesHACK.IsAnglesInDB(newLearnAngles, 0.1f) && !MachineLearnAnglesCLEAN.IsAnglesInDB(newLearnAngles, 0.1f))
             {
-                DemoScanner.DemoScanner_AddWarn("[BETA] MACHINE LEARN AIM 85% MATCH: at " + DemoScanner.CurrentTimeString, false);
+                if (DemoScanner.IsRussia)
+                    DemoScanner.DemoScanner_AddWarn("[МАШИННОЕ ОБУЧЕНИЕ] ПОДОЗРИТЕЛЬНЫЙ МОМЕНТ 75% СОВПАДЕНИЕ at " + DemoScanner.CurrentTimeString, false);
+                else
+                    DemoScanner.DemoScanner_AddWarn("[BETA] MACHINE LEARN AIM 75% MATCH: at " + DemoScanner.CurrentTimeString, false);
             }
             else if (MachineLearnAnglesHACK.IsAnglesInDB(newLearnAngles, 0.01f) && !MachineLearnAnglesCLEAN.IsAnglesInDB(newLearnAngles, 0.01f))
             {
-                DemoScanner.DemoScanner_AddWarn("[BETA] MACHINE LEARN AIM 60% MATCH: at " + DemoScanner.CurrentTimeString, false, false);
+                if (DemoScanner.IsRussia)
+                    DemoScanner.DemoScanner_AddWarn("[МАШИННОЕ ОБУЧЕНИЕ] ПОДОЗРИТЕЛЬНЫЙ МОМЕНТ 40% СОВПАДЕНИЕ at " + DemoScanner.CurrentTimeString, false);
+                else
+                    DemoScanner.DemoScanner_AddWarn("[BETA] MACHINE LEARN AIM 40% MATCH: at " + DemoScanner.CurrentTimeString, false);
             }
             else if (MachineLearnAnglesHACK.IsAnglesInDB(newLearnAngles, 0.001f) && !MachineLearnAnglesCLEAN.IsAnglesInDB(newLearnAngles, 0.001f))
             {
-                DemoScanner.DemoScanner_AddWarn("[BETA] MACHINE LEARN AIM 50% MATCH: at " + DemoScanner.CurrentTimeString, false, false);
+                if (DemoScanner.IsRussia)
+                    DemoScanner.DemoScanner_AddWarn("[МАШИННОЕ ОБУЧЕНИЕ] ПОДОЗРИТЕЛЬНЫЙ МОМЕНТ 20% СОВПАДЕНИЕ at " + DemoScanner.CurrentTimeString, false);
+                else
+                    DemoScanner.DemoScanner_AddWarn("[BETA] MACHINE LEARN AIM 20% MATCH: at " + DemoScanner.CurrentTimeString, false);
             }
-
-
-
-            LearnAngles.Clear();
         }
 
 
@@ -7103,6 +7140,21 @@ namespace DemoScanner.DG
                 IsViewChanged() ||
                 HideWeapon ||
                 CurrentTime - LastLookDisabled < 0.75f;
+        }
+
+        public static bool IsAngleEditByEngineForLearn()
+        {
+            if (NO_TELEPORT)
+                return false;
+            return
+                IsPlayerTeleport() ||
+                CurrentTime - LastAngleManipulation < 0.20f ||
+                CurrentTime - LastDuckUnduckTime < 1.0f ||
+                IsTakeDamage() ||
+                IsPlayerFrozen() ||
+                IsViewChanged() ||
+                HideWeapon ||
+                CurrentTime - LastLookDisabled < 0.4f;
         }
 
 
@@ -11219,16 +11271,13 @@ namespace DemoScanner.DG
             {
                 try
                 {
-                    int current_str_id = 0;
                     while (reader.BaseStream.Position != reader.BaseStream.Length)
                     {
-                        current_str_id++;
                         float val = reader.ReadSingle();
                         //Console.Write("[" + val + "]");
                         anglescheck.Add(val);
-                        if (current_str_id == AnglesStructSize)
+                        if (anglescheck.Count == AnglesStructSize)
                         {
-                            current_str_id = 0;
                             checkAnglesStruct.anglescheck = new List<float>(anglescheck);
                             ANGLES_DB.Add(checkAnglesStruct);
                             anglescheck = new List<float>();
@@ -11291,14 +11340,13 @@ namespace DemoScanner.DG
             return false;
         }
 
-        public void AddAnglesToDB(List<float> angles_in, float precision = 0.0001f)
+        public void AddAnglesToDB(List<float> angles_in, float precision = 0.0005f)
         {
             List<float> angles_out = new List<float>();
             foreach (float angle in angles_in)
             {
                 angles_out.Add((float)Math.Round(angle, 5, MidpointRounding.ToEven));
             }
-
             if (angles_out.Count != AnglesStructSize)
             {
                 Console.WriteLine("ERROR AddAnglesToDB VALUE");
