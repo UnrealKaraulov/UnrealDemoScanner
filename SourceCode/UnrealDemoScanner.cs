@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.62.5";
+        public const string PROGRAMVERSION = "1.62.6";
 
         public static bool DEBUG_ENABLED = false;
         public static bool NO_TELEPORT = false;
