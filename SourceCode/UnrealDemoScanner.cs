@@ -6503,6 +6503,16 @@ namespace DemoScanner.DG
 
         public static bool FindLerpAndMs(int lerpMsec, sbyte msec)
         {
+            if (lerpMsec > 0 || msec > 0)
+                return true;
+            foreach (var v in historyUcmdLerpAndMs)
+            {
+                if (v.msec < 0 || v.lerp < 0 || (v.lerp == lerpMsec && v.msec == msec))
+                    return true;
+            }
+            msec = Convert.ToSByte(msec * 2.0);
+            if (lerpMsec > 0 || msec > 0)
+                return true;
             foreach (var v in historyUcmdLerpAndMs)
             {
                 if (v.msec < 0 || v.lerp < 0 || (v.lerp == lerpMsec && v.msec == msec))
@@ -7301,6 +7311,10 @@ namespace DemoScanner.DG
                                     ". Record date:" + DemoScanner.RecordDate, true, false, true, true);
                             }
                         }
+                        else if (cmdList[1] == "VER")
+                        {
+                            DemoScanner.DemoScanner_AddWarn("[INFO] Found module version " + cmdList[2], true, false, true, true);
+                        }
                         else if (cmdList[1] == "UCMD")
                         {
                             int lerpms = int.Parse(cmdList[2]);
@@ -7309,10 +7323,11 @@ namespace DemoScanner.DG
                             {
                                 DemoScanner.OutDumpString += "\n{ UCMD PLUGIN. Lerp " + lerpms + ". ms " + ms + "}\n";
                             }
-                            if (!FindLerpAndMs(lerpms, ms))
+                            if ( !FindLerpAndMs(lerpms, ms))
                             {
                                 DemoScanner.DemoScanner_AddWarn("[EXPERIMENTAL][FAKELAG] at (" + CurrentTime +
                                                     "):" + DemoScanner.CurrentTimeString, true, true, false, true);
+                                FakeLagAim++;
                             }
                         }
                         else if (cmdList[1] == "EVENT")

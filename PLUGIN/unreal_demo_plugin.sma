@@ -5,7 +5,7 @@
 
 #define PLUGIN "Unreal Demo Plugin"
 #define AUTHOR "karaulov"
-#define VERSION "1.1"
+#define VERSION "1.2"
 
 public plugin_init() 
 {
@@ -58,6 +58,7 @@ public UnrealDemoHelpInitialize(id)
 	get_time( "%d.%m.%Y %H:%M:%S", szDate, charsmax( szDate ) );
 	WriteDemoInfo(id,"UDS/DATE/%s",szDate);
 	
+	WriteDemoInfo(id,"UDS/VER/%s",VERSION);
 	return PLUGIN_HANDLED;
 }
 
