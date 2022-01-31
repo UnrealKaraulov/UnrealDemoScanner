@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.62.7";
+        public const string PROGRAMVERSION = "1.62.8";
 
         public static bool DEBUG_ENABLED = false;
         public static bool NO_TELEPORT = false;
@@ -439,6 +439,54 @@ namespace DemoScanner.DG
 
         public static string LastWarnStr = "";
         public static float LastWarnTime = 0.0f;
+
+        public struct AngleSearcher
+        {
+            public float angle;
+            public int searchcount;
+        }
+
+        public static List<AngleSearcher> angleSearchers = new List<AngleSearcher>();
+
+        public static void AddAngleSearcher(float angle)
+        {
+            for (int i = 0; i < angleSearchers.Count; i++)
+            {
+                if ((angleSearchers[i].angle - angle) < float.Epsilon)
+                {
+                    AngleSearcher angleSearcher = angleSearchers[i];
+                    angleSearcher.searchcount = 0;
+                    angleSearchers[i] = angleSearcher;
+                    return;
+                }
+            }
+        }
+
+        public static void UpdateAngleSearchers()
+        {
+            for (int i = 0; i < angleSearchers.Count; i++)
+            {
+                if (!isAngleInPunchListY(angleSearchers[i].angle))
+                {
+                    AngleSearcher angleSearcher = angleSearchers[i];
+                    angleSearcher.searchcount++;
+                    angleSearchers[i] = angleSearcher;
+                    if (angleSearcher.searchcount > 6)
+                    {
+                        PunchWarnings++;
+                        angleSearchers.RemoveAt(i);
+                        UpdateAngleSearchers();
+                        return;
+                    }
+                }
+                else
+                {
+                    angleSearchers.RemoveAt(i);
+                    UpdateAngleSearchers();
+                    return;
+                }
+            }
+        }
 
         public static string Rusifikator(string str)
         {
@@ -4051,6 +4099,24 @@ namespace DemoScanner.DG
                                 //    CurrentFramePunchangleZ > 2.0f)
                                 //    NeedDetectBHOPHack = true;
 
+                                DemoScanner.addAngleInPunchListY(nf.RParms.Punchangle.Y);
+                                DemoScanner.UpdateAngleSearchers();
+
+                                if (DemoScanner.IsPlayerLossConnection() ||
+                                                !DemoScanner.IsUserAlive() || DemoScanner.IsAngleEditByEngine())
+                                {
+                                    DemoScanner.PunchWarnings = 0;
+                                    angleSearchers.Clear();
+                                }
+                                else
+                                {
+                                    if (DemoScanner.PunchWarnings > 1 && DemoScanner.PunchWarnings <= 3)
+                                    {
+                                        DemoScanner.DemoScanner_AddWarn("[BETA NO RECOIL " + DemoScanner.CurrentWeapon.ToString() + "] at (" + DemoScanner.CurrentTime +
+                                        "):" + DemoScanner.CurrentTimeString, false);
+                                    }
+                                }
+
                                 if (AimType7Event != 0)
                                 {
                                     if (Math.Abs(Aim7PunchangleY) < float.Epsilon && Math.Abs(nf.RParms.Punchangle.Y) > float.Epsilon)
@@ -4156,6 +4222,17 @@ namespace DemoScanner.DG
                                     }
                                 }
 
+                                if (IsTakeDamage(1.0f) || CurrentWeapon == WeaponIdType.WEAPON_NONE
+                                              || CurrentWeapon == WeaponIdType.WEAPON_BAD
+                                              || CurrentWeapon == WeaponIdType.WEAPON_BAD2
+                                              || CurrentWeapon == WeaponIdType.WEAPON_C4
+                                              || CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE
+                                              || CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE
+                                              || CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG)
+                                {
+                                    DemoScanner.PunchWarnings = 0;
+                                }
+
                                 if (RealAlive && !IsAngleEditByEngine() && !IsPlayerLossConnection() && CurrentTime - LastJumpTime > 0.5f)
                                 {
                                     if (!DemoScanner.NeedDetectThirdPersonHack && CurrentFrameAttacked && GetDistance(new FPoint(nf.View.X, nf.View.Y),
@@ -4170,19 +4247,6 @@ namespace DemoScanner.DG
                                     {
                                         DemoScanner.NeedDetectThirdPersonHack = true;
                                         DemoScanner.ThirdPersonHackDetectionTimeout = 10;
-                                    }
-
-                                    DemoScanner.addAngleInPunchListY(nf.RParms.Punchangle.Y);
-
-                                    if (IsTakeDamage(1.0f) || CurrentWeapon == WeaponIdType.WEAPON_NONE
-                                               || CurrentWeapon == WeaponIdType.WEAPON_BAD
-                                               || CurrentWeapon == WeaponIdType.WEAPON_BAD2
-                                               || CurrentWeapon == WeaponIdType.WEAPON_C4
-                                               || CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE
-                                               || CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE
-                                               || CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG)
-                                    {
-                                        DemoScanner.PunchWarnings = 0;
                                     }
                                 }
                                 else
@@ -6935,6 +6999,7 @@ namespace DemoScanner.DG
 
         public static bool isAngleInPunchListY(float angle)
         {
+            // Console.WriteLine("SearchAngle:" + angle);
             if (LastPunchAngleY.Count < 6)
             {
                 return true;
@@ -6960,22 +7025,18 @@ namespace DemoScanner.DG
                 {
                     return true;
                 }
-                if (Math.Abs(angle + f) < 0.01f)
-                {
-                    return true;
-                }
             }
             return false;
         }
 
         public static void addAngleInPunchListY(float angle)
         {
-            //Console.WriteLine("addAngleInPunchListY:" + angle);
+            // Console.WriteLine("addAngleInPunchListY:" + angle);
+            LastPunchAngleY.Add(angle);
             if (LastPunchAngleY.Count > 7)
             {
                 LastPunchAngleY.RemoveAt(0);
             }
-            LastPunchAngleY.Add(angle);
         }
 
         public static void addAngleInPunchListX(float angle)
@@ -10790,23 +10851,7 @@ namespace DemoScanner.DG
                                         }
                                         else
                                         {
-                                            if (DemoScanner.isAngleInPunchListY(angle) || DemoScanner.IsPlayerLossConnection() ||
-                                                !DemoScanner.IsUserAlive() || DemoScanner.IsAngleEditByEngine())
-                                            {
-                                                DemoScanner.PunchWarnings = 0;
-                                            }
-                                            else
-                                            {
-                                                DemoScanner.PunchWarnings++;
-                                                if (DemoScanner.PunchWarnings > 1 && DemoScanner.PunchWarnings <= 5)
-                                                {
-                                                    DemoScanner.DemoScanner_AddWarn("[FALSE NO RECOIL Y " + DemoScanner.CurrentWeapon.ToString() + "] at (" + DemoScanner.CurrentTime +
-                                                    "):" + DemoScanner.CurrentTimeString, false);
-                                                    /*Console.WriteLine("[NO RECOIL Y = " + nf.RParms.Punchangle.Y + "]");
-                                                    Console.Beep(1000, 1000);
-                                                    Console.ReadLine();*/
-                                                }
-                                            }
+                                            DemoScanner.AddAngleSearcher(angle);
                                         }
                                     }
 
