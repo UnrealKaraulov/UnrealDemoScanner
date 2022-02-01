@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.62.9";
+        public const string PROGRAMVERSION = "1.62.10";
 
         public static bool DEBUG_ENABLED = false;
         public static bool NO_TELEPORT = false;
@@ -7338,6 +7338,7 @@ namespace DemoScanner.DG
         public static int BadEvents = 0;
         public static int CurrentEvents = 0;
         public static bool IsRussia = false;
+        public static bool FirstMap = true;
 
         public static void ProcessPluginMessage(string cmd)
         {
@@ -8487,6 +8488,9 @@ namespace DemoScanner.DG
             var spawncount = BitBuffer.ReadInt32();
             var mapcrc32 = BitBuffer.ReadInt32();
 
+            COM_UnMunge3((byte*)&mapcrc32, 4, (-1 - DemoScanner.StartPlayerID) & 0xFF);
+
+
             var clientdll_md5hash = BitBuffer.ReadBytes(16);
 
             demo.MaxClients = BitBuffer.ReadByte();
@@ -8505,9 +8509,9 @@ namespace DemoScanner.DG
                 DemoScanner.GameEnd = false;
                 Console.WriteLine("---------- [Начало новой игры / Start new game (" + DemoScanner.CurrentTimeString + ")] ----------");
                 if (DemoScanner.IsRussia)
-                    DemoScanner.DemoScanner_AddInfo("Смена уровня с \"" + DemoScanner.MapName + "\" на \"" + tmpMapName + "\" время: " + DemoScanner.CurrentTimeString);
+                    DemoScanner.DemoScanner_AddInfo("Смена уровня с \"" + DemoScanner.MapName + "\" на \"" + tmpMapName + "\"( CRC "+ mapcrc32 + ") время: " + DemoScanner.CurrentTimeString);
                 else
-                    DemoScanner.DemoScanner_AddInfo("Player join from map \"" + DemoScanner.MapName + "\" to \"" + tmpMapName + "\" at " + DemoScanner.CurrentTimeString);
+                    DemoScanner.DemoScanner_AddInfo("Player join from map \"" + DemoScanner.MapName + "\" to \"" + tmpMapName + "\"( CRC " + mapcrc32 + ") at " + DemoScanner.CurrentTimeString);
                 DemoScanner.MapName = tmpMapName;
             }
 
@@ -8532,19 +8536,22 @@ namespace DemoScanner.DG
                         Seek(21);
             }
 
-            var tmpcursortop = Console.CursorTop;
-            var tmpcursorleft = Console.CursorLeft;
-            Console.CursorTop = DemoScanner.MapAndCrc32_Top;
-            Console.CursorLeft = DemoScanner.MapAndCrc32_Left;
-            var tmpconsolecolor = Console.ForegroundColor;
-            Console.ForegroundColor = ConsoleColor.Red;
-            Console.Write("\"" + DemoScanner.MapName + "\" ");
-            Console.ForegroundColor = ConsoleColor.Green;
-            COM_UnMunge3((byte*)&mapcrc32, 4, (-1 - DemoScanner.StartPlayerID) & 0xFF);
-            Console.Write("(CRC \"" + mapcrc32 + "\")              ");
-            Console.ForegroundColor = tmpconsolecolor;
-            Console.CursorTop = tmpcursortop;
-            Console.CursorLeft = tmpcursorleft;
+            if (DemoScanner.FirstMap)
+            {
+                var tmpcursortop = Console.CursorTop;
+                var tmpcursorleft = Console.CursorLeft;
+                Console.CursorTop = DemoScanner.MapAndCrc32_Top;
+                Console.CursorLeft = DemoScanner.MapAndCrc32_Left;
+                var tmpconsolecolor = Console.ForegroundColor;
+                Console.ForegroundColor = ConsoleColor.Red;
+                Console.Write("\"" + DemoScanner.MapName + "\" ");
+                Console.ForegroundColor = ConsoleColor.Green;
+                Console.Write("(CRC \"" + mapcrc32 + "\")              ");
+                Console.ForegroundColor = tmpconsolecolor;
+                Console.CursorTop = tmpcursortop;
+                Console.CursorLeft = tmpcursorleft;
+                DemoScanner.FirstMap = false;
+            }
         }
 
         private void MessageLightStyle()
