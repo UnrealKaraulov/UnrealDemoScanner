@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.62.8";
+        public const string PROGRAMVERSION = "1.62.9";
 
         public static bool DEBUG_ENABLED = false;
         public static bool NO_TELEPORT = false;
@@ -116,6 +116,7 @@ namespace DemoScanner.DG
                 Y = y;
             }
         }
+
 
         public static bool IsDuck = false;
         public static bool FirstDuck = false;
@@ -1963,10 +1964,12 @@ namespace DemoScanner.DG
             else
                 Console.Write("  Map : ");
 
+            DemoScanner.MapAndCrc32_Top = Console.CursorTop;
+            DemoScanner.MapAndCrc32_Left = Console.CursorLeft;
+
             Console.ForegroundColor = ConsoleColor.Red;
             Console.Write("\"maps/" + CurrentDemoFile.GsDemoInfo.Header.MapName + ".bsp\" ");
-            DemoScanner.MapCrc32_Top = Console.CursorTop;
-            DemoScanner.MapCrc32_Left = Console.CursorLeft;
+            DemoScanner.MapName = "maps/" + CurrentDemoFile.GsDemoInfo.Header.MapName + ".bsp";
             Console.WriteLine();
             Console.ForegroundColor = ConsoleColor.Green;
 
@@ -3904,6 +3907,24 @@ namespace DemoScanner.DG
                                     DemoScanner.FramesOnFly = 0;
                                 }
 
+
+                                if (CurrentFrameOnGround)
+                                {
+                                    DemoScanner.TotalFramesOnGround++;
+                                }
+                                else
+                                {
+                                    DemoScanner.TotalFramesOnFly++;
+                                }
+
+                                if (!PreviousFrameAttacked && CurrentFrameAttacked)
+                                {
+                                    if (!CurrentFrameOnGround)
+                                    {
+                                        DemoScanner.TotalAttackFramesOnFly++;
+                                    }
+                                }
+
                                 if (RealAlive && CurrentFrameOnGround)
                                     DemoScanner.StrafeAngleDirectionChanges = 0;
 
@@ -5148,7 +5169,11 @@ namespace DemoScanner.DG
                                             }
                                         }
                                     }
-                                    if (plsteam != "NOSTEAM" && plname != "\tNO NAME")
+                                    if ((LastUername.Length == 0 
+                                        || (plname.IndexOf(LastUername) == -1 && LastUername.IndexOf(plname) == -1) 
+                                        )
+                                        && 
+                                        plsteam != "NOSTEAM" && plname != "\tNO NAME")
                                     {
                                         var tmpcursortop = Console.CursorTop;
                                         var tmpcursorleft = Console.CursorLeft;
@@ -5167,8 +5192,8 @@ namespace DemoScanner.DG
                                         Console.ForegroundColor = tmpconsolecolor;
                                         Console.CursorTop = tmpcursortop;
                                         Console.CursorLeft = tmpcursorleft;
+                                        LastUername = plname;
                                     }
-                                    LastUername = plname;
                                     LastUsernameCheckTime = CurrentTime;
                                 }
 
@@ -6391,7 +6416,8 @@ namespace DemoScanner.DG
                     Console.WriteLine("Shots fired:" + attackscounter4);
                     Console.WriteLine("Attack in air:" + DemoScanner.AirShots);
                     Console.WriteLine("Teleport count:" + DemoScanner.PlayerTeleportus);
-
+                    Console.WriteLine("Fly time: " + Convert.ToInt32((100.0 / (TotalFramesOnFly + TotalFramesOnGround)) * TotalFramesOnFly) + "%");
+                    Console.WriteLine("Attack in fly: " + Convert.ToInt32((100.0 / (TotalFramesOnFly + TotalFramesOnGround)) * TotalAttackFramesOnFly) + "%");
 
                     table = new ConsoleTable("СМЕРТЕЙ/DEATHS", "(2) СМЕРТЕЙ / DEATHS",
                         "УБИЙСТВ /KILLS");
@@ -6738,6 +6764,10 @@ namespace DemoScanner.DG
         public static int FramesOnGround = 0;
         public static int FramesOnFly = 0;
 
+        public static int TotalFramesOnFly = 0;
+        public static int TotalFramesOnGround = 0;
+        public static int TotalAttackFramesOnFly = 0;
+
         public static string ServerName = "";
         public static string MapName = "";
         public static string GameDir = "";
@@ -6908,8 +6938,8 @@ namespace DemoScanner.DG
         public static float LastAliveAttack = 0.0f;
         public static bool LASTFRAMEISCLIENTDATA = false;
         public static int BadAnglesFoundCount = 0;
-        public static int MapCrc32_Top = 0;
-        public static int MapCrc32_Left = 0;
+        public static int MapAndCrc32_Top = 0;
+        public static int MapAndCrc32_Left = 0;
         public static int FPS_OVERFLOW = 0;
         public static float FpsOverflowTime = 0.0f;
         public static string DownloadLocation = "http://";
@@ -8469,8 +8499,17 @@ namespace DemoScanner.DG
             if (demo.GsDemoInfo.Header.NetProtocol > 43)
                 DemoScanner.ServerName =
                     BitBuffer.ReadString(); // server name                
-
-            DemoScanner.MapName = BitBuffer.ReadString();
+            string tmpMapName = BitBuffer.ReadString();
+            if (tmpMapName != DemoScanner.MapName)
+            {
+                DemoScanner.GameEnd = false;
+                Console.WriteLine("---------- [Начало новой игры / Start new game (" + DemoScanner.CurrentTimeString + ")] ----------");
+                if (DemoScanner.IsRussia)
+                    DemoScanner.DemoScanner_AddInfo("Смена уровня с \"" + DemoScanner.MapName + "\" на \"" + tmpMapName + "\" время: " + DemoScanner.CurrentTimeString);
+                else
+                    DemoScanner.DemoScanner_AddInfo("Player join from map \"" + DemoScanner.MapName + "\" to \"" + tmpMapName + "\" at " + DemoScanner.CurrentTimeString);
+                DemoScanner.MapName = tmpMapName;
+            }
 
             if (demo.GsDemoInfo.Header.NetProtocol == 45)
             {
@@ -8495,12 +8534,14 @@ namespace DemoScanner.DG
 
             var tmpcursortop = Console.CursorTop;
             var tmpcursorleft = Console.CursorLeft;
-            Console.CursorTop = DemoScanner.MapCrc32_Top;
-            Console.CursorLeft = DemoScanner.MapCrc32_Left;
+            Console.CursorTop = DemoScanner.MapAndCrc32_Top;
+            Console.CursorLeft = DemoScanner.MapAndCrc32_Left;
             var tmpconsolecolor = Console.ForegroundColor;
+            Console.ForegroundColor = ConsoleColor.Red;
+            Console.Write("\"" + DemoScanner.MapName + "\" ");
             Console.ForegroundColor = ConsoleColor.Green;
             COM_UnMunge3((byte*)&mapcrc32, 4, (-1 - DemoScanner.StartPlayerID) & 0xFF);
-            Console.Write("(CRC \"" + mapcrc32 + "\")");
+            Console.Write("(CRC \"" + mapcrc32 + "\")              ");
             Console.ForegroundColor = tmpconsolecolor;
             Console.CursorTop = tmpcursortop;
             Console.CursorLeft = tmpcursorleft;
