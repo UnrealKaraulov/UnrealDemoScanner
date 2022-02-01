@@ -8509,9 +8509,9 @@ namespace DemoScanner.DG
                 DemoScanner.GameEnd = false;
                 Console.WriteLine("---------- [Начало новой игры / Start new game (" + DemoScanner.CurrentTimeString + ")] ----------");
                 if (DemoScanner.IsRussia)
-                    DemoScanner.DemoScanner_AddInfo("Смена уровня с \"" + DemoScanner.MapName + "\" на \"" + tmpMapName + "\"( CRC "+ mapcrc32 + ") время: " + DemoScanner.CurrentTimeString);
+                    DemoScanner.DemoScanner_AddInfo("Смена уровня с \"" + DemoScanner.MapName + "\" на \"" + tmpMapName + "\"( CRC "+ mapcrc32 + " ) время: " + DemoScanner.CurrentTimeString);
                 else
-                    DemoScanner.DemoScanner_AddInfo("Player join from map \"" + DemoScanner.MapName + "\" to \"" + tmpMapName + "\"( CRC " + mapcrc32 + ") at " + DemoScanner.CurrentTimeString);
+                    DemoScanner.DemoScanner_AddInfo("Player join from map \"" + DemoScanner.MapName + "\" to \"" + tmpMapName + "\"( CRC " + mapcrc32 + " ) at " + DemoScanner.CurrentTimeString);
                 DemoScanner.MapName = tmpMapName;
             }
 
