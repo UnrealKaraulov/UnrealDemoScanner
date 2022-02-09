@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.63.0_ALPHA";
+        public const string PROGRAMVERSION = "1.63.2_ALPHA";
 
         public static bool DEBUG_ENABLED = false;
         public static bool NO_TELEPORT = false;
@@ -133,6 +133,7 @@ namespace DemoScanner.DG
         public static bool isgroundchange = false;
 
         public static FPoint oldoriginpos = new FPoint();
+        public static FPoint curoriginpos = new FPoint();
 
         public static int onground_and_alive_tests = 0;
         public static int speedhackdetects = -1;
@@ -459,7 +460,7 @@ namespace DemoScanner.DG
 
             for (int i = 0; i < angleSearchersPunch.Count; i++)
             {
-                if (AngleBetween(angleSearchersPunch[i].angle, angle) < float.Epsilon)
+                if (AngleBetweenAbsolute(angleSearchersPunch[i].angle, angle) < float.Epsilon)
                 {
                     angleSearcher = angleSearchersPunch[i];
                     angleSearcher.searchcount = 0;
@@ -512,7 +513,7 @@ namespace DemoScanner.DG
 
             for (int i = 0; i < angleSearchersView.Count; i++)
             {
-                if (AngleBetween(angleSearchersView[i].angle, angle) < float.Epsilon)
+                if (AngleBetweenAbsolute(angleSearchersView[i].angle, angle) < float.Epsilon)
                 {
                     angleSearcher = angleSearchersView[i];
                     angleSearcher.searchcount = 0;
@@ -2197,6 +2198,12 @@ namespace DemoScanner.DG
                                 var tmpPrevViewAngles = CDFRAME_ViewAngles;
                                 CDFRAME_ViewAngles = cdframe.Viewangles;
 
+
+                                oldoriginpos.X = curoriginpos.X;
+                                oldoriginpos.Y = curoriginpos.Y;
+                                curoriginpos.X = cdframe.Origin.X;
+                                curoriginpos.Y = cdframe.Origin.Y;
+
                                 DemoScanner.addAngleInViewListY(CDFRAME_ViewAngles.Y);
 
                                 if (Math.Abs(NewViewAngleSearcherAngle) > float.Epsilon)
@@ -2274,9 +2281,8 @@ namespace DemoScanner.DG
                                 LASTFRAMEISCLIENTDATA = true;
 
 
-                                if (GetDistance(oldoriginpos,
-                                          new FPoint(cdframe.Origin.X,
-                                              cdframe.Origin.Y)) > 100)
+                                if (GetDistance(curoriginpos,
+                                          oldoriginpos) > 100)
                                 {
                                     DemoScanner.PlayerTeleportus++;
                                     DemoScanner.ReloadWarns = 0;
@@ -2305,8 +2311,7 @@ namespace DemoScanner.DG
                                             var cdframe2 = (GoldSource.ClientDataFrame)tmpframe.Value;
 
                                             if (GetDistance(new FPoint(cdframe2.Origin.X, cdframe2.Origin.Y),
-                                            new FPoint(cdframe.Origin.X,
-                                                cdframe.Origin.Y)) > 250)
+                                            curoriginpos) > 250)
                                             {
                                                 DemoScanner.LastTeleportusTime = CurrentTime;
                                             }
@@ -2403,200 +2408,52 @@ namespace DemoScanner.DG
 
                                 if (RealAlive)
                                 {
-                                    var tmpXangle = AngleBetween(PREV_CDFRAME_ViewAngles.X, CDFRAME_ViewAngles.X);
-                                    var tmpYangle = AngleBetween(PREV_CDFRAME_ViewAngles.Y, CDFRAME_ViewAngles.Y);
+                                    var tmpXangle = AngleBetweenAbsolute(PREV_CDFRAME_ViewAngles.X, CDFRAME_ViewAngles.X);
+                                    var tmpYangle = AngleBetweenAbsolute(PREV_CDFRAME_ViewAngles.Y, CDFRAME_ViewAngles.Y);
 
                                     AngleLenMinX = tmpXangle * (1.0f / CurrentFrameTime);
                                     AngleLenMinY = tmpYangle * (1.0f / CurrentFrameTime);
 
-                                    var anglecheat = 0.0022f;
-                                    var anglecheat3 = 0.0022f;
-
-                                    var averageangle = 0.0f;
-                                    var averageangles = 0.0f;
-
+                                    var flAngleRealDetect = 0.0003f;
+                                    var flAngleWarnDetect = 0.0044f;
 
                                     if (PlayerSensitivityHistory.Count > 15)
                                     {
-                                        anglecheat = 100.0f;
-                                        var i = PlayerSensitivityHistory.Count - 15;
-                                        for (; i < PlayerSensitivityHistory.Count - 1; i++)
+                                        flAngleRealDetect = 100.0f;
+                                        flAngleWarnDetect = 100.0f;
+                                        int maxcheckangels = 15;
+                                        for (int i = PlayerSensitivityHistory.Count - maxcheckangels; i < PlayerSensitivityHistory.Count; i++)
                                         {
-                                            if (anglecheat > (PlayerSensitivityHistory[i] * 0.022f) / 1.5f)
-                                                anglecheat = (PlayerSensitivityHistory[i] * 0.022f) / 1.5f;
-                                            averageangle += PlayerSensitivityHistory[i];
-                                            averageangles++;
-                                        }
-
-                                        if (averageangles > 1)
-                                            averageangle /= averageangles;
-                                    }
-
-                                    if (PlayerSensitivityHistory.Count > 10 && !IsAngleEditByEngine())
-                                    {
-                                        float tmpMinSens = 25;
-
-                                        //Console.WriteLine("Sens " + tmpMinSens);
-                                        //Console.WriteLine("TEST X: " + (tmpXangle / (tmpMinSens * 0.022)));
-                                        //Console.WriteLine("TEST Y: " + (tmpYangle / (tmpMinSens * 0.022)));
-                                        //Console.ReadKey();
-
-                                        var i = PlayerSensitivityHistory.Count - 10;
-                                        for (; i < PlayerSensitivityHistory.Count - 1; i++)
-                                        {
-                                            //tmpSens.Add(PlayerSensitivityHistory[i]);
-                                            if (tmpMinSens > PlayerSensitivityHistory[i])
-                                            {
-                                                tmpMinSens = PlayerSensitivityHistory[i];
-                                            }
-                                        }
-
-                                        ////if ((tmpXangle % 0.022) > 0.05)
-                                        //{
-                                        //    Console.WriteLine("Angle : " + (tmpXangle % 0.022));
-                                        //    Console.Read();
-                                        //}
-                                        ////if ((tmpYangle % 0.022) > 0.05)
-                                        //{
-                                        //    Console.WriteLine("Angle2 : " + (tmpYangle % 0.022));
-                                        //    Console.Read();
-                                        //}
-                                        DemoScanner.TestValue1 = (tmpXangle / (tmpMinSens * 0.022f));
-                                        DemoScanner.TestValue2 = (tmpYangle / (tmpMinSens * 0.022f));
-
-                                        if (CurrentWeapon == WeaponIdType.WEAPON_AWP ||
-                                            CurrentWeapon == WeaponIdType.WEAPON_SCOUT ||
-                                            CurrentWeapon == WeaponIdType.WEAPON_G3SG1 ||
-                                            CurrentWeapon == WeaponIdType.WEAPON_SG550 ||
-                                            CurrentWeapon == WeaponIdType.WEAPON_SG552 ||
-                                                CurrentWeapon == WeaponIdType.WEAPON_AUG)
-                                        {
-                                            DemoScanner.TestValue1 /= 500.0f;
-                                            DemoScanner.TestValue2 /= 500.0f;
-                                        }
-                                        if (tmpMinSens < 2 && DemoScanner.TestValue1 > 5000.0f)
-                                        {
-                                            DemoScanner.TestTime1 = CurrentTime;
-                                        }
-                                        if (tmpMinSens < 2 && DemoScanner.TestValue2 > 5000.0f)
-                                        {
-                                            DemoScanner.TestTime2 = CurrentTime;
-                                        }
-
-                                        //if (CurrentTime - DemoScanner.StartLengthSearchTime > 0.1 && !IsAngleEditByEngine())
-                                        //{
-                                        //    if (CurrentTime - DemoScanner.StartLengthSearchTime < 0.2)
-                                        //    {
-                                        if (Math.Abs(AngleLenMinX) > float.Epsilon || Math.Abs(AngleLenMinY) > float.Epsilon)
-                                        {
-                                            if (AngleLenMinX > AngleLenMaxX)
-                                            {
-                                                //  Console.WriteLine("Min sens: " + tmpMinSens + ". MinLength X / Y : " + AngleLenMinX + "/" + AngleLenMinY + ". Time: " + CurrentTime);
-                                                AngleLenMaxX = AngleLenMinX;
-                                            }
-                                            if (AngleLenMinY > AngleLenMaxY)
-                                            {
-                                                // Console.WriteLine("Min sens: " + tmpMinSens + ". MinLength X / Y : " + AngleLenMinX + "/" + AngleLenMinY + ". Time: " + CurrentTime);
-                                                AngleLenMaxY = AngleLenMinY;
-                                            }
-
-                                            if (Math.Abs(AngleLenMinX) > float.Epsilon && AngleLenMinX / tmpMinSens > 3000)
-                                            {
-                                                // DemoScanner.Aim8DetectionTimeX = CurrentTime;
-                                                //Console.WriteLine("Min sens: " + tmpMinSens + ". MinLength X / Y : " + AngleLenMinX + "/" + AngleLenMinY + ". Time: " + CurrentTime);
-
-                                                //Console.WriteLine("WAAAARN");
-                                                //Console.Read();
-                                            }
-
-                                            if (Math.Abs(AngleLenMinY) > float.Epsilon && AngleLenMinY / tmpMinSens > 3000)
-                                            {
-                                                //DemoScanner.Aim8DetectionTimeY = CurrentTime;
-                                                //Console.WriteLine("Min sens: " + tmpMinSens + ". MinLength X / Y : " + AngleLenMinX + "/" + AngleLenMinY + ". Time: " + CurrentTime);
-
-                                                //Console.WriteLine("WAAAARN");
-                                                //Console.Read();
-                                            }
-
-                                            //if (tmpMinSens < 3 && AngleLenMin > 120)
-                                            //{
-                                            //    Console.WriteLine("Warn");
-                                            //}
-
-
-                                        }
-                                        //}
-                                        //DemoScanner.StartLengthSearchTime = CurrentTime;
-                                        AngleLenMinX = 0.0f;
-                                        AngleLenMinY = 0.0f;
-                                        //}
-
-                                    }
-
-
-                                    var anglecheat2 = 0.0003f;
-
-                                    if (PlayerSensitivityHistory.Count > 20)
-                                    {
-                                        anglecheat2 = 100.0f;
-                                        var i = PlayerSensitivityHistory.Count - 20;
-                                        for (; i < PlayerSensitivityHistory.Count - 1; i++)
-                                        {
-                                            //tmpSens.Add(PlayerSensitivityHistory[i]);
-                                            if (anglecheat2 > (PlayerSensitivityHistory[i] * 0.022f) / 1.7f)
-                                                anglecheat2 = (PlayerSensitivityHistory[i] * 0.022f) / 1.7f;
+                                            if (flAngleRealDetect > (PlayerSensitivityHistory[i] * 0.022f) / 2.01f)
+                                                flAngleRealDetect = (PlayerSensitivityHistory[i] * 0.022f) / 2.01f;
+                                            if (flAngleWarnDetect > (PlayerSensitivityHistory[i] * 0.022f) / 1.1f)
+                                                flAngleWarnDetect = (PlayerSensitivityHistory[i] * 0.022f) / 1.1f;
                                         }
                                     }
 
-                                    if (anglecheat < 0.0022f) anglecheat = 0.0022f;
-                                    if (anglecheat2 < 0.0003f) anglecheat2 = 0.0003f;
-                                    if (anglecheat3 < 0.0022f) anglecheat3 = 0.0022f;
+                                    if (flAngleRealDetect < 0.0003f) flAngleRealDetect = 0.0003f;
+                                    if (flAngleWarnDetect < 0.0044f) flAngleWarnDetect = 0.0044f;
+
 
                                     if (CurrentWeapon == WeaponIdType.WEAPON_AWP ||
                                         CurrentWeapon == WeaponIdType.WEAPON_SCOUT ||
                                         CurrentWeapon == WeaponIdType.WEAPON_G3SG1 ||
                                         CurrentWeapon == WeaponIdType.WEAPON_SG550)
                                     {
-                                        anglecheat /= 80.0f;
-                                        anglecheat2 /= 120.0f;
-                                        anglecheat3 /= 120.0f;
+                                        flAngleRealDetect /= 60.0f;
+                                        flAngleWarnDetect /= 30.0f;
                                     }
                                     else if (
                                         CurrentWeapon == WeaponIdType.WEAPON_SG552 ||
                                         CurrentWeapon == WeaponIdType.WEAPON_AUG)
                                     {
-                                        anglecheat /= 40.0f;
-                                        anglecheat2 /= 60.0f;
-                                        anglecheat3 /= 40.0f;
+                                        flAngleRealDetect /= 30.0f;
+                                        flAngleWarnDetect /= 15.0f;
                                     }
 
-                                    /*Console.WriteLine("Angle:" + anglecheat + " Angle:" + anglecheat2 + " Angle:" + anglecheat3 + " Weapon:"
-                                        + CurrentWeapon.ToString());*/
-
-                                    if (Math.Abs(DemoScanner.LastAim5DetectedReal) > float.Epsilon && CurrentTime - DemoScanner.LastAim5DetectedReal >= 0.75f)
-                                    {
-                                        DemoScanner.LastAim5DetectedReal = 0.0f;
-                                    }
-                                    if (Math.Abs(DemoScanner.LastAim5Detected) > float.Epsilon && CurrentTime - DemoScanner.LastAim5Detected >= 0.75f)
-                                    {
-                                        DemoScanner.LastAim5Detected = 0.0f;
-                                    }
                                     if (NewAttack)
                                     {
-                                        if (IsForceCenterView())
-                                        {
-                                            if (CurrentTime - DemoScanner.LastForceCenterView > 10.0f)
-                                            {
-                                                DemoScanner_AddInfo(
-                                                            "[FORCE_CENTERVIEW 1] at (" + CurrentTime +
-                                                            "):" + DemoScanner.CurrentTimeString);
-
-                                                DemoScanner.LastForceCenterView = CurrentTime;
-                                            }
-                                            DemoScanner.LastAim5DetectedReal = 0.0f;
-                                            DemoScanner.LastAim5Detected = 0.0f;
-                                        }
-                                        else if (PlayerSensitivityWarning == 0 && Math.Abs(DemoScanner.LastAim5DetectedReal) > float.Epsilon &&
+                                        if (PlayerSensitivityWarning == 0 && Math.Abs(DemoScanner.LastAim5DetectedReal) > float.Epsilon &&
                                             CurrentTime - DemoScanner.LastAim5DetectedReal < 0.5f)
                                         {
                                             if (DemoScanner.AUTO_LEARN_HACK_DB)
@@ -2615,7 +2472,7 @@ namespace DemoScanner.DG
                                         else if (PlayerSensitivityWarning == 0 && Math.Abs(DemoScanner.LastAim5Detected) > float.Epsilon &&
                                             CurrentTime - DemoScanner.LastAim5Detected < 0.5f)
                                         {
-                                            if ((SilentAimDetected > 1 || JumpHackCount > 1) && !IsAngleEditByEngine() && !IsPlayerLossConnection())
+                                            if (!IsAngleEditByEngine() && !IsPlayerLossConnection() && !IsTakeDamage() && !IsChangeWeapon())
                                             {
                                                 if (DemoScanner.AUTO_LEARN_HACK_DB)
                                                 {
@@ -2624,9 +2481,8 @@ namespace DemoScanner.DG
                                                 }
                                                 DemoScanner_AddWarn(
                                                     "[AIM TYPE 5.2 " + CurrentWeapon.ToString() + "] at (" + CurrentTime +
-                                                    "):" + DemoScanner.CurrentTimeString, !IsPlayerLossConnection() && !IsAngleEditByEngine() && !IsChangeWeapon());
-                                                if (!IsPlayerLossConnection() && !IsAngleEditByEngine() && !IsChangeWeapon())
-                                                    SilentAimDetected++;
+                                                    "):" + DemoScanner.CurrentTimeString, true);
+                                                SilentAimDetected++;
                                             }
                                             else
                                             {
@@ -2688,12 +2544,12 @@ namespace DemoScanner.DG
                                                 }
                                             }
                                         }
-
                                     }
 
                                     if (Math.Abs(tmpXangle) > float.Epsilon &&
-                                    tmpXangle < anglecheat2)
+                                    tmpXangle < flAngleRealDetect)
                                     {
+                                        //Console.WriteLine("tmpXangle:" + Math.Round((double)tmpXangle, 8).ToString("F8") + ". flAngleRealDetect:" + Math.Round((double)flAngleRealDetect, 8).ToString("F8"));
                                         if (CurrentWeapon == WeaponIdType.WEAPON_C4
                                             || CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE
                                             || CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE
@@ -2705,17 +2561,6 @@ namespace DemoScanner.DG
                                         }
                                         else
                                         {
-                                            //  foreach (var s in tmpSens)
-                                            //  {
-                                            //      Console.WriteLine(Math
-                                            //.Round(s, 8,
-                                            //    MidpointRounding.AwayFromZero)
-                                            //.ToString("F5"));
-                                            //  }
-                                            //  Console.WriteLine(Math
-                                            //.Round(tmpXangle / 0.022, 8,
-                                            //    MidpointRounding.AwayFromZero)
-                                            //.ToString("F5"));
                                             if (CurrentFrameAttacked
                                                     || PreviousFrameAttacked)
                                             {
@@ -2727,8 +2572,10 @@ namespace DemoScanner.DG
                                         }
                                     }
                                     else if (Math.Abs(tmpXangle) > float.Epsilon &&
-                                    tmpXangle < anglecheat)
+                                    tmpXangle < flAngleWarnDetect)
                                     {
+                                        //Console.WriteLine("tmpXangle:" + Math.Round((double)tmpXangle, 8).ToString("F8") + ". flAngleRealDetect:" + Math.Round((double)flAngleWarnDetect, 8).ToString("F8"));
+
                                         if (CurrentWeapon == WeaponIdType.WEAPON_C4
                                             || CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE
                                             || CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE
@@ -2740,82 +2587,9 @@ namespace DemoScanner.DG
                                         }
                                         else
                                         {
-                                            //  foreach (var s in tmpSens)
-                                            //  {
-                                            //      Console.WriteLine(Math
-                                            //  .Round(s, 8,
-                                            //      MidpointRounding.AwayFromZero)
-                                            //  .ToString("F5"));
-                                            //  }
-                                            //  Console.WriteLine(Math
-                                            //.Round(tmpXangle / 0.022, 8,
-                                            //    MidpointRounding.AwayFromZero)
-                                            //.ToString("F5"));
-                                            if (CurrentFrameAttacked
-                                                    || PreviousFrameAttacked)
-                                            {
-                                                PlayerSensitivityWarning = 1;
-                                            }
+                                            PlayerSensitivityWarning = 1;
                                             DemoScanner.LastAim5Detected = CurrentTime;
                                         }
-                                    }
-                                    else if (Math.Abs(tmpXangle) > float.Epsilon &&
-                                   tmpXangle < anglecheat3)
-                                    {
-                                        if (CurrentWeapon == WeaponIdType.WEAPON_C4
-                                            || CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE
-                                            || CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE
-                                            || CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG
-                                            || CurrentWeapon == WeaponIdType.WEAPON_NONE
-                                            || CurrentWeapon == WeaponIdType.WEAPON_BAD
-                                            || CurrentWeapon == WeaponIdType.WEAPON_BAD2)
-                                        {
-                                        }
-                                        else
-                                        {
-                                            //  foreach (var s in tmpSens)
-                                            //  {
-                                            //      Console.WriteLine(Math
-                                            //  .Round(s, 8,
-                                            //      MidpointRounding.AwayFromZero)
-                                            //  .ToString("F5"));
-                                            //  }
-                                            //  Console.WriteLine(Math
-                                            //.Round(tmpXangle / 0.022, 8,
-                                            //    MidpointRounding.AwayFromZero)
-                                            //.ToString("F5"));
-                                            PlayerSensitivityWarning = 2;
-                                            DemoScanner.LastAim5Detected = CurrentTime;
-                                        }
-                                    }
-
-                                    if (SecondFound)
-                                    {
-                                        //if (!DemoScanner.IsAngleEditByEngine( ) && DemoScanner.SecondFrameTime > 0 && CurrentTime - LastAliveTime > 2.0 && CurrentTime - LastDeathTime > 2.0)
-                                        //{
-                                        //    if (DemoScanner.SecondFrameTime > 1.5 || DemoScanner.SecondFrameTime < 0.4)
-                                        //      Console.WriteLine("Max frametime / sec = " + DemoScanner.SecondFrameTime);
-                                        //}
-                                        //DemoScanner.SecondFrameTime = 0;
-
-                                        if (Math.Abs(CurrentSensitivity - 1000.0f) > float.Epsilon &&
-                                            Math.Abs(CurrentSensitivity) > float.Epsilon)
-                                        {
-                                            PlayerAngleLenHistory.Add(
-                                                   AngleLenMinX + AngleLenMinY);
-                                            PlayerSensitivityHistory.Add(
-                                                CurrentSensitivity);
-                                            PlayerSensitivityHistoryStr.Add(Math
-                                                .Round(CurrentSensitivity, 8,
-                                                    MidpointRounding.AwayFromZero)
-                                                .ToString("F5"));
-                                            PlayerSensitivityHistoryStrTime.Add(
-                                                "(" + CurrentTime + "): " + DemoScanner.CurrentTimeString);
-                                            PlayerSensitivityHistoryStrWeapon.Add(
-                                                LastSensWeapon);
-                                        }
-
-                                        CurrentSensitivity = 1000.0f;
                                     }
 
                                     if (Math.Abs(tmpXangle) > float.Epsilon && tmpXangle / 0.022f < CurrentSensitivity && !CurrentFrameAttacked
@@ -2833,6 +2607,29 @@ namespace DemoScanner.DG
                                             CurrentSensitivity = tmpXangle / 0.022f;
                                         }
                                     }
+
+                                    if (SecondFound)
+                                    {
+                                        if (Math.Abs(CurrentSensitivity - 1000.0f) > float.Epsilon &&
+                                            Math.Abs(CurrentSensitivity) > float.Epsilon)
+                                        {
+                                            PlayerAngleLenHistory.Add(GetDistance(new FPoint(0.0f, 0.0f), new FPoint(
+                                                   AngleLenMinX, AngleLenMinY)));
+                                            PlayerSensitivityHistory.Add(
+                                                CurrentSensitivity);
+                                            PlayerSensitivityHistoryStr.Add(Math
+                                                .Round(CurrentSensitivity, 8,
+                                                    MidpointRounding.AwayFromZero)
+                                                .ToString("F5"));
+                                            PlayerSensitivityHistoryStrTime.Add(
+                                                "(" + CurrentTime + "): " + DemoScanner.CurrentTimeString);
+                                            PlayerSensitivityHistoryStrWeapon.Add(
+                                                LastSensWeapon);
+                                        }
+
+                                        CurrentSensitivity = 1000.0f;
+                                    }
+
                                     if (AimType7Event == 2 || AimType7Event == 3
                                         || AimType7Event == 4 || AimType7Event == 5)
                                     {
@@ -2857,18 +2654,18 @@ namespace DemoScanner.DG
                                                 {
                                                     DemoScanner.Aim73FalseSkip--;
                                                 }
-                                                if (AngleBetween(Aim8CurrentFrameViewanglesY,
+                                                if (AngleBetweenAbsolute(Aim8CurrentFrameViewanglesY,
                                                     CDFRAME_ViewAngles.Y) > float.Epsilon &&
-                                                    AngleBetween(Aim8CurrentFrameViewanglesX,
+                                                    AngleBetweenAbsolute(Aim8CurrentFrameViewanglesX,
                                                     CDFRAME_ViewAngles.X) > float.Epsilon && !IsAngleEditByEngine() && !IsPlayerLossConnection() && CurrentFrameOnGround)
                                                 {
                                                     if (AimType7Event == 4 && DemoScanner.Aim73FalseSkip < 0)
                                                     {
                                                         var tmpangle2 =
-                                                            AngleBetween(
+                                                            AngleBetweenAbsolute(
                                                                     Aim8CurrentFrameViewanglesX, CDFRAME_ViewAngles.X);
                                                         tmpangle2 +=
-                                                            AngleBetween(
+                                                            AngleBetweenAbsolute(
                                                                     Aim8CurrentFrameViewanglesY, CDFRAME_ViewAngles.Y);
 
                                                         int Aim7var1 = OldAimType7Frames;
@@ -2886,10 +2683,10 @@ namespace DemoScanner.DG
                                                     else if (AimType7Event != 4)
                                                     {
                                                         var tmpangle2 =
-                                                            AngleBetween(
+                                                            AngleBetweenAbsolute(
                                                                     Aim8CurrentFrameViewanglesX, CDFRAME_ViewAngles.X);
                                                         tmpangle2 +=
-                                                            AngleBetween(
+                                                            AngleBetweenAbsolute(
                                                                     Aim8CurrentFrameViewanglesY, CDFRAME_ViewAngles.Y);
 
                                                         int Aim7var1 = OldAimType7Frames;
@@ -2907,17 +2704,17 @@ namespace DemoScanner.DG
                                                 }
                                             }
 
-                                            if (AngleBetween(Aim8CurrentFrameViewanglesY,
+                                            if (AngleBetweenAbsolute(Aim8CurrentFrameViewanglesY,
                                                     CDFRAME_ViewAngles.Y) < float.Epsilon && !IsAngleEditByEngine() && !IsPlayerLossConnection() && CurrentFrameOnGround/* &&
                                                     Aim8CurrentFrameViewanglesX !=
                                                     CurrentFrameViewanglesX*/)
                                             {
                                                 AimType7Event += 10;
                                                 var tmpangle2 =
-                                                    AngleBetween(
+                                                    AngleBetweenAbsolute(
                                                             Aim8CurrentFrameViewanglesX, CDFRAME_ViewAngles.X);
                                                 tmpangle2 +=
-                                                    AngleBetween(
+                                                    AngleBetweenAbsolute(
                                                             Aim8CurrentFrameViewanglesY, CDFRAME_ViewAngles.Y);
 
 
@@ -3024,9 +2821,6 @@ namespace DemoScanner.DG
                                 //Console.Write(SecondFound);
                                 //Console.Write("\n");
 
-                                oldoriginpos.X = cdframe.Origin.X;
-                                oldoriginpos.Y = cdframe.Origin.Y;
-
                                 PREV_CDFRAME_ViewAngles = tmpPrevViewAngles;
 
                                 break;
@@ -3095,7 +2889,7 @@ namespace DemoScanner.DG
 
                                 if (Math.Abs(CurrentTime - LastClientDataTime) < float.Epsilon)
                                 {
-                                    if (AngleBetween(CDFRAME_ViewAngles.Y, eframe.EventArguments.Angles.Y) > float.Epsilon)
+                                    if (AngleBetweenAbsolute(CDFRAME_ViewAngles.Y, eframe.EventArguments.Angles.Y) > float.Epsilon)
                                     {
                                         // Console.WriteLine("AIM IM IM:" + viewanglesforsearch.Y + ":" + eframe.EventArguments.Angles.Y);
                                     }
@@ -3219,15 +3013,13 @@ namespace DemoScanner.DG
 
                                 bool AngleYBigChanged = false;
 
-                                if (AngleBetween(CurrentNetMsgFrame.RParms.Viewangles.Y,
+                                if (AngleBetweenAbsolute(CurrentNetMsgFrame.RParms.Viewangles.Y,
                                     PreviousNetMsgFrame.RParms.Viewangles.Y) > 0.1)
                                 {
                                     AngleYBigChanged = true;
                                 }
 
                                 DemoScanner.addAngleInViewListY(nf.RParms.Viewangles.Y);
-
-                                DemoScanner.CurrentTimeString = "MODIFIED";
 
 
                                 PreviousTime3 = CurrentTime3;
@@ -3249,6 +3041,8 @@ namespace DemoScanner.DG
 
                                 try
                                 {
+                                    DemoScanner.CurrentTimeString = "MODIFIED";
+
                                     var t = TimeSpan.FromSeconds(CurrentTime);
 
                                     DemoScanner.CurrentTimeString = string.Format("{0:D2}h:{1:D2}m:{2:D2}s:{3:D3}ms",
@@ -3444,7 +3238,23 @@ namespace DemoScanner.DG
                                     NewAttack = true;
                                     NewAttackForLearn = true;
                                     attackscounter3++;
+
+                                    if (IsForceCenterView())
+                                    {
+                                        if (CurrentTime - DemoScanner.LastForceCenterView > 10.0f)
+                                        {
+                                            DemoScanner_AddInfo(
+                                                        "[ILLEGAL FORCE_CENTERVIEW] at (" + CurrentTime +
+                                                        "):" + DemoScanner.CurrentTimeString);
+
+                                            DemoScanner.LastForceCenterView = CurrentTime;
+                                        }
+                                        DemoScanner.LastAim5DetectedReal = 0.0f;
+                                        DemoScanner.LastAim5Detected = 0.0f;
+                                    }
                                 }
+
+
 
 
                                 if (DemoScanner.CurrentWeapon == DemoScanner.WeaponIdType.WEAPON_KNIFE
@@ -3485,28 +3295,6 @@ namespace DemoScanner.DG
                                             Console.WriteLine("Aim8DetectionTimeY warn!");
                                         }
                                     }
-
-                                    //if (CurrentTime - DemoScanner.NewAttackTimeAim9 > 0.2
-                                    //    && CurrentTime - DemoScanner.NewAttackTimeAim9 < 0.5)
-                                    //{
-                                    //    DemoScanner.NewAttackTimeAim9 = 0.0f;
-                                    //    if (CurrentTime - TestTime1 < 0.4)
-                                    //    {
-                                    //        TestTime1 = 0.0f;
-                                    //        DemoScanner_AddWarn(
-                                    //          "[BETA TEST AIM TYPE 9.1][" + TestValue1 + "] at (" + CurrentTime +
-                                    //          "):" + DemoScanner.CurrentTimeString, false);
-                                    //        //Console.WriteLine("Aim8DetectionTimeX: " + TestValue1);
-                                    //    }
-                                    //    if (CurrentTime - TestTime2 < 0.4)
-                                    //    {
-                                    //        TestTime2 = 0.0f;
-                                    //        DemoScanner_AddWarn(
-                                    //          "[BETA TEST AIM TYPE 9.2][" + TestValue2 + "] at (" + CurrentTime +
-                                    //          "):" + DemoScanner.CurrentTimeString, false);
-                                    //        //Console.WriteLine("Aim8DetectionTimeY: " + TestValue2);
-                                    //    }
-                                    //}
 
                                     if (DemoScanner.MoveLeft && !DemoScanner.MoveRight)
                                     {
@@ -4237,7 +4025,7 @@ namespace DemoScanner.DG
                                 else if (DemoScanner.LostAngleWarnings > 2)
                                 {
                                     DemoScanner.LostAngleWarnings = 0;
-                                   // DemoScanner.DemoScanner_AddWarn("[BETA AIM TYPE 9.2 " + DemoScanner.CurrentWeapon.ToString() + "] at (" + LastAnglePunchSearchTime +
+                                    // DemoScanner.DemoScanner_AddWarn("[BETA AIM TYPE 9.2 " + DemoScanner.CurrentWeapon.ToString() + "] at (" + LastAnglePunchSearchTime +
                                     // "):" + DemoScanner.CurrentTimeString, false);
                                     NewViewAngleSearcherAngle = 0.0f;
                                 }
@@ -4353,7 +4141,7 @@ namespace DemoScanner.DG
                                     if (!DemoScanner.NeedDetectThirdPersonHack && CurrentFrameAttacked && GetDistance(new FPoint(nf.View.X, nf.View.Y),
                                     new FPoint(nf.RParms.Vieworg.X,
                                         nf.RParms.Vieworg.Y)) > 50 &&
-                                        CurrentTime - LastAliveTime > 2.0f && CurrentTime - LastDeathTime > 5.0f && ThirdHackDetected < 5 && CurrentWeapon !=
+                                        CurrentTime - LastAliveTime > 2.0f && !DemoScanner.IsTakeDamage() && CurrentTime - LastDeathTime > 5.0f && ThirdHackDetected < 5 && CurrentWeapon !=
                                                           WeaponIdType.WEAPON_NONE
                                                           && CurrentWeapon !=
                                                           WeaponIdType.WEAPON_BAD &&
@@ -4477,14 +4265,14 @@ namespace DemoScanner.DG
                                        || nf.UCmd.Viewangles.Y != PREV_CDFRAME_ViewAngles.Y)
                                     {
                                         if (!IsForceCenterView() && !IsAngleEditByEngine()
-                                            && AngleBetween(CDFRAME_ViewAngles.X, nf.RParms.Viewangles.X) > float.Epsilon
-                                        && AngleBetween(PREV_CDFRAME_ViewAngles.X, nf.RParms.Viewangles.X) > float.Epsilon)
+                                            && AngleBetweenAbsolute(CDFRAME_ViewAngles.X, nf.RParms.Viewangles.X) > float.Epsilon
+                                        && AngleBetweenAbsolute(PREV_CDFRAME_ViewAngles.X, nf.RParms.Viewangles.X) > float.Epsilon)
                                         {
                                             if (CurrentFrameAttacked && CurrentFrameOnGround && CurrentTime - LastDeathTime > 2.0f
                                                 && CurrentTime - LastAliveTime > 2.0f)
                                             {
-                                                var spreadtest = AngleBetween(CDFRAME_ViewAngles.X, nf.RParms.Viewangles.X - nf.RParms.Punchangle.X);
-                                                var spreadtest2 = AngleBetween(PREV_CDFRAME_ViewAngles.X, nf.RParms.Viewangles.X - nf.RParms.Punchangle.X);
+                                                var spreadtest = AngleBetweenAbsolute(CDFRAME_ViewAngles.X, nf.RParms.Viewangles.X - nf.RParms.Punchangle.X);
+                                                var spreadtest2 = AngleBetweenAbsolute(PREV_CDFRAME_ViewAngles.X, nf.RParms.Viewangles.X - nf.RParms.Punchangle.X);
                                                 if (spreadtest > nospreadtest &&
                                                     spreadtest2 > nospreadtest)
                                                 {
@@ -4492,7 +4280,7 @@ namespace DemoScanner.DG
                                                         nospreadtest = spreadtest;
                                                     else
                                                         nospreadtest = spreadtest2;
-                                                   // Console.WriteLine(nospreadtest.ToString("F8"));
+                                                    // Console.WriteLine(nospreadtest.ToString("F8"));
                                                 }
 
                                                 if (Math.Abs(DemoScanner.NoSpreadDetectionTime - CurrentTime) > float.Epsilon && spreadtest > MAX_SPREAD_CONST && spreadtest2 > MAX_SPREAD_CONST)
@@ -4521,14 +4309,14 @@ namespace DemoScanner.DG
                                             //    Console.WriteLine("NONE(" + nf.UCmd.Buttons + ")");
                                             //}
                                         }
-                                        if (AngleBetween(CDFRAME_ViewAngles.Y, nf.RParms.Viewangles.Y) > float.Epsilon
-                                            && AngleBetween(PREV_CDFRAME_ViewAngles.Y, nf.RParms.Viewangles.Y) > float.Epsilon)
+                                        if (AngleBetweenAbsolute(CDFRAME_ViewAngles.Y, nf.RParms.Viewangles.Y) > float.Epsilon
+                                            && AngleBetweenAbsolute(PREV_CDFRAME_ViewAngles.Y, nf.RParms.Viewangles.Y) > float.Epsilon)
                                         {
                                             if (CurrentFrameAttacked && CurrentFrameOnGround && CurrentTime - LastDeathTime > 2.0f
                                                 && CurrentTime - LastAliveTime > 2.0f)
                                             {
-                                                var spreadtest = AngleBetween(CDFRAME_ViewAngles.Y, nf.RParms.Viewangles.Y - nf.RParms.Punchangle.Y);
-                                                var spreadtest2 = AngleBetween(PREV_CDFRAME_ViewAngles.Y, nf.RParms.Viewangles.Y - nf.RParms.Punchangle.Y);
+                                                var spreadtest = AngleBetweenAbsolute(CDFRAME_ViewAngles.Y, nf.RParms.Viewangles.Y - nf.RParms.Punchangle.Y);
+                                                var spreadtest2 = AngleBetweenAbsolute(PREV_CDFRAME_ViewAngles.Y, nf.RParms.Viewangles.Y - nf.RParms.Punchangle.Y);
                                                 if (spreadtest > nospreadtest2 &&
                                                      spreadtest2 > nospreadtest2)
                                                 {
@@ -4536,7 +4324,7 @@ namespace DemoScanner.DG
                                                         nospreadtest2 = spreadtest;
                                                     else
                                                         nospreadtest2 = spreadtest2;
-                                                   // Console.WriteLine(nospreadtest.ToString("F8"));
+                                                    // Console.WriteLine(nospreadtest.ToString("F8"));
                                                 }
                                                 if (Math.Abs(DemoScanner.NoSpreadDetectionTime - CurrentTime) > float.Epsilon && spreadtest > MAX_SPREAD_CONST2
                                                     && spreadtest2 > MAX_SPREAD_CONST2)
@@ -5724,7 +5512,6 @@ namespace DemoScanner.DG
             //Console.WriteLine(nospreadtest.ToString("F8"));
             //Console.WriteLine(nospreadtest2.ToString("F8"));
 
-
             if (NeedIgnoreAttackFlagCount > 0)
             {
                 if (IsRussia)
@@ -5741,7 +5528,7 @@ namespace DemoScanner.DG
                     DemoScanner.DemoScanner_AddInfo("Lost frames: " + BadEvents + ".");
             }
 
-            if (DemoScanner.attackscounter4 > 50 && DemoScanner.attackscounter5  > DemoScanner.attackscounter4 / 2)
+            if (DemoScanner.attackscounter4 > 50 && DemoScanner.attackscounter5 > DemoScanner.attackscounter4 / 2)
             {
                 if (IsRussia)
                     DemoScanner.DemoScanner_AddInfo("Странные данные: " + DemoScanner.attackscounter5 + " неправильных выстрелов из " + DemoScanner.attackscounter4);
@@ -5750,7 +5537,8 @@ namespace DemoScanner.DG
             }
 
 
-            if (RealFpsMax > MAX_MONITOR_REFRESHRATE)
+            if (averagefps.Average()  > MAX_MONITOR_REFRESHRATE ||
+                averagefps2.Average() > MAX_MONITOR_REFRESHRATE)
             {
                 if (IsRussia)
                     DemoScanner.DemoScanner_AddInfo("Игрок играет с высоким фпс: " + RealFpsMax);
@@ -6707,7 +6495,7 @@ namespace DemoScanner.DG
 
         private static double truncate(float x)
         {
-            return x < 0 ? -Math.Floor(-x) : Math.Floor(x);
+            return x < 0.0f ? -Math.Floor(-x) : Math.Floor(x);
         }
 
         private static float MyFmod(float x, float y)
@@ -6731,6 +6519,10 @@ namespace DemoScanner.DG
             if (360.0f - anglediff < anglediff)
                 anglediff = 360.0f - anglediff;
             return Math.Abs(anglediff);
+        }
+        public static float AngleBetweenAbsolute(float angle1, float angle2)
+        {
+            return Math.Abs(AngleBetween(angle1, angle2));
         }
 
         public static string GetSourceCodeString()
@@ -6885,10 +6677,6 @@ namespace DemoScanner.DG
         public static float SecondFrameTime = 0.0f;
         public static float Aim8DetectionTimeY = 0.0f;
         public static float Aim8DetectionTimeX = 0.0f;
-        public static float TestValue1 = 0.0f;
-        public static float TestTime1 = 0.0f;
-        public static float TestValue2 = 0.0f;
-        public static float TestTime2 = 0.0f;
         public static float NewAttackTime = 0.0f;
         public static float NewAttackTimeAim9 = 0.0f;
         public static float LastGameMaximizeTime = 0;
@@ -7008,13 +6796,13 @@ namespace DemoScanner.DG
 
             foreach (var f in LastPunchAngleX)
             {
-                if (AngleBetween(angle, f) < 0.001f)
+                if (AngleBetweenAbsolute(angle, f) < 0.001f)
                     return true;
 
                 if (CurrentWeapon == WeaponIdType.WEAPON_XM1014
                     || CurrentWeapon == WeaponIdType.WEAPON_M3)
                 {
-                    if (AngleBetween(angle, f) > 2.9f && AngleBetween(angle, f) < 11.1f)
+                    if (AngleBetweenAbsolute(angle, f) > 2.9f && AngleBetweenAbsolute(angle, f) < 11.1f)
                     {
                         return true;
                     }
@@ -7024,11 +6812,11 @@ namespace DemoScanner.DG
                     || CurrentWeapon == WeaponIdType.WEAPON_G3SG1)
                 {
                     float addangle = angle * 0.25f;
-                    if (AngleBetween(angle, f - addangle) > 0.74f && AngleBetween(angle, f - addangle) < 1.26f)
+                    if (AngleBetweenAbsolute(angle, f - addangle) > 0.74f && AngleBetweenAbsolute(angle, f - addangle) < 1.26f)
                     {
                         return true;
                     }
-                    if (AngleBetween(angle, f + addangle) > 0.74f && AngleBetween(angle, f + addangle) < 1.26f)
+                    if (AngleBetweenAbsolute(angle, f + addangle) > 0.74f && AngleBetweenAbsolute(angle, f + addangle) < 1.26f)
                     {
                         return true;
                     }
@@ -7042,12 +6830,12 @@ namespace DemoScanner.DG
                    || CurrentWeapon == WeaponIdType.WEAPON_P228
                    || CurrentWeapon == WeaponIdType.WEAPON_FIVESEVEN)
                 {
-                    if (AngleBetween(angle, f) > 1.9f && AngleBetween(angle, f) < 2.1f)
+                    if (AngleBetweenAbsolute(angle, f) > 1.9f && AngleBetweenAbsolute(angle, f) < 2.1f)
                     {
                         return true;
                     }
 
-                    if (AngleBetween(angle, f) > 3.9f && AngleBetween(angle, f) < 4.1f)
+                    if (AngleBetweenAbsolute(angle, f) > 3.9f && AngleBetweenAbsolute(angle, f) < 4.1f)
                     {
                         return true;
                     }
@@ -7082,7 +6870,7 @@ namespace DemoScanner.DG
 
             foreach (var f in LastPunchAngleY)
             {
-                if (AngleBetween(angle, f) < 0.01f)
+                if (AngleBetweenAbsolute(angle, f) < 0.01f)
                 {
                     return true;
                 }
@@ -7128,7 +6916,7 @@ namespace DemoScanner.DG
         {
             foreach (var f in LastSearchViewAngleY)
             {
-                if (AngleBetween(angle, f) < 0.1f)
+                if (AngleBetweenAbsolute(angle, f) < 0.1f)
                 {
                     return true;
                 }
@@ -11042,21 +10830,108 @@ namespace DemoScanner.DG
                                     {
                                         DemoScanner.NeedCheckAttack = false;
                                         var ammocount = value != null ? (int)value : 0;
-                                        DemoScanner.attackscounter4++;
-                                        if (DemoScanner.IsAngleEditByEngine() || DemoScanner.IsPlayerFrozen()
-                                            || DemoScanner.IsPlayerLossConnection() || DemoScanner.IsRoundEnd() || !DemoScanner.IsRealWeapon()
-                                            || DemoScanner.HideWeapon || DemoScanner.CurrentFrameDuplicated > 0 || !DemoScanner.CurrentFrameOnGround
-                                            || DemoScanner.CurrentWeapon == DemoScanner.WeaponIdType.WEAPON_NONE
-                                           || DemoScanner.CurrentWeapon == DemoScanner.WeaponIdType.WEAPON_BAD
-                                           || DemoScanner.CurrentWeapon == DemoScanner.WeaponIdType.WEAPON_BAD2
-                                           || DemoScanner.CurrentWeapon == DemoScanner.WeaponIdType.WEAPON_C4
-                                           || DemoScanner.CurrentWeapon == DemoScanner.WeaponIdType.WEAPON_HEGRENADE
-                                           || DemoScanner.CurrentWeapon == DemoScanner.WeaponIdType.WEAPON_KNIFE
-                                           || DemoScanner.CurrentWeapon == DemoScanner.WeaponIdType.WEAPON_SMOKEGRENADE
-                                           || DemoScanner.CurrentWeapon == DemoScanner.WeaponIdType.WEAPON_FLASHBANG)
+
+                                        if (ammocount < DemoScanner.AmmoCount)
                                         {
-                                            if (ammocount < DemoScanner.AmmoCount)
+                                            DemoScanner.attackscounter4++;
+
+                                            if (DemoScanner.IsPlayerTeleport())
+                                            {
                                                 DemoScanner.attackscounter5++;
+                                                if (DemoScanner.DEBUG_ENABLED) Console.WriteLine("TELEPORT");
+                                            }
+
+                                            if (DemoScanner.CurrentTime - DemoScanner.LastAngleManipulation < 0.50f)
+                                            {
+                                                DemoScanner.attackscounter5++;
+                                                if (DemoScanner.DEBUG_ENABLED) Console.WriteLine("MANIPUL");
+                                            }
+
+                                            if (DemoScanner.IsTakeDamage())
+                                            {
+                                                DemoScanner.attackscounter5++;
+                                                if (DemoScanner.DEBUG_ENABLED) Console.WriteLine("DAMAGE");
+                                            }
+
+                                            if (DemoScanner.IsPlayerFrozen())
+                                            {
+                                                DemoScanner.attackscounter5++;
+                                                if (DemoScanner.DEBUG_ENABLED) Console.WriteLine("FROZEN");
+                                            }
+
+                                            if (DemoScanner.CurrentTime - DemoScanner.LastDuckUnduckTime < 1.25f)
+                                            {
+                                                DemoScanner.attackscounter5++;
+                                                if (DemoScanner.DEBUG_ENABLED) Console.WriteLine("INDUCK");
+                                            }
+
+                                            if (DemoScanner.IsViewChanged())
+                                            {
+                                                DemoScanner.attackscounter5++;
+                                                if (DemoScanner.DEBUG_ENABLED) Console.WriteLine("VIEW");
+                                            }
+
+                                            if (DemoScanner.CurrentTime - DemoScanner.LastLookDisabled < 0.75f)
+                                            {
+                                                DemoScanner.attackscounter5++;
+                                                if (DemoScanner.DEBUG_ENABLED) Console.WriteLine("INLUK");
+                                            }
+
+                                            if (DemoScanner.IsPlayerFrozen())
+                                            {
+                                                DemoScanner.attackscounter5++;
+                                                if (DemoScanner.DEBUG_ENABLED) Console.WriteLine("FROZEN");
+                                            }
+
+                                            if (DemoScanner.IsPlayerLossConnection())
+                                            {
+                                                DemoScanner.attackscounter5++;
+                                                if (DemoScanner.DEBUG_ENABLED) Console.WriteLine("LAG");
+                                            }
+
+                                            if (DemoScanner.IsRoundEnd())
+                                            {
+                                                DemoScanner.attackscounter5++;
+                                                if (DemoScanner.DEBUG_ENABLED) Console.WriteLine("ROUND");
+                                            }
+
+                                            if (DemoScanner.HideWeapon)
+                                            {
+                                                DemoScanner.attackscounter5++;
+                                                if (DemoScanner.DEBUG_ENABLED) Console.WriteLine("HIDE");
+                                            }
+
+
+                                            if (DemoScanner.CurrentFrameDuplicated > 0)
+                                            {
+                                                DemoScanner.attackscounter5++;
+                                                if (DemoScanner.DEBUG_ENABLED) Console.WriteLine("DUP");
+                                            }
+
+                                            if (!DemoScanner.CurrentFrameOnGround)
+                                            {
+                                                DemoScanner.attackscounter5++;
+                                                if (DemoScanner.DEBUG_ENABLED) Console.WriteLine("FLY");
+                                            }
+
+                                            if (!DemoScanner.IsRealWeapon())
+                                            {
+                                                DemoScanner.attackscounter5++;
+                                                if (DemoScanner.DEBUG_ENABLED) Console.WriteLine("NOREAL");
+                                            }
+
+                                            if (DemoScanner.CurrentWeapon == DemoScanner.WeaponIdType.WEAPON_NONE
+                                               || DemoScanner.CurrentWeapon == DemoScanner.WeaponIdType.WEAPON_BAD
+                                               || DemoScanner.CurrentWeapon == DemoScanner.WeaponIdType.WEAPON_BAD2
+                                               || DemoScanner.CurrentWeapon == DemoScanner.WeaponIdType.WEAPON_C4
+                                               || DemoScanner.CurrentWeapon == DemoScanner.WeaponIdType.WEAPON_HEGRENADE
+                                               || DemoScanner.CurrentWeapon == DemoScanner.WeaponIdType.WEAPON_KNIFE
+                                               || DemoScanner.CurrentWeapon == DemoScanner.WeaponIdType.WEAPON_SMOKEGRENADE
+                                               || DemoScanner.CurrentWeapon == DemoScanner.WeaponIdType.WEAPON_FLASHBANG)
+                                            {
+                                                DemoScanner.attackscounter5++;
+                                                if (DemoScanner.DEBUG_ENABLED) Console.WriteLine("NOWEAPON");
+                                            }
                                         }
                                         // Console.WriteLine("Attack " + DemoScanner.CurrentTime + " : " + DemoScanner.CurrentTimeString);
                                         //if (DemoScanner.LastWatchWeapon == DemoScanner.CurrentWeapon && DemoScanner.UserAlive && DemoScanner.AmmoCount > 0 && ammocount > 0 && DemoScanner.AmmoCount - ammocount > 0 && DemoScanner.AmmoCount - ammocount < 4)
