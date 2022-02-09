@@ -344,7 +344,7 @@ namespace DemoScanner.DemoStuff.GoldSource
             public int Channel;
             public int Flags;
             public int Pitch;
-            public byte[] Sample;
+            public string Sample;
             public float Volume;
         }
 
@@ -538,7 +538,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                 public sbyte Impulse;
                 public int LerpMsec;
                 public sbyte Lightlevel;
-                public sbyte Msec;
+                public byte Msec;
                 public float Sidemove;
                 public float Upmove;
                 public FPoint3D Viewangles;
@@ -1504,7 +1504,14 @@ namespace DemoScanner.DemoStuff.GoldSource
                                                 break;
                                                 //  return gDemo;
                                             }
-                                            sframe.Sample = br.ReadBytes(samplelength);
+                                            try
+                                            {
+                                                sframe.Sample = Encoding.UTF8.GetString(br.ReadBytes(samplelength));
+                                            }
+                                            catch
+                                            {
+                                                sframe.Sample = "UNKNOWN SOUND";
+                                            }
                                             sframe.Attenuation = br.ReadSingle();
                                             sframe.Volume = br.ReadSingle();
                                             sframe.Flags = br.ReadInt32();
@@ -1630,7 +1637,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             nf.RParms.NextView = br.ReadInt32();
                                             nf.RParms.OnlyClientDraw = br.ReadInt32();
                                             nf.UCmd.LerpMsec = br.ReadInt16();
-                                            nf.UCmd.Msec = br.ReadSByte();
+                                            nf.UCmd.Msec = br.ReadByte();
                                             nf.UCmd.Align1 = br.ReadSByte();
 
                                             tmpfloat2 = br.ReadSingle();
