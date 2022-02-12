@@ -5,7 +5,7 @@
 
 #define PLUGIN "Unreal Demo Plugin"
 #define AUTHOR "karaulov"
-#define VERSION "1.2"
+#define VERSION "1.3"
 
 public plugin_init() 
 {
@@ -16,8 +16,14 @@ public plugin_init()
 	register_forward(FM_PlaybackEvent, "fw_PlaybackEvent")	
 }
 
-/*
-Server not processed angles. Always empty.*/
+new frameID[33];
+
+public client_disconnected(id)
+{
+	frameID[id] = 0;
+}
+
+/*Server not processed angles. Always empty.*/
 public fw_PlaybackEvent( iFlags, id, eventIndex )
 {
 	if(id > 0 && id < 33)
@@ -36,15 +42,13 @@ public PM_Move(const id)
 	{
 		new cmdx = get_pmove( pm_cmd );
 		
-		/*
-		Can't compare angles because client has 4byte float, server smaller.(Delta encoded)
-		new Float:vAngles[3];
-		get_ucmd(cmdx, ucmd_viewangles, vAngles);
-		WriteDemoInfo(id, "UDS/ANGLE/%i", vAngles[1]);
-		*/
-		
+		frameID[id]++;
 		// DETECT FAKE LAG 
-		WriteDemoInfo(id, "UDS/UCMD/%i/%i", get_ucmd(cmdx, ucmd_lerp_msec), get_ucmd(cmdx, ucmd_msec));
+		WriteDemoInfo(id, "UDS/XCMD/%i/%i/%i", get_ucmd(cmdx, ucmd_lerp_msec), get_ucmd(cmdx, ucmd_msec),frameID[id]);
+	}
+	else if((button & IN_JUMP) && !(oldbuttons & IN_JUMP))
+	{
+		WriteDemoInfo(id, "UDS/JMP/1");
 	}
 }
 
