@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.64.3_ALPHA";
+        public const string PROGRAMVERSION = "1.64.4_ALPHA";
 
         public static bool DEBUG_ENABLED = false;
         public static bool NO_TELEPORT = false;
@@ -847,7 +847,7 @@ namespace DemoScanner.DG
                     {
                         if (JumpHackCount < 10)
                         {
-                            DemoScanner_AddWarn("[XTREME JUMP HACK] at (" + CurrentTime + ") " + DemoScanner.CurrentTimeString);
+                            DemoScanner_AddWarn("[XTREME JUMPHACK] at (" + CurrentTime + ") " + DemoScanner.CurrentTimeString);
                         }
 
                         JumpHackCount++;
@@ -2237,6 +2237,8 @@ namespace DemoScanner.DG
                             }
                         case GoldSource.DemoFrameType.ClientData:
                             {
+                                if (CurrentFrameDuplicated > 0)
+                                    CurrentFrameDuplicated -= 1;
                                 DemoScanner.ClientDataCountDemos++;
                                 if (global::DemoScanner.Settings.asdf.asdf2 != 1)
                                 {
@@ -3185,8 +3187,7 @@ namespace DemoScanner.DG
                                 CurrentFrameTime = nf.RParms.Frametime;
 
 
-                                if (Math.Abs(CurrentTime) > float.Epsilon && (nf.IncomingSequence == LastDuplicateIncomingSeq
-                                    || CurrentTime == nf.RParms.Time))
+                                if (Math.Abs(CurrentTime) > float.Epsilon && PreviousNetMsgFrame.RParms.Time == nf.RParms.Time)
                                 {
                                     // DemoScanner.FpsOverflowTime = CurrentTime;
                                     //if (nf.MsgBytes.Length <= 8)
@@ -3200,7 +3201,6 @@ namespace DemoScanner.DG
                                     //{
                                     //}
                                 }
-                                LastDuplicateIncomingSeq = nf.IncomingSequence;
 
                                 DemoScanner.SecondFrameTime += nf.RParms.Frametime;
 
@@ -3771,11 +3771,11 @@ namespace DemoScanner.DG
 
                                 if (!PreviousFrameDuck && CurrentFrameDuck)
                                 {
-                                    DemoScanner.LastDuckUnduckTime = CurrentTime;
+                                    DemoScanner.LastCmdDuckTime = CurrentTime;
                                 }
                                 else if (PreviousFrameDuck && !CurrentFrameDuck)
                                 {
-                                    DemoScanner.LastDuckUnduckTime = CurrentTime;
+                                    DemoScanner.LastCmdUnduckTime = CurrentTime;
                                 }
 
                                 if (CurrentFrameDuck && !DemoScanner.AlreadyInDuck && CurrentTime - LastUnDuckTime < 1.5f &&
@@ -5588,7 +5588,7 @@ namespace DemoScanner.DG
 
                                 if (Math.Abs(CurrentTime) > 0 && (FirstAttack || FirstJump) && !NewDirectory)
                                 {
-                                    if (DemoScanner.LastIncomingSequence > 0 && Math.Abs(nf.IncomingSequence - DemoScanner.LastIncomingSequence) > 10)
+                                    if (DemoScanner.LastIncomingSequence > 0 && Math.Abs(nf.IncomingSequence - DemoScanner.LastIncomingSequence) > 10 && CurrentFrameDuplicated == 0)
                                     {
                                         if (DemoScanner.FrameErrors > 1)
                                         {
@@ -5703,7 +5703,7 @@ namespace DemoScanner.DG
                 Console.WriteLine("Unreal Demo Scanner [ " + PROGRAMVERSION + " ] scan result:");
 
 
-            Console.WriteLine("MAX BETWEENS: " + DemoScanner.maxLastIncomingSequence + "/ " + DemoScanner.maxLastIncomingAcknowledged + "/ " + DemoScanner.maxLastOutgoingSequence);
+           // Console.WriteLine("MAX BETWEENS: " + DemoScanner.maxLastIncomingSequence + "/ " + DemoScanner.maxLastIncomingAcknowledged + "/ " + DemoScanner.maxLastOutgoingSequence);
 
             //Console.WriteLine(AngleLenMaxX);
             //Console.WriteLine(AngleLenMaxY);
@@ -5931,7 +5931,7 @@ namespace DemoScanner.DG
             if (averagefps2.Count > 2 && Math.Abs(maxfps1 - 1000.0f) < float.Epsilon && Math.Abs(maxfps2 - 1000.0f) < float.Epsilon &&
                 maxfps1 / averagefps2.Average() > 4.0f)
             {
-                DemoScanner.DemoScanner_AddWarn("[UNKNOWN BHOP/JUMP HACK] in demo file!", false, true, false, true);
+                DemoScanner.DemoScanner_AddWarn("[UNKNOWN BHOP/JUMPHACK] in demo file!", false, true, false, true);
             }
             //if (Math.Round((1000.0f / CurrentDemoFile.GsDemoInfo.AditionalStats.MsecMin), 5) /
             //    Math.Round(1000.0 / (1000.0f * CurrentDemoFile.GsDemoInfo.AditionalStats.FrametimeMin), 5) > 1.75f)
@@ -6543,6 +6543,10 @@ namespace DemoScanner.DG
                         Console.WriteLine(
                             "Possible press cheat key " + CheatKey + " times. (???)");
 
+                    if (FrameDuplicates > 0)
+                    {
+                        Console.WriteLine("Duplicate frames(Same frame): " + FrameDuplicates);
+                    }
 
                     if (DemoScanner.attackscounter4 > 50 && DemoScanner.attackscounter5 > DemoScanner.attackscounter4 / 2)
                     {
@@ -6863,7 +6867,8 @@ namespace DemoScanner.DG
         public static int AngleDirectionChanges = 0;
         public static int StrafeAngleDirectionChanges = 0;
         public static float LastStrafeOptimizerDetectWarnTime = 0.0f;
-        public static float LastDuckUnduckTime = 0.0f;
+        public static float LastCmdDuckTime = 0.0f;
+        public static float LastCmdUnduckTime = 0.0f;
         public static int CurrentNetMsgFrameId = 0;
         public static int StopAttackBtnFrameId = 0;
         public static bool NeedSearchAim3 = false;
@@ -7288,6 +7293,26 @@ namespace DemoScanner.DG
             return retval;
         }
 
+        public static bool IsPlayerInDuck()
+        {
+            float retcheck = Math.Abs(CurrentTime - DemoScanner.LastCmdDuckTime);
+            bool retval = retcheck < 1.01f && retcheck >= 0f;
+            /*
+             Console.WriteLine("CurrentTime:" + CurrentTime + ". LastDuckUnduckTime:" + LastDuckUnduckTime);
+             */
+            return retval;
+        }
+
+        public static bool IsPlayerUnDuck()
+        {
+            float retcheck = Math.Abs(CurrentTime - DemoScanner.LastCmdUnduckTime);
+            bool retval = retcheck < 0.2f && retcheck >= 0f;
+            /*
+             Console.WriteLine("CurrentTime:" + CurrentTime + ". LastDuckUnduckTime:" + LastDuckUnduckTime);
+             */
+            return retval;
+        }
+
         public static bool IsAngleEditByEngine()
         {
             if (NO_TELEPORT)
@@ -7295,7 +7320,8 @@ namespace DemoScanner.DG
             return
                 IsPlayerTeleport() ||
                 CurrentTime - LastAngleManipulation < 0.50f ||
-                CurrentTime - LastDuckUnduckTime < 1.25f ||
+                IsPlayerInDuck() ||
+                IsPlayerUnDuck() ||
                 IsTakeDamage() ||
                 IsPlayerFrozen() ||
                 IsViewChanged() ||
@@ -7310,7 +7336,8 @@ namespace DemoScanner.DG
             return
                 IsPlayerTeleport() ||
                 CurrentTime - LastAngleManipulation < 0.20f ||
-                CurrentTime - LastDuckUnduckTime < 1.0f ||
+                IsPlayerInDuck() ||
+                IsPlayerUnDuck() ||
                 IsTakeDamage() ||
                 IsPlayerFrozen() ||
                 IsViewChanged() ||
@@ -7443,7 +7470,6 @@ namespace DemoScanner.DG
         public static float LastAttackPressed = 0.0f;
         public static int PluginFrameNum = -1;
         public static string PluginVersion = String.Empty;
-        public static int LastDuplicateIncomingSeq = 0;
         public static int InitAimMissingSearch = 0;
 
         public static void ProcessPluginMessage(string cmd)
@@ -10952,15 +10978,38 @@ namespace DemoScanner.DG
 
                                         if (entryList[index].Name == "gaitsequence")
                                         {
-                                            var solidid =
+                                            var seqnum =
                                             value != null ? (uint)value : (uint)0;
-                                            if (solidid > 0 && !DemoScanner.UserAlive && !DemoScanner.Intermission && !DemoScanner.FirstUserAlive)
+                                            if (seqnum > 0 && !DemoScanner.UserAlive && !DemoScanner.Intermission && !DemoScanner.FirstUserAlive)
                                             {
                                                 if (DemoScanner.DEBUG_ENABLED)
                                                     Console.WriteLine("Alive 1 at " + DemoScanner.CurrentTimeString);
                                                 DemoScanner.UserAlive = true;
                                                 DemoScanner.LastAliveTime = DemoScanner.CurrentTime;
                                                 DemoScanner.FirstUserAlive = false;
+                                            }
+                                            else if (seqnum == 6)
+                                            {
+                                                if (Math.Abs(DemoScanner.LastJumpHackFalseDetectionTime) > float.Epsilon && DemoScanner.CurrentTime - DemoScanner.LastJumpHackFalseDetectionTime > 5.0f)
+                                                {
+                                                    DemoScanner.LastJumpHackFalseDetectionTime = 0.0f;
+                                                }
+                                                if (DemoScanner.CurrentTime - DemoScanner.LastUnJumpTime > 0.3f &&
+                                                   DemoScanner.CurrentTime - DemoScanner.LastJumpTime > 0.3f)
+                                                {
+                                                    if (!DemoScanner.IsPlayerAnyJumpPressed() && !DemoScanner.IsPlayerLossConnection())
+                                                    {
+                                                        if (DemoScanner.CurrentTime - DemoScanner.LastJumpHackTime > 2.5f && Math.Abs(DemoScanner.LastJumpHackFalseDetectionTime) < float.Epsilon)
+                                                        {
+                                                            DemoScanner.DemoScanner_AddWarn(
+                                                                "[JUMPHACK TYPE 6] at (" +
+                                                               DemoScanner.CurrentTime + ") " + DemoScanner.CurrentTimeString, false, false);
+
+                                                            DemoScanner.LastJumpHackTime = DemoScanner.CurrentTime;
+                                                            DemoScanner.JumpHackCount++;
+                                                        }
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -11266,7 +11315,13 @@ namespace DemoScanner.DG
                                                 if (DemoScanner.DEBUG_ENABLED) Console.WriteLine("FROZEN" + "(" +
                                                     DemoScanner.CurrentTime + ") " + DemoScanner.CurrentTimeString);
                                             }
-                                            else if (DemoScanner.CurrentTime - DemoScanner.LastDuckUnduckTime < 1.25f)
+                                            else if (DemoScanner.CurrentTime - DemoScanner.LastCmdDuckTime < 1.01f)
+                                            {
+                                                DemoScanner.attackscounter5++;
+                                                if (DemoScanner.DEBUG_ENABLED) Console.WriteLine("INDUCK" + "(" +
+                                                    DemoScanner.CurrentTime + ") " + DemoScanner.CurrentTimeString);
+                                            }
+                                            else if (DemoScanner.CurrentTime - DemoScanner.LastCmdUnduckTime < 0.2f)
                                             {
                                                 DemoScanner.attackscounter5++;
                                                 if (DemoScanner.DEBUG_ENABLED) Console.WriteLine("INDUCK" + "(" +
