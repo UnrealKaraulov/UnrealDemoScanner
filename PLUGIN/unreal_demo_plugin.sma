@@ -5,7 +5,7 @@
 
 #define PLUGIN "Unreal Demo Plugin"
 #define AUTHOR "karaulov"
-#define VERSION "1.3"
+#define VERSION "1.4"
 
 public plugin_init() 
 {
@@ -13,6 +13,9 @@ public plugin_init()
 	register_cvar( "unreal_demoplug", VERSION, FCVAR_SERVER | FCVAR_SPONLY | FCVAR_UNLOGGED );
 	register_clcmd("fullupdate", "UnrealDemoHelpInitialize");
 	RegisterHookChain(RG_PM_Move, "PM_Move")
+	
+	RegisterHookChain(RG_CBasePlayer_Jump, "HC_CBasePlayer_Jump_Pre", .post = false);
+
 	register_forward(FM_PlaybackEvent, "fw_PlaybackEvent")	
 }
 
@@ -34,21 +37,52 @@ public fw_PlaybackEvent( iFlags, id, eventIndex )
 	return FMRES_IGNORED;
 }
 
+
+/* Более точное определение прыжка, костыль из-за того что reapi не позволяет узнать что игрок прыгнул */
+
+public HC_CBasePlayer_Jump_Pre(id) 
+{
+	new iFlags = get_entvar(id,var_flags);
+	if (iFlags & FL_WATERJUMP)
+	{
+		return HC_CONTINUE;
+	}
+	
+	if (!(iFlags & FL_ONGROUND))
+	{
+		return HC_CONTINUE;
+	}
+	
+	if (get_entvar(id,var_waterlevel) >= 2)
+	{
+		return HC_CONTINUE;
+	}
+	
+	if (!is_entity(get_entvar(id,var_groundentity)))
+	{
+		return HC_CONTINUE;
+	}
+	
+	if (!(get_member(id,m_afButtonPressed) & IN_JUMP))
+	{
+		return HC_CONTINUE;
+	}
+	
+	WriteDemoInfo(id, "UDS/JMP/1");
+	return HC_CONTINUE;
+}
+
 public PM_Move(const id)
 {
 	new button = get_entvar(id, var_button)
 	new oldbuttons = get_entvar(id, var_oldbuttons)
-	if ((button & IN_ATTACK) && !(oldbuttons & IN_ATTACK))
+	if (!(button & IN_ATTACK) && (oldbuttons & IN_ATTACK))
 	{
 		new cmdx = get_pmove( pm_cmd );
 		
 		frameID[id]++;
 		// DETECT FAKE LAG 
 		WriteDemoInfo(id, "UDS/XCMD/%i/%i/%i", get_ucmd(cmdx, ucmd_lerp_msec), get_ucmd(cmdx, ucmd_msec),frameID[id]);
-	}
-	else if((button & IN_JUMP) && !(oldbuttons & IN_JUMP))
-	{
-		WriteDemoInfo(id, "UDS/JMP/1");
 	}
 }
 
