@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.64.5_ALPHA";
+        public const string PROGRAMVERSION = "1.64.6_ALPHA";
 
         public static bool DEBUG_ENABLED = false;
         public static bool NO_TELEPORT = false;
@@ -598,7 +598,7 @@ namespace DemoScanner.DG
             return str;
         }
 
-        public static void DemoScanner_AddInfo(string info, bool is_plugin = false)
+        public static void DemoScanner_AddInfo(string info, bool is_plugin = false, bool no_prefix = false)
         {
             var tmpcol = Console.ForegroundColor;
             if (IsRussia)
@@ -606,18 +606,24 @@ namespace DemoScanner.DG
             if (is_plugin)
             {
                 Console.ForegroundColor = ConsoleColor.Magenta;
-                if (IsRussia)
-                    Console.Write("[Модуль] ");
-                else
-                    Console.Write("[PLUGIN] ");
+                if (!no_prefix)
+                {
+                    if (IsRussia)
+                        Console.Write("[Модуль] ");
+                    else
+                        Console.Write("[PLUGIN] ");
+                }
             }
             else
             {
                 Console.ForegroundColor = ConsoleColor.DarkYellow;
-                if (IsRussia)
-                    Console.Write("[ИНФОРМАЦИЯ] ");
-                else
-                    Console.Write("[INFO] ");
+                if (!no_prefix)
+                {
+                    if (IsRussia)
+                        Console.Write("[ИНФОРМАЦИЯ] ");
+                    else
+                        Console.Write("[INFO] ");
+                }
             }
             Console.WriteLine(info);
             Console.ForegroundColor = tmpcol;
@@ -5614,7 +5620,8 @@ namespace DemoScanner.DG
 
                                 if (Math.Abs(CurrentTime) > 0 && (FirstAttack || FirstJump) && !NewDirectory)
                                 {
-                                    if (DemoScanner.LastIncomingSequence > 0 && Math.Abs(nf.IncomingSequence - DemoScanner.LastIncomingSequence) > 10 && CurrentFrameDuplicated == 0)
+                                    if (DemoScanner.LastIncomingSequence > 0 && Math.Abs(nf.IncomingSequence - DemoScanner.LastIncomingSequence) > LastLossPacketCount
+                                        && Math.Abs(nf.IncomingSequence - DemoScanner.LastIncomingSequence) > 5 && CurrentFrameDuplicated == 0)
                                     {
                                         if (DemoScanner.FrameErrors > 1)
                                         {
@@ -5632,7 +5639,6 @@ namespace DemoScanner.DG
 
                                     if (DemoScanner.LastIncomingSequence > 0 && Math.Abs(nf.IncomingSequence - DemoScanner.LastIncomingSequence) > DemoScanner.maxLastIncomingSequence)
                                     {
-
                                         DemoScanner.maxLastIncomingSequence = Math.Abs(nf.IncomingSequence - DemoScanner.LastIncomingSequence);
                                         // Console.WriteLine(nf.IncomingSequence + " / " + DemoScanner.LastIncomingSequence + " = " + DemoScanner.maxLastIncomingSequence + " - > " + CurrentTime);
                                     }
@@ -5726,9 +5732,13 @@ namespace DemoScanner.DG
             if (PluginVersion.Length == 0)
             {
                 if (IsRussia)
-                    DemoScanner.DemoScanner_AddInfo("Не найден модуль. Часть данных недоступна.", true);
+                {
+                    DemoScanner.DemoScanner_AddInfo("Не найден бесплатный серверный модуль. Часть данных недоступна.", true);
+                }
                 else
-                    DemoScanner.DemoScanner_AddInfo("Plugin not found. Some detects skipped.", true);
+                {
+                    DemoScanner.DemoScanner_AddInfo("AMXX Plugin not found. Some detects is skipped.", true);
+                }
             }
             else
             {
@@ -7517,6 +7527,7 @@ namespace DemoScanner.DG
         public static int PluginFrameNum = -1;
         public static string PluginVersion = String.Empty;
         public static int InitAimMissingSearch = 0;
+        public static uint LastLossPacketCount = 0;
 
         public static void ProcessPluginMessage(string cmd)
         {
@@ -7652,7 +7663,7 @@ namespace DemoScanner.DG
                             }
                             else
                             {
-                                if (Math.Abs(DemoScanner.PluginEvents - DemoScanner.CurrentEvents) > 8)
+                                if (Math.Abs(DemoScanner.PluginEvents - DemoScanner.CurrentEvents) > 5)
                                 {
                                     if (DemoScanner.CurrentEvents != 0)
                                     {
@@ -9020,6 +9031,7 @@ namespace DemoScanner.DG
                 uint loss = BitBuffer.ReadUnsignedBits(7);
                 if (slotid == DemoScanner.UserId && loss > 0)
                 {
+                    DemoScanner.LastLossPacketCount = loss;
                     DemoScanner.CheckConsoleCommand("PLAYER HAS LAG " + loss + " / " + pings, true);
                     DemoScanner.LossPackets++;
                     DemoScanner.FrameErrors = DemoScanner.LastOutgoingSequence = DemoScanner.LastIncomingAcknowledged = DemoScanner.LastIncomingSequence = 0;
