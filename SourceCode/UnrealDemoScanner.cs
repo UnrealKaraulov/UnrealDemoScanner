@@ -908,7 +908,8 @@ namespace DemoScanner.DG
                 {
                     FirstAttack = true;
                     FrameCrash = 0;
-                    attackscounter++;
+                    if (IsUserAlive())
+                        attackscounter++;
                     NeedSearchAim3 = false;
                     /* if (DemoScanner.DEBUG_ENABLED)
                      {
@@ -3379,7 +3380,8 @@ namespace DemoScanner.DG
                                     FirstAttack = true;
                                     NewAttack = true;
                                     NewAttackForLearn = true;
-                                    attackscounter3++;
+                                    if (IsUserAlive())
+                                        attackscounter3++;
 
                                     if (IsForceCenterView())
                                     {
@@ -5725,10 +5727,6 @@ namespace DemoScanner.DG
             //    Console.WriteLine(CurrentTime - LastCmdTime > 5.0);
             //}
 
-            Console.ForegroundColor = ConsoleColor.DarkGreen;
-
-            DemoScanner.ForceFlushScanResults();
-
             if (PluginVersion.Length == 0)
             {
                 if (IsRussia)
@@ -5746,11 +5744,17 @@ namespace DemoScanner.DG
                 {
                     DemoScanner.DemoScanner_AddWarn("[UNKNOWN BHOP/JUMPHACK] in demo file!", false, true, false, true);
                 }
+                else if (attackscounter3 > 20 && attackscounter2 <= 1)
+                {
+                    DemoScanner.DemoScanner_AddWarn("[UNKNOWN AIM/TRIGGER HACK] in demo file!", false, true, false, true);
+                }
             }
 
 
 
             DemoScanner.ForceFlushScanResults();
+
+            Console.ForegroundColor = ConsoleColor.DarkGreen;
 
             if (IsRussia)
                 Console.WriteLine("Unreal Demo Scanner [ " + PROGRAMVERSION + " ] результаты анализа:");
@@ -6478,7 +6482,7 @@ namespace DemoScanner.DG
                         .AddRow(2, JumpCount2, attackscounter3)
                         .AddRow(3, JumpCount3, attackscounter4)
                         .AddRow(4, JumpCount4, attackscounter5)
-                        .AddRow(5, JumpCount5, "SKIP")
+                        .AddRow(5, JumpCount5, attackscounter2)
                         .AddRow(6, JumpCount6, "SKIP");
 
                     table.Write(Format.Alternative);
@@ -6693,6 +6697,7 @@ namespace DemoScanner.DG
             {
                 anyfromzero = true;
             }
+
             newLearnAngles.Add(Convert.ToSingle(math));
             for (int i = 0; i < LearnAngles.Count - 1; i++)
             {
@@ -6703,6 +6708,7 @@ namespace DemoScanner.DG
                 }
                 newLearnAngles.Add(Convert.ToSingle(math));
             }
+
             if (!anyfromzero)
             {
                 return;
@@ -6728,13 +6734,6 @@ namespace DemoScanner.DG
                     DemoScanner.DemoScanner_AddWarn("[МАШИННОЕ ОБУЧЕНИЕ] ПОДОЗРИТЕЛЬНЫЙ МОМЕНТ 40% СОВПАДЕНИЕ at " + DemoScanner.CurrentTimeString, false);
                 else
                     DemoScanner.DemoScanner_AddWarn("[BETA] MACHINE LEARN AIM 40% MATCH: at " + DemoScanner.CurrentTimeString, false);
-            }
-            else if (MachineLearnAnglesHACK.IsAnglesInDB(newLearnAngles, 0.001f) && !MachineLearnAnglesCLEAN.IsAnglesInDB(newLearnAngles, 0.001f))
-            {
-                if (DemoScanner.IsRussia)
-                    DemoScanner.DemoScanner_AddWarn("[МАШИННОЕ ОБУЧЕНИЕ] ПОДОЗРИТЕЛЬНЫЙ МОМЕНТ 20% СОВПАДЕНИЕ at " + DemoScanner.CurrentTimeString, false);
-                else
-                    DemoScanner.DemoScanner_AddWarn("[BETA] MACHINE LEARN AIM 20% MATCH: at " + DemoScanner.CurrentTimeString, false);
             }
         }
 
@@ -7587,6 +7586,8 @@ namespace DemoScanner.DG
                         }
                         else if (cmdList[1] == "XCMD")
                         {
+                            if (IsUserAlive())
+                                attackscounter2++;
                             int lerpms = int.Parse(cmdList[2]);
                             byte ms = Convert.ToByte(int.Parse(cmdList[3]));
                             int incomingframenum = int.Parse(cmdList[4]);
@@ -11406,7 +11407,7 @@ namespace DemoScanner.DG
                                         DemoScanner.NeedCheckAttack = false;
                                         var ammocount = value != null ? (int)value : 0;
 
-                                        if (ammocount != DemoScanner.AmmoCount)
+                                        if (ammocount != DemoScanner.AmmoCount && DemoScanner.IsUserAlive())
                                         {
                                             if (DemoScanner.DEBUG_ENABLED)
                                             {
