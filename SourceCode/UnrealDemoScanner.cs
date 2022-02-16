@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.64.6_ALPHA";
+        public const string PROGRAMVERSION = "1.64.7_ALPHA";
 
         public static bool DEBUG_ENABLED = false;
         public static bool NO_TELEPORT = false;
@@ -5621,9 +5621,9 @@ namespace DemoScanner.DG
                                 if (Math.Abs(CurrentTime) > 0 && (FirstAttack || FirstJump) && !NewDirectory)
                                 {
                                     if (DemoScanner.LastIncomingSequence > 0 && Math.Abs(nf.IncomingSequence - DemoScanner.LastIncomingSequence) > LastLossPacketCount
-                                        && Math.Abs(nf.IncomingSequence - DemoScanner.LastIncomingSequence) > 5 && CurrentFrameDuplicated == 0)
+                                        && Math.Abs(nf.IncomingSequence - DemoScanner.LastIncomingSequence) > 5 && Math.Abs(nf.OutgoingSequence - DemoScanner.LastOutgoingSequence) > 4 && CurrentFrameDuplicated == 0)
                                     {
-                                        if (DemoScanner.FrameErrors > 1)
+                                        if (DemoScanner.FrameErrors > 1 && IsUserAlive())
                                         {
                                             if (CurrentTime - LastCmdHack > 5.0)
                                             {
@@ -9032,7 +9032,11 @@ namespace DemoScanner.DG
                 if (slotid == DemoScanner.UserId && loss > 0)
                 {
                     DemoScanner.LastLossPacketCount = loss;
-                    DemoScanner.CheckConsoleCommand("PLAYER HAS LAG " + loss + " / " + pings, true);
+
+                    if (DemoScanner.DUMP_ALL_FRAMES)
+                        DemoScanner.OutDumpString += "[SKIP " + loss + " frames(loss packets)]\n";
+
+                    DemoScanner.CheckConsoleCommand("Lost packets: " + loss + ". Ping: " + pings, true);
                     DemoScanner.LossPackets++;
                     DemoScanner.FrameErrors = DemoScanner.LastOutgoingSequence = DemoScanner.LastIncomingAcknowledged = DemoScanner.LastIncomingSequence = 0;
                     DemoScanner.LastLossTime2 = DemoScanner.CurrentTime;
