@@ -1,11 +1,10 @@
 name: delete
 on:
-  workflow_dispatch:
+  release:
+    types: [published]
     inputs:
       delete-old-releases:
-        description: 'Remove old releases'
-        required: false
-        default: 'true'          
+        description: 'Remove old releases'  
 
 jobs:
   del_runs:
