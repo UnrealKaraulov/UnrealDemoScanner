@@ -5,7 +5,7 @@
 
 #define PLUGIN "Unreal Demo Plugin"
 #define AUTHOR "karaulov"
-#define VERSION "1.4"
+#define VERSION "1.5"
 
 public plugin_init() 
 {
@@ -84,6 +84,7 @@ public PM_Move(const id)
 		// DETECT FAKE LAG 
 		WriteDemoInfo(id, "UDS/XCMD/%i/%i/%i", get_ucmd(cmdx, ucmd_lerp_msec), get_ucmd(cmdx, ucmd_msec),frameID[id]);
 	}
+	return HC_CONTINUE;
 }
 
 public UnrealDemoHelpInitialize(id) 
@@ -97,6 +98,17 @@ public UnrealDemoHelpInitialize(id)
 	WriteDemoInfo(id,"UDS/DATE/%s",szDate);
 	
 	WriteDemoInfo(id,"UDS/VER/%s",VERSION);
+	
+	if (get_cvar_num("sv_minrate") < 25000 || get_cvar_num("sv_maxrate") < 25000)
+	{
+		WriteDemoInfo(id,"UDS/BAD/1");
+	}
+	
+	if (get_cvar_num("sv_minupdaterate") < 30 || get_cvar_num("sv_maxupdaterate") < 30)
+	{
+		WriteDemoInfo(id,"UDS/BAD/2");
+	}
+	
 	return PLUGIN_HANDLED;
 }
 
