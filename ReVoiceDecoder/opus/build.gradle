@@ -1,0 +1,71 @@
+import org.doomedsociety.gradlecpp.cfg.ToolchainConfig
+import org.doomedsociety.gradlecpp.cfg.ToolchainConfigUtils
+import org.doomedsociety.gradlecpp.msvc.MsvcToolchainConfig
+import org.doomedsociety.gradlecpp.gcc.GccToolchainConfig
+import org.doomedsociety.gradlecpp.toolchain.icc.Icc
+import org.doomedsociety.gradlecpp.toolchain.icc.IccCompilerPlugin
+import org.gradle.nativeplatform.NativeBinarySpec
+import org.gradle.nativeplatform.NativeLibrarySpec
+import org.gradle.nativeplatform.toolchain.VisualCpp
+
+apply plugin: 'cpp'
+apply plugin: IccCompilerPlugin
+
+void setupToolchain(NativeBinarySpec b) {
+	ToolchainConfig cfg = rootProject.createToolchainConfig(b)
+
+	cfg.projectInclude(project, '', '/src', '/include', '/celt', '/celt/x86', '/silk', '/silk/float')
+	cfg.singleDefines('OPUS_BUILD', 'USE_ALLOCA');
+
+	if (cfg instanceof MsvcToolchainConfig) {
+		cfg.compilerOptions.args '/Ob2', '/Oi', '/GF', '/GR-'
+	} else if (cfg instanceof GccToolchainConfig) {
+		cfg.compilerOptions.languageStandard = 'c++0x'
+		cfg.compilerOptions.args '-msse2', '-fp-model fast=2', '-fomit-frame-pointer', '-fvisibility=hidden', '-fvisibility-inlines-hidden', '-fno-rtti', '-g0', '-s'
+	}
+
+	ToolchainConfigUtils.apply(project, cfg, b)
+}
+
+model {
+	buildTypes {
+		debug
+		release
+	}
+
+	platforms {
+		x86 {
+			architecture "x86"
+		}
+	}
+
+	toolChains {
+		visualCpp(VisualCpp) {
+		}
+		icc(Icc) {
+		}
+	}
+
+	components {
+		opus(NativeLibrarySpec) {
+			targetPlatform 'x86'
+
+			sources {
+				opus_src(CppSourceSet) {
+					source {
+						srcDirs "src", "silk", "celt"
+						include "**/*.c"
+					}
+
+					exportedHeaders {
+						srcDirs "celt", "silk", "include"
+					}
+				}
+			}
+
+			binaries.all { NativeBinarySpec b ->
+				project.setupToolchain(b)
+			}
+		}
+	}
+}

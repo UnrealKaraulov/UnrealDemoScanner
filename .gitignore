@@ -129,17 +129,13 @@ $RECYCLE.BIN/
 .DS_Store
 
 _NCrunch*
-ClearDemos/Commands.txt
-CheatDemos2/Commands.txt
+Release/*
 SourceCode/bin/Release/UnrealDemoScanner.zip
 SourceCode/bin/Release/UnrealDemoScanner.exe
 CheatDemos3/DemosPack1/Demo_3Special_Zone_1.dem
 CheatDemos3/DemosPack3/Demo_Special_Zone_2 (5).dem
 CheatDemos4/Zver2.dem
 CheatDemos5/yuk3_[p3]_NON_STEAM.dem
-CheatDemos5/yuk3_[p3]_NON_STEAM.dem
-CheatDemos5/yuk3_[p3]_NON_STEAM.dem
-UnrealDemoScanner.plog
 ClearDemos5/DemoPack3/cozy_dom - de_inferno_2x2.dem
 ClearDemos5/DemoPack4/1.dem
 ClearDemos5/DemoPack4/1123.dem
@@ -167,4 +163,10 @@ SourceCode/bin/Release/lang.ru
 SourceCode/bin/Release/lang.en
 *.vsidx
 *.lock
-ClearDemos2/ClearDemos_PACK10/Commands.txt
+*.db-wal
+*.db-shm
+*.db
+*.opendb
+*.tlog
+*.lib
+*.wav
