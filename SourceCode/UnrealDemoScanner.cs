@@ -27,7 +27,7 @@ namespace DemoScanner.DG
     {
 
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.65.2_BETA";
+        public const string PROGRAMVERSION = "1.65.3_BETA";
 
         public enum AngleDirection
         {
@@ -2622,7 +2622,6 @@ namespace DemoScanner.DG
                                 }
 
 
-
                                 if (RealAlive)
                                 {
                                     float tmpXangle = AngleBetweenAbsolute(PREV_CDFRAME_ViewAngles.X, CDFRAME_ViewAngles.X);
@@ -3043,7 +3042,15 @@ namespace DemoScanner.DG
                                 FrameErrors = LastOutgoingSequence = LastIncomingAcknowledged = LastIncomingSequence = 0;
                                 LASTFRAMEISCLIENTDATA = false;
                                 if (DUMP_ALL_FRAMES) subnode.Text += @"End of the DirectoryEntry!";
-
+                                FirstUserAlive = false;
+                                UserAlive = false;
+                                RealAlive = false;
+                                FirstBypassKill = true;
+                                BypassCount = 0;
+                                FirstDuck = false;
+                                FirstJump = false;
+                                FirstAttack = false;
+                                SearchJumpBug = false;
                                 break;
                             }
                         case GoldSource.DemoFrameType.Event:
@@ -3819,7 +3826,9 @@ namespace DemoScanner.DG
                                     if (NeedDetectBHOPHack && RealAlive) BHOP_JumpWarn++;
 
                                 if (!PreviousFrameJumped && CurrentFrameJumped)
+                                {
                                     if (IsUserAlive()) JumpCount2++;
+                                }
                                 //Console.WriteLine("JMP BUTTON at (" + CurrentTime + ") : " + CurrentTimeString);
 
                                 //if (FirstAttack && CurrentTime == IsAttackLastTime)
@@ -6192,7 +6201,7 @@ namespace DemoScanner.DG
                                 string filename = Regex.Replace(player.Name, @"[^\u0000-\u007F]+", "_") + "(" + player.Slot + ").wav";
 
                                 foreach (char c in Path.GetInvalidFileNameChars()) filename = filename.Replace(c, 'x');
-                                
+
                                 if (File.Exists(CurrentDir + @"\out\" + filename))
                                 {
                                     offset++;

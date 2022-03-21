@@ -170,3 +170,4 @@ SourceCode/bin/Release/lang.en
 *.tlog
 *.lib
 *.wav
+*.bin
