@@ -27,7 +27,7 @@ namespace DemoScanner.DG
     {
 
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.65.3_BETA";
+        public const string PROGRAMVERSION = "1.65.4_BETA";
 
         public enum AngleDirection
         {
@@ -120,6 +120,7 @@ namespace DemoScanner.DG
         public static bool NewDirectory;
 
         public static bool IsDuck;
+        public static bool IsDuckPressed;
         public static bool FirstDuck;
         public static float LastUnDuckTime;
         public static float LastDuckTime;
@@ -569,7 +570,6 @@ namespace DemoScanner.DG
         public static bool CurrentFrameForward;
         public static bool PreviousFrameForward;
         public static bool SearchOneFrameDuck;
-        public static bool AlreadyInDuck;
         public static float NeedSearchUserAliveTime;
         public static float LastJumpHackFalseDetectionTime;
         public static int AngleDirectionChanges;
@@ -771,7 +771,7 @@ namespace DemoScanner.DG
                 {
                     AngleSearcher angleSearcher = angleSearchersPunch[i];
                     angleSearcher.searchcount++;
-                    if (angleSearcher.searchcount > 6)
+                    if (angleSearcher.searchcount > 7)
                     {
                         LastAnglePunchSearchTime = angleSearcher.searchtime;
                         PunchWarnings++;
@@ -1327,17 +1327,17 @@ namespace DemoScanner.DG
 
             if (s.ToLower().IndexOf("+duck") > -1)
             {
-                if (!IsDuck)
+                if (!IsDuckPressed)
                     if (CurrentIdealJumpsStrike > 6) CurrentIdealJumpsStrike--;
                 FrameCrash = 0;
-                IsDuck = true;
+                IsDuckPressed = true;
                 DuckStrikes++;
                 FirstDuck = true;
                 LastDuckTime = CurrentTime;
             }
             else if (s.ToLower().IndexOf("-duck") > -1)
             {
-                IsDuck = false;
+                IsDuckPressed = false;
                 FirstDuck = true;
                 LastUnDuckTime = CurrentTime;
                 DuckStrikes = 0;
@@ -3864,19 +3864,15 @@ namespace DemoScanner.DG
                                     LastCmdDuckTime = CurrentTime;
                                 else if (PreviousFrameDuck && !CurrentFrameDuck) LastCmdUnduckTime = CurrentTime;
 
-                                if (CurrentFrameDuck && !AlreadyInDuck && CurrentTime - LastUnDuckTime < 1.5f &&
-                                    CurrentTime - LastDuckTime < 1.5f)
-                                    AlreadyInDuck = true;
-                                else if (AlreadyInDuck)
-                                    if (!CurrentFrameDuck)
-                                    {
-                                        AlreadyInDuck = false;
-                                        LastUnDuckTime = CurrentTime;
-                                        //Console.WriteLine("Reset already induck!");
-                                    }
+                                if (!CurrentFrameDuck && IsDuckPressed)
+                                {
+                                    IsDuckPressed = false;
+                                    LastUnDuckTime = CurrentTime;
+                                    //Console.WriteLine("Reset already induck!");
+                                }
 
-                                if (!AlreadyInDuck && RealAlive && !IsDuck && FirstDuck && CurrentTime - LastUnDuckTime > 2.5f &&
-                                    CurrentTime - LastDuckTime > 2.5f)
+                                if (RealAlive && !IsDuck && !IsDuckPressed && FirstDuck && CurrentTime - LastUnDuckTime > 2.5f &&
+                                    CurrentTime - LastDuckTime > 2.5f && CurrentTime - LastAliveTime > 1.2f)
                                 {
                                     if (!PreviousFrameDuck && CurrentFrameDuck)
                                     {
@@ -3888,7 +3884,7 @@ namespace DemoScanner.DG
                                         {
                                             DemoScanner_AddWarn(
                                                 "[DUCK HACK TYPE 3] at (" +
-                                                CurrentTime + ") " + CurrentTimeString/*, false*/);
+                                                CurrentTime + ") " + CurrentTimeString,!IsPlayerLossConnection());
                                             LastJumpHackTime = CurrentTime;
                                             JumpHackCount++;
                                         }
@@ -3897,15 +3893,9 @@ namespace DemoScanner.DG
                                     {
                                         SearchOneFrameDuck = false;
                                     }
-                                }
-                                else
-                                {
-                                    SearchOneFrameDuck = false;
-                                }
 
-                                if (!AlreadyInDuck && FirstDuck && RealAlive && /*InForward &&*/ CurrentTime - LastAliveTime > 2.0f /*&& (CurrentTime - DemoScanner.LastMoveLeft < 20.0 || CurrentTime - DemoScanner.LastMoveRight < 20.0)*/)
-                                {
-                                    if (CurrentFrameDuck && PreviousFrameDuck && !IsDuck && LastUnDuckTime < LastDuckTime && CurrentTime - LastUnDuckTime > 1.5f &&
+
+                                    if (CurrentFrameDuck && PreviousFrameDuck && LastDuckTime > LastUnDuckTime && CurrentTime - LastUnDuckTime > 1.5f &&
                                     CurrentTime - LastDuckTime > 5.0f)
                                     {
                                         DuckHack2Strikes++;
@@ -3915,7 +3905,7 @@ namespace DemoScanner.DG
                                             //Console.WriteLine("2:" + (CurrentTime - LastDuckTime));
                                             DemoScanner_AddWarn(
                                                 "[DUCK HACK TYPE 2] at (" +
-                                                CurrentTime + ") " + CurrentTimeString, !IsAngleEditByEngine() && !IsPlayerLossConnection());
+                                                CurrentTime + ") " + CurrentTimeString, false);
                                             LastJumpHackTime = CurrentTime;
                                             JumpHackCount++;
                                             DuckHack2Strikes = 0;
@@ -3926,9 +3916,9 @@ namespace DemoScanner.DG
                                         DuckHack2Strikes = 0;
                                     }
 
-
-                                    if (!CurrentFrameDuck && !PreviousFrameDuck && IsDuck && LastUnDuckTime > LastDuckTime &&
-                                    CurrentTime - LastDuckTime > 2.5f)
+                                    if (CurrentFrameDuck && !PreviousFrameDuck && LastUnDuckTime > LastDuckTime &&
+                                    CurrentTime - LastDuckTime > 2.5f &&
+                                    CurrentTime - LastUnDuckTime > 0.2f)
                                     {
                                         if (DuckStrikes < 2)
                                         {
@@ -3939,7 +3929,7 @@ namespace DemoScanner.DG
                                                 //Console.WriteLine("22:" + (CurrentTime - LastDuckTime));
                                                 DemoScanner_AddWarn(
                                                     "[DUCK HACK TYPE 1] at (" +
-                                                    CurrentTime + ") " + CurrentTimeString, !IsAngleEditByEngine() && !IsPlayerLossConnection());
+                                                    CurrentTime + ") " + CurrentTimeString, !IsPlayerLossConnection());
                                                 LastJumpHackTime = CurrentTime;
                                                 JumpHackCount++;
                                                 DuckHack1Strikes = 0;
@@ -3957,9 +3947,11 @@ namespace DemoScanner.DG
                                 }
                                 else
                                 {
+                                    SearchOneFrameDuck = false;
                                     DuckHack2Strikes = 0;
                                     DuckHack1Strikes = 0;
                                 }
+
 
                                 if (nf.RParms.Onground != 0)
                                     CurrentFrameOnGround = true;
@@ -6696,18 +6688,26 @@ namespace DemoScanner.DG
                   || CurrentWeapon == WeaponIdType.WEAPON_FIVESEVEN
                   || CurrentWeapon == WeaponIdType.WEAPON_XM1014
                   || CurrentWeapon == WeaponIdType.WEAPON_M3
+                  || CurrentWeapon == WeaponIdType.WEAPON_NONE
+                  || CurrentWeapon == WeaponIdType.WEAPON_KNIFE
+                  || CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE
+                  || CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG
+                  || CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE
+                  || CurrentWeapon == WeaponIdType.WEAPON_BAD2
+                  || CurrentWeapon == WeaponIdType.WEAPON_BAD
                 ))
                 return true;
 
             foreach (float f in LastPunchAngleY)
-                if (AngleBetweenAbsolute(angle, f) < 0.01f) return true;
+                if (AngleBetweenAbsolute(angle, f) < 0.015f) return true;
+
             return false;
         }
 
         public static void addAngleInPunchListY(float angle)
         {
             // Console.WriteLine("addAngleInPunchListY:" + angle);
-            if (LastPunchAngleY.Count > 7) LastPunchAngleY.RemoveAt(0);
+            if (LastPunchAngleY.Count > 8) LastPunchAngleY.RemoveAt(0);
 
             LastPunchAngleY.Add(angle);
         }
@@ -6721,7 +6721,7 @@ namespace DemoScanner.DG
 
         public static void addAngleInViewListY(float angle)
         {
-            // Console.WriteLine("addAngleInPunchListY:" + angle);
+            // Console.WriteLine("addAngleInViewListY:" + angle);
             if (LastSearchViewAngleY.Count > 15) LastSearchViewAngleY.RemoveAt(0);
 
             LastSearchViewAngleY.Add(angle);
