@@ -27,7 +27,7 @@ namespace DemoScanner.DG
     {
 
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.65.4_BETA";
+        public const string PROGRAMVERSION = "1.65.5_BETA";
 
         public enum AngleDirection
         {
@@ -719,6 +719,7 @@ namespace DemoScanner.DG
         public static int MaxMsgPerSecond;
         public static int SkipChangeWeapon;
         public static byte VoiceQuality = 5;
+        public static int SearchJumpHack5;
 
         public static WeaponIdType GetWeaponByStr(string str)
         {
@@ -3822,6 +3823,26 @@ namespace DemoScanner.DG
 
                                 if (CurrentFrameJumped) LastJumpBtnTime = CurrentTime;
 
+
+                                if (DemoScanner.SearchJumpHack5 > 1)
+                                {
+                                    DemoScanner.SearchJumpHack5--;
+                                    if (IsPlayerBtnJumpPressed())
+                                    {
+
+                                        DemoScanner.SearchJumpHack5 = 0;
+                                    }
+                                }
+                                else if (DemoScanner.SearchJumpHack5 == 1)
+                                {
+                                    DemoScanner.SearchJumpHack5--;
+                                    if (!IsPlayerBtnJumpPressed() && IsUserAlive() && !DisableJump5AndAim16)
+                                    {
+                                        DemoScanner_AddWarn("[EXPERIMENTAL][JUMPHACK TYPE 5] at (" + CurrentTime +
+                                                            "):" + CurrentTimeString, true, true, false, true);
+                                    }
+                                }
+
                                 if (PreviousFrameJumped && !CurrentFrameJumped)
                                     if (NeedDetectBHOPHack && RealAlive) BHOP_JumpWarn++;
 
@@ -6429,6 +6450,8 @@ namespace DemoScanner.DG
                     Console.WriteLine("ServerName:" + ServerName);
                     Console.WriteLine("MapName:" + MapName);
                     Console.WriteLine("GameDir:" + GameDir);
+                    Console.WriteLine("Download Location:");
+                    Console.WriteLine(DownloadLocation);
                     Console.WriteLine("DealthMatch:" + DealthMatch);
 
                     if (playerList.Count > 0) Console.WriteLine("Players: " + playerList.Count);
@@ -7055,10 +7078,7 @@ namespace DemoScanner.DG
                         else if (cmdList[1] == "JMP")
                         {
                             if (IsUserAlive()) JumpCount6++;
-
-                            if (!IsPlayerBtnJumpPressed() && IsUserAlive() && !DisableJump5AndAim16)
-                                DemoScanner_AddWarn("[EXPERIMENTAL][JUMPHACK TYPE 5] at (" + CurrentTime +
-                                                    "):" + CurrentTimeString, true, true, false, true);
+                            DemoScanner.SearchJumpHack5 = 5;
                         }
                         else if (cmdList[1] == "XCMD")
                         {
