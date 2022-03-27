@@ -27,7 +27,7 @@ namespace DemoScanner.DG
     {
 
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.65.5_BETA";
+        public const string PROGRAMVERSION = "1.65.6_BETA";
 
         public enum AngleDirection
         {
@@ -132,6 +132,8 @@ namespace DemoScanner.DG
         public static int UserId2 = -1;
 
         public static bool isgroundchange = false;
+
+        public static bool NotFirstEventShift = true;
 
         public static FPoint oldoriginpos;
         public static FPoint curoriginpos;
@@ -721,6 +723,7 @@ namespace DemoScanner.DG
         public static byte VoiceQuality = 5;
         public static int SearchJumpHack5;
 
+        public static int SearchJumpHack51;
         public static WeaponIdType GetWeaponByStr(string str)
         {
             if (str.ToLower().IndexOf("weapon_") == -1) str = "weapon_" + str.ToLower();
@@ -3827,18 +3830,36 @@ namespace DemoScanner.DG
                                 if (DemoScanner.SearchJumpHack5 > 1)
                                 {
                                     DemoScanner.SearchJumpHack5--;
-                                    if (IsPlayerBtnJumpPressed())
+                                    if (IsPlayerAnyJumpPressed() || !IsUserAlive())
                                     {
-
                                         DemoScanner.SearchJumpHack5 = 0;
                                     }
                                 }
                                 else if (DemoScanner.SearchJumpHack5 == 1)
                                 {
                                     DemoScanner.SearchJumpHack5--;
-                                    if (!IsPlayerBtnJumpPressed() && IsUserAlive() && !DisableJump5AndAim16)
+                                    if (!IsPlayerAnyJumpPressed() && IsUserAlive() && !DisableJump5AndAim16)
                                     {
                                         DemoScanner_AddWarn("[EXPERIMENTAL][JUMPHACK TYPE 5] at (" + CurrentTime +
+                                                            "):" + CurrentTimeString, false, true, false, true);
+                                    }
+                                }
+
+
+                                if (DemoScanner.SearchJumpHack51 > 1)
+                                {
+                                    DemoScanner.SearchJumpHack51--;
+                                    if (IsPlayerBtnJumpPressed() || !IsUserAlive())
+                                    {
+                                        DemoScanner.SearchJumpHack51 = 0;
+                                    }
+                                }
+                                else if (DemoScanner.SearchJumpHack51 == 1)
+                                {
+                                    DemoScanner.SearchJumpHack51--;
+                                    if (!IsPlayerBtnJumpPressed() && IsUserAlive() && !DisableJump5AndAim16)
+                                    {
+                                        DemoScanner_AddWarn("[EXPERIMENTAL][JUMPHACK TYPE 5.1] at (" + CurrentTime +
                                                             "):" + CurrentTimeString, true, true, false, true);
                                     }
                                 }
@@ -3848,6 +3869,7 @@ namespace DemoScanner.DG
 
                                 if (!PreviousFrameJumped && CurrentFrameJumped)
                                 {
+                                   // Console.WriteLine("Real jump at: " + CurrentTimeString);
                                     if (IsUserAlive()) JumpCount2++;
                                 }
                                 //Console.WriteLine("JMP BUTTON at (" + CurrentTime + ") : " + CurrentTimeString);
@@ -7077,8 +7099,12 @@ namespace DemoScanner.DG
                         }
                         else if (cmdList[1] == "JMP")
                         {
+                            int id = int.Parse(cmdList[2]);
                             if (IsUserAlive()) JumpCount6++;
+                            if (id == 1)
                             DemoScanner.SearchJumpHack5 = 5;
+                            else 
+                            DemoScanner.SearchJumpHack51 = 5;
                         }
                         else if (cmdList[1] == "XCMD")
                         {
@@ -7152,11 +7178,12 @@ namespace DemoScanner.DG
                                 {
                                     if (CurrentEvents != 0)
                                         DemoScanner_AddWarn("[EXPERIMENTAL][UNKNOWN HACK<" + CurrentEvents + "><" + PluginEvents + ">] at (" + CurrentTime +
-                                                            "):" + CurrentTimeString, true, true, false, true);
+                                                            "):" + CurrentTimeString, !NotFirstEventShift, true, false, true);
                                     else
                                         BadEvents += 8;
                                     CurrentEvents = 0;
                                     PluginEvents = 0;
+                                    NotFirstEventShift = false;
                                 }
                                 PluginEvents++;
                             }

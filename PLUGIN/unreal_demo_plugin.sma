@@ -5,7 +5,7 @@
 
 #define PLUGIN "Unreal Demo Plugin"
 #define AUTHOR "karaulov"
-#define VERSION "1.5"
+#define VERSION "1.51"
 
 public plugin_init() 
 {
@@ -68,7 +68,10 @@ public HC_CBasePlayer_Jump_Pre(id)
 		return HC_CONTINUE;
 	}
 	
-	WriteDemoInfo(id, "UDS/JMP/1");
+	if (get_entvar(id, var_oldbuttons) & IN_JUMP && get_entvar(id, var_button) & IN_JUMP)
+		WriteDemoInfo(id, "UDS/JMP/2");
+	else 
+		WriteDemoInfo(id, "UDS/JMP/1");
 	return HC_CONTINUE;
 }
 
