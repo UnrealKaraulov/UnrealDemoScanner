@@ -27,7 +27,7 @@ namespace DemoScanner.DG
     {
 
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.65.7_BETA";
+        public const string PROGRAMVERSION = "1.65.8_BETA";
 
         public enum AngleDirection
         {
@@ -5597,7 +5597,7 @@ namespace DemoScanner.DG
                                     if (LastIncomingSequence > 0 && Math.Abs(nf.IncomingSequence - LastIncomingSequence) > LastLossPacketCount
                                         && Math.Abs(nf.IncomingSequence - LastIncomingSequence) > 5 && Math.Abs(nf.OutgoingSequence - LastOutgoingSequence) > 4 && CurrentFrameDuplicated == 0)
                                     {
-                                        if (FrameErrors > 1 && IsUserAlive())
+                                        if (FrameErrors > 3 && IsUserAlive())
                                         {
                                             if (CurrentTime - LastCmdHack > 5.0)
                                                 DemoScanner_AddWarn(
