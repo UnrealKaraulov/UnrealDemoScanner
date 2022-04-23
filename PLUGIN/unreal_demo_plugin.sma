@@ -111,8 +111,6 @@ public UnrealDemoHelpInitialize(id)
 	{
 		WriteDemoInfo(id,"UDS/BAD/2");
 	}
-	
-	return PLUGIN_HANDLED;
 }
 
 // SVC_RESOURCELOCATION ignore all strings not started with http or https

@@ -171,3 +171,13 @@ SourceCode/bin/Release/lang.en
 *.lib
 *.wav
 *.bin
+ReVoiceDecoder/opus/msvc/Release/_IsIncrementalBuild
+*.iobj
+ReVoiceDecoder/Release/_IsIncrementalBuild
+ReVoiceDecoder/Release/ReVoiceDecoder.iobj
+ReVoiceDecoder/Release/ReVoiceDecoder.ipdb
+ReVoiceDecoder/silk/msvc/Release/_IsIncrementalBuild
+ReVoiceDecoder/speex/msvc/Release/_IsIncrementalBuild
+*.ipdb
+ReVoiceDecoder/Release/ReVoiceDecoder.ipdb
+ReVoiceDecoder/Release/ReVoiceDecoder.iobj

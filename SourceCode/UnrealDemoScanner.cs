@@ -27,7 +27,7 @@ namespace DemoScanner.DG
     {
 
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.65.6_BETA";
+        public const string PROGRAMVERSION = "1.65.7_BETA";
 
         public enum AngleDirection
         {
@@ -1910,7 +1910,10 @@ namespace DemoScanner.DG
                 if (File.Exists(CurrentDir + @"\lang.en"))
                     IsRussia = false;
                 else
+                {
                     IsRussia = true;
+                    System.Console.OutputEncoding = Encoding.GetEncoding(1251);
+                }
             }
 
 
@@ -3500,8 +3503,6 @@ namespace DemoScanner.DG
                                         LastAim5Detected = 0.0f;
                                     }
                                 }
-
-
 
 
                                 if (CurrentWeapon == WeaponIdType.WEAPON_KNIFE
@@ -6388,10 +6389,10 @@ namespace DemoScanner.DG
                     Console.WriteLine("Fly time: " + Convert.ToInt32(100.0 / (TotalFramesOnFly + TotalFramesOnGround) * TotalFramesOnFly) + "%");
                     Console.WriteLine("Attack in fly: " + Convert.ToInt32(100.0 / (TotalFramesOnFly + TotalFramesOnGround) * TotalAttackFramesOnFly) + "%");
 
-                    table = new ConsoleTable("СМЕРТЕЙ/DEATHS", "(2) СМЕРТЕЙ / DEATHS",
-                        "УБИЙСТВ /KILLS");
+                    table = new ConsoleTable(
+                        "УБИЙСТВ /KILLS" , "СМЕРТЕЙ/DEATHS");
 
-                    table.AddRow(DeathsCoount, DeathsCoount2, KillsCount);
+                    table.AddRow(KillsCount, DeathsCoount);
 
                     table.Write(Format.Alternative);
 
@@ -9466,13 +9467,14 @@ namespace DemoScanner.DG
 
             byte bad = 0xFF;
 
-            if (cStatus == 0 && weaponid_byte == bad && clip == bad)
+            if (cStatus == 0 && weaponid_byte == bad && clip == bad && (DemoScanner.UserAlive || DemoScanner.FirstUserAlive))
             {
                 DemoScanner.LastDeathTime = DemoScanner.CurrentTime;
+                if (!DemoScanner.FirstUserAlive)
+                    DemoScanner.DeathsCoount++;
                 DemoScanner.FirstUserAlive = false;
                 DemoScanner.UserAlive = false;
                 DemoScanner.RealAlive = false;
-                DemoScanner.DeathsCoount++;
                 if (DemoScanner.DUMP_ALL_FRAMES) DemoScanner.OutDumpString += "LocalPlayer  killed. Method : cur weapon!\n";
 
                 if (DemoScanner.DEBUG_ENABLED) Console.WriteLine("LocalPlayer killed. Method : cur weapon! at " + DemoScanner.CurrentTimeString);
@@ -9675,13 +9677,14 @@ namespace DemoScanner.DG
             byte isHeadShot = BitBuffer.ReadByte();
             string weapon = BitBuffer.ReadString();
 
-            if (iVictim == DemoScanner.UserId + 1)
+            if (iVictim == DemoScanner.UserId + 1 && (DemoScanner.UserAlive || DemoScanner.FirstUserAlive))
             {
                 DemoScanner.LastDeathTime = DemoScanner.CurrentTime;
+                if (!DemoScanner.FirstUserAlive)
+                    DemoScanner.DeathsCoount++;
                 DemoScanner.FirstUserAlive = false;
                 DemoScanner.UserAlive = false;
                 DemoScanner.RealAlive = false;
-                DemoScanner.DeathsCoount++;
                 if (DemoScanner.DUMP_ALL_FRAMES) DemoScanner.OutDumpString += "LocalPlayer " + iVictim + " killed!\n";
 
                 if (DemoScanner.DEBUG_ENABLED) Console.WriteLine("LocalPlayer " + iVictim + " killed! at " + DemoScanner.CurrentTimeString);
@@ -9692,8 +9695,9 @@ namespace DemoScanner.DG
                     DemoScanner.GameEnd = false;
                 }
             }
-            else if (iKiller == DemoScanner.UserId + 1 && iVictim != DemoScanner.UserId + 1)
+            else if (iKiller == DemoScanner.UserId + 1 && iVictim != iKiller)
             {
+                DemoScanner.KillsCount++;
                 if (DemoScanner.LastAttackForTrigger == DemoScanner.NewAttackForTrigger)
                 {
                     if (DemoScanner.LastAttackForTriggerFrame != DemoScanner.CurrentFrameIdAll && !DemoScanner.IsPlayerAttackedPressed() && DemoScanner.IsUserAlive() && !DemoScanner.IsChangeWeapon() && !DemoScanner.IsPlayerLossConnection())
@@ -9771,7 +9775,6 @@ namespace DemoScanner.DG
                     }
                     DemoScanner.FirstUserAlive = false;
                 }
-                DemoScanner.KillsCount++;
             }
 
             if (DemoScanner.DUMP_ALL_FRAMES) DemoScanner.OutDumpString += "User " + iVictim + " killed!\n";
@@ -9796,13 +9799,14 @@ namespace DemoScanner.DG
             byte clientid = BitBuffer.ReadByte();
             byte unknown = BitBuffer.ReadByte();
             if (DemoScanner.UserId2 + 1 == clientid)
-                if (DemoScanner.UserAlive)
+                if (DemoScanner.UserAlive || DemoScanner.FirstUserAlive)
                 {
+                    if (!DemoScanner.FirstUserAlive)
+                        DemoScanner.DeathsCoount++;
                     DemoScanner.LastDeathTime = DemoScanner.CurrentTime;
                     DemoScanner.FirstUserAlive = false;
                     DemoScanner.UserAlive = false;
                     DemoScanner.RealAlive = false;
-                    DemoScanner.DeathsCoount++;
                     Console.WriteLine("Forcing user dead because he join to spectator! (" + DemoScanner.CurrentTimeString + ")");
                 }
         }
@@ -10791,13 +10795,15 @@ namespace DemoScanner.DG
                                     {
                                         float hp = value != null ? (float)value : 0.0f;
 
-                                        if (DemoScanner.UserAlive && hp <= 0)
+                                        if (hp <= 0 && (DemoScanner.UserAlive || DemoScanner.FirstUserAlive))
                                         {
                                             DemoScanner.LastDeathTime = DemoScanner.CurrentTime;
+                                            if (!DemoScanner.FirstUserAlive)
+                                                DemoScanner.DeathsCoount++;
+
                                             DemoScanner.FirstUserAlive = false;
                                             DemoScanner.UserAlive = false;
                                             DemoScanner.RealAlive = false;
-                                            DemoScanner.DeathsCoount++;
                                             if (DemoScanner.DEBUG_ENABLED) Console.WriteLine("LocalPlayer killed. Method : clientdata_t health! at " + DemoScanner.CurrentTimeString);
                                         }
                                     }
