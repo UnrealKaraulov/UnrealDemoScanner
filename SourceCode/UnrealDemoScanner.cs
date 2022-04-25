@@ -27,7 +27,7 @@ namespace DemoScanner.DG
     {
 
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.65.8_BETA";
+        public const string PROGRAMVERSION = "1.65.9_BETA";
 
         public enum AngleDirection
         {
@@ -724,6 +724,9 @@ namespace DemoScanner.DG
         public static int SearchJumpHack5;
 
         public static int SearchJumpHack51;
+
+        public static bool NeedSearchCMDHACK4 = false;
+
         public static WeaponIdType GetWeaponByStr(string str)
         {
             if (str.ToLower().IndexOf("weapon_") == -1) str = "weapon_" + str.ToLower();
@@ -1912,7 +1915,7 @@ namespace DemoScanner.DG
                 else
                 {
                     IsRussia = true;
-                    System.Console.OutputEncoding = Encoding.GetEncoding(1251);
+                   // System.Console.OutputEncoding = Encoding.GetEncoding(1251);
                 }
             }
 
@@ -5592,19 +5595,20 @@ namespace DemoScanner.DG
                                 }
                                 //subnode.Text += @"msg = " + nf.Msg + "\n";
 
-                                if (Math.Abs(CurrentTime) > 0 && (FirstAttack || FirstJump) && !NewDirectory)
+                                if (NeedSearchCMDHACK4 && Math.Abs(CurrentTime) > 0 && (FirstAttack || FirstJump) && !NewDirectory)
                                 {
-                                    if (LastIncomingSequence > 0 && Math.Abs(nf.IncomingSequence - LastIncomingSequence) > LastLossPacketCount
-                                        && Math.Abs(nf.IncomingSequence - LastIncomingSequence) > 5 && Math.Abs(nf.OutgoingSequence - LastOutgoingSequence) > 4 && CurrentFrameDuplicated == 0)
+                                    if (LastIncomingSequence > 0 && nf.IncomingSequence - LastIncomingSequence > LastLossPacketCount + 1
+                                        && nf.IncomingSequence - LastIncomingSequence > 5 && nf.OutgoingSequence - LastOutgoingSequence > 4 && CurrentFrameDuplicated == 0)
                                     {
-                                        if (FrameErrors > 3 && IsUserAlive())
+                                        if (FrameErrors > 0 && IsUserAlive())
                                         {
-                                            if (CurrentTime - LastCmdHack > 5.0)
+                                            if (CurrentTime - LastCmdHack > 3.0)
                                                 DemoScanner_AddWarn(
                                                     "[CMD HACK TYPE 4] at (" +
-                                                    CurrentTime + ") " + CurrentTimeString, !IsAngleEditByEngine(), true, !IsAngleEditByEngine());
-                                            //Console.WriteLine("BAD BAD " + nf.UCmd.Msec + " / " + nf.RParms.Frametime + " = " + ((float)nf.UCmd.Msec / nf.RParms.Frametime).ToString());
+                                                    CurrentTime + ") " + CurrentTimeString,false);
+                                            // Console.WriteLine("BAD BAD " + nf.UCmd.Msec + " / " + nf.RParms.Frametime + " = " + ((float)nf.UCmd.Msec / nf.RParms.Frametime).ToString() + " / " + (nf.IncomingSequence - LastIncomingSequence) + " / " + (nf.OutgoingSequence - LastOutgoingSequence));
                                             LastCmdHack = CurrentTime;
+                                            NeedSearchCMDHACK4 = false;
                                         }
                                         FrameErrors++;
                                     }
@@ -8601,6 +8605,8 @@ namespace DemoScanner.DG
                     DemoScanner.FrameErrors = DemoScanner.LastOutgoingSequence = DemoScanner.LastIncomingAcknowledged = DemoScanner.LastIncomingSequence = 0;
                     DemoScanner.LastLossTime2 = DemoScanner.CurrentTime;
                     DemoScanner.PluginFrameNum = -1;
+                    DemoScanner.NeedSearchCMDHACK4 = true;
+
                     if (!DemoScanner.LossFalseDetection && (Math.Abs(DemoScanner.LastLossPacket) <= float.Epsilon || DemoScanner.CurrentTime - DemoScanner.LastLossPacket > 60.0f))
                     {
                         DemoScanner.LossFalseDetection = true;
