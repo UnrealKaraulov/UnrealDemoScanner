@@ -132,31 +132,17 @@ _NCrunch*
 Release/*
 SourceCode/bin/Release/UnrealDemoScanner.zip
 SourceCode/bin/Release/UnrealDemoScanner.exe
-CheatDemos3/DemosPack1/Demo_3Special_Zone_1.dem
-CheatDemos3/DemosPack3/Demo_Special_Zone_2 (5).dem
-CheatDemos4/Zver2.dem
-CheatDemos5/yuk3_[p3]_NON_STEAM.dem
-ClearDemos5/DemoPack3/cozy_dom - de_inferno_2x2.dem
-ClearDemos5/DemoPack4/1.dem
-ClearDemos5/DemoPack4/1123.dem
-ClearDemos5/DemoPack4/172.dem
-ClearDemos5/DemoPack4/2fs2.dem
-ClearDemos5/DemoPack4/57546756767567567.dem
-ClearDemos5/DemoPack4/8567564654665454.dem
-ClearDemos5/DemoPack4/AASASDAFASFAFSF.dem
-ClearDemos5/DemoPack4/asdasdasdasd.dem
-ClearDemos5/DemoPack4/divine.dem
-ClearDemos5/DemoPack4/divinelohi.dem
-ClearDemos5/DemoPack4/DIVN1.dem
-ClearDemos5/DemoPack4/FalseAIM82.dem
-ClearDemos5/DemoPack4/inwesko.dem
-ClearDemos5/DemoPack4/Irina Nikolaevna.dem
-ClearDemos5/DemoPack4/knifebot.dem
-ClearDemos5/DemoPack4/KV2.dem
-ClearDemos5/DemoPack4/llllllllll.dem
-ClearDemos5/DemoPack4/nukakakka.dem
-ClearDemos5/DemoPack4/softershaaaa.dem
-ClearDemos5/DemoPack4/demo.dem
+CheatDemos/
+CheatDemos2/
+CheatDemos3/
+CheatDemos4/
+CheatDemos5/
+ClearDemos2/
+ClearDemos3/
+ClearDemos4/
+ClearDemos5/
+ClearDemos/
+
 *.txt
 SourceCode/bin/Release/UnrealDemoScanner2.exe
 SourceCode/bin/Release/lang.ru
