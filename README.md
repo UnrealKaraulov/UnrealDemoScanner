@@ -51,3 +51,9 @@ AIM TYPE 7 - HPP Trigger bot
 AIM TYPE 8 - Universal AIMBOT detection
 
 TRIGGER BOT - OLD AIM / TRIGGER HACK
+
+
+DEMO PACK YOU CAN DOWNLOAD HERE :
+ https://github.com/UnrealKaraulov/UnrealDemoScanner/tree/1935a1c9ba62c998bdf74125866728b0ddf4b58b
+ https://drive.google.com/drive/folders/1VodMw7uSYcFXg2Ch4-XOYUMJMPQSroLE?usp=sharing
+ https://disk.yandex.by/d/LYgrwo2Ysxj97g
