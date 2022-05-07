@@ -27,7 +27,7 @@ namespace DemoScanner.DG
     {
 
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.65.11_BETA";
+        public const string PROGRAMVERSION = "1.65.12_BETA";
 
         public enum AngleDirection
         {
@@ -10854,25 +10854,9 @@ namespace DemoScanner.DG
                                         }
                                     }
 
-                                    if (entryList[index].Name == "punchangle[0]" || entryList[index].Name == "punchangle[1]")
+                                    if (entryList[index].Name == "punchangle[1]")
                                     {
                                         float angle = value != null ? (float)value : 0.0f;
-                                        if (entryList[index].Name.IndexOf("punchangle") > -1)
-                                        {
-                                            DemoScanner.BadPunchAngle = true;
-                                            /*  DemoScanner.addAngleInPunchListX(angle);
-                                                  DemoScanner.NeedCheckPunchAngleX = true;
-                                                  if (angle == -2.0)
-                                                  {
-                                                      if (DemoScanner.PunchWarnings >= -1)
-                                                          DemoScanner.PunchWarnings--;
-                                                  }*/
-                                            // Console.WriteLine("punchangle[0]:" + DemoScanner.LastPunchAngleX[0] + "/" + DemoScanner.LastPunchAngleX[1] + "/" + DemoScanner.LastPunchAngleX[2]);
-                                        }
-                                        else
-                                        {
-                                            DemoScanner.AddPunchAngleSearcher(angle);
-                                        }
                                     }
 
                                     if (entryList[index].Name == "flags")
@@ -10969,13 +10953,13 @@ namespace DemoScanner.DG
                                         {
                                             if (DemoScanner.DEBUG_ENABLED) Console.Write("Shot->");
                                             DemoScanner.attackscounter4++;
-                                            if (DemoScanner.BadPunchAngle)
+                                            /*if (DemoScanner.BadPunchAngle)
                                             {
                                                 DemoScanner.attackscounter5++;
                                                 if (DemoScanner.DEBUG_ENABLED)
                                                     Console.WriteLine("BadPunchAngle" + "(" +
                                                                       DemoScanner.CurrentTime + ") " + DemoScanner.CurrentTimeString);
-                                            }
+                                            }*/
                                             if (DemoScanner.IsPlayerTeleport())
                                             {
                                                 DemoScanner.attackscounter5++;
