@@ -166,3 +166,5 @@ ReVoiceDecoder/speex/msvc/Release/_IsIncrementalBuild
 *.ipdb
 ReVoiceDecoder/Release/ReVoiceDecoder.ipdb
 ReVoiceDecoder/Release/ReVoiceDecoder.iobj
+ReVoiceDecoder/Release/ReVoiceDecoder.ipdb
+ReVoiceDecoder/Release/ReVoiceDecoder.iobj
