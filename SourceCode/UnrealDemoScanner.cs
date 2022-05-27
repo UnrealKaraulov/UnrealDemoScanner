@@ -27,7 +27,7 @@ namespace DemoScanner.DG
     {
 
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.65.13_BETA";
+        public const string PROGRAMVERSION = "1.65.14_BETA";
 
         public enum AngleDirection
         {
@@ -1042,9 +1042,9 @@ namespace DemoScanner.DG
                 LastStuffCmdCommand = "";
                 CommandsDump.Add("wait" + (CurrentFrameId - LastCmdFrameId) + ";");
                 if (IsRussia)
-                    CommandsDump.Add(CurrentTimeString + " : " + s + "(" + CurrentTime + ") --> ВЫПОЛНЕНО СЕРВЕРОМ");
+                    CommandsDump.Add(CurrentTimeString + " : " + s + "(" + CurrentTime + ") --> ВЫПОЛНЕНО СЕРВЕРОМ [НОМЕР КАДРА: " + CurrentFrameId + "]");
                 else
-                    CommandsDump.Add(CurrentTimeString + " : " + s + "(" + CurrentTime + ") --> EXECUTED BY SERVER");
+                    CommandsDump.Add(CurrentTimeString + " : " + s + "(" + CurrentTime + ") --> EXECUTED BY SERVER [FRAME NUMBER: " + CurrentFrameId + "]");
 
                 return;
             }
@@ -1053,12 +1053,20 @@ namespace DemoScanner.DG
             if (isstuff)
             {
                 CommandsDump.Add("wait" + (CurrentFrameId - LastCmdFrameId) + ";");
-                CommandsDump.Add(CurrentTimeString + " : " + s + "(" + CurrentTime + ") --> STUFFCMD");
+                if (IsRussia)
+                    CommandsDump.Add(CurrentTimeString + " : " + s + "(" + CurrentTime + ") --> ВЫПОЛНЕНО ЧЕРЕЗ STUFFTEXT [НОМЕР КАДРА: " + CurrentFrameId + "]");
+                else
+                    CommandsDump.Add(CurrentTimeString + " : " + s + "(" + CurrentTime + ") --> EXECUTED BY STUFFTEXT [FRAME NUMBER: " + CurrentFrameId + "]");
+
             }
             else
             {
                 CommandsDump.Add("wait" + (CurrentFrameId - LastCmdFrameId) + ";");
-                CommandsDump.Add(CurrentTimeString + " : " + s + "(" + CurrentTime + ")");
+                if (IsRussia)
+                    CommandsDump.Add(CurrentTimeString + " : " + s + "(" + CurrentTime + ") --> [НОМЕР КАДРА: " + CurrentFrameId + "]");
+                else
+                    CommandsDump.Add(CurrentTimeString + " : " + s + "(" + CurrentTime + ") --> [FRAME NUMBER: " + CurrentFrameId + "]");
+
             }
 
             if (s.ToLower().IndexOf("-showscores") > -1)
@@ -1879,7 +1887,7 @@ namespace DemoScanner.DG
             if (!SKIP_RESULTS)
                 try
                 {
-                    Console.WriteLine("Search for updates...");
+                    Console.WriteLine("Search for updates...(hint: to change language, need remove lang file!)");
                     WebClient myWebClient = new WebClient();
                     string str_from_github = myWebClient.
                         DownloadString("https://raw.githubusercontent.com/UnrealKaraulov/UnrealDemoScanner/main/SourceCode/UnrealDemoScanner.cs");
@@ -2367,9 +2375,9 @@ namespace DemoScanner.DG
                         NeedRescanDemoForce = false;
                         Console.WriteLine();
                         if (IsRussia)
-                            Console.WriteLine("Извините возникла критическая ошибка при сканировании демо. Повтор...");
+                            Console.WriteLine("Извините возникла критическая ошибка при сканировании демо. Повтор..." + CurrentTimeString);
                         else
-                            Console.WriteLine("Sorry but need rescan demo ^_^! This action is automatically!");
+                            Console.WriteLine("Sorry but need rescan demo ^_^! This action is automatically!" + CurrentTimeString);
 
                         Console.WriteLine();
                         frameindex = 0;
@@ -2518,10 +2526,10 @@ namespace DemoScanner.DG
                                         && Math.Abs(GameEndTime) <= float.Epsilon)
                                     {
                                         ReturnToGameDetects++;
-                                        if (IsRussia)
-                                            DemoScanner_AddWarn("['RETURN TO GAME' FEATURE]", ReturnToGameDetects > 2, true, true);
+                                        if (!IsRussia)
+                                            DemoScanner_AddWarn("['RETURN TO GAME' FEATURE]", ReturnToGameDetects > 2, true);
                                         else
-                                            DemoScanner_AddWarn("[Функция возврата в игру]", ReturnToGameDetects > 2, true, true);
+                                            DemoScanner_AddWarn("[Функция возврата в игру]", ReturnToGameDetects > 2, true);
                                     }
                                     LastTeleportusTime = CurrentTime;
                                 }
@@ -4056,7 +4064,7 @@ namespace DemoScanner.DG
                                 else
                                     TotalFramesOnFly++;
 
-                                if (!PreviousFrameAttacked && CurrentFrameAttacked)
+                                if (CurrentFrameAttacked)
                                     if (!CurrentFrameOnGround) TotalAttackFramesOnFly++;
 
                                 if (RealAlive && CurrentFrameOnGround) StrafeAngleDirectionChanges = 0;
@@ -6441,7 +6449,7 @@ namespace DemoScanner.DG
                     Console.WriteLine("Attack in air:" + AirShots);
                     Console.WriteLine("Teleport count:" + PlayerTeleportus);
                     Console.WriteLine("Fly time: " + Convert.ToInt32(100.0 / (TotalFramesOnFly + TotalFramesOnGround) * TotalFramesOnFly) + "%");
-                    Console.WriteLine("Attack in fly: " + Convert.ToInt32(100.0 / (TotalFramesOnFly + TotalFramesOnGround) * TotalAttackFramesOnFly) + "%");
+                    Console.WriteLine("Attack in fly: " + Convert.ToInt32( 100.0 / (TotalFramesOnFly + TotalFramesOnGround) * TotalAttackFramesOnFly) + "%");
 
                     table = new ConsoleTable(
                         "УБИЙСТВ /KILLS", "СМЕРТЕЙ/DEATHS");
@@ -9736,6 +9744,8 @@ namespace DemoScanner.DG
             byte isHeadShot = BitBuffer.ReadByte();
             string weapon = BitBuffer.ReadString();
 
+            if (iVictim > 32 || iKiller > 32)
+                return;
             if (iVictim == DemoScanner.UserId + 1 && (DemoScanner.UserAlive || DemoScanner.FirstUserAlive))
             {
                 DemoScanner.LastDeathTime = DemoScanner.CurrentTime;
