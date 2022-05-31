@@ -1,5 +1,4 @@
-﻿// Download resource files
-using System;
+﻿using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -25,9 +24,8 @@ namespace DemoScanner.DG
 {
     public static class DemoScanner
     {
-
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.65.14_BETA";
+        public const string PROGRAMVERSION = "1.65.15_BETA";
 
         public enum AngleDirection
         {
@@ -1042,9 +1040,9 @@ namespace DemoScanner.DG
                 LastStuffCmdCommand = "";
                 CommandsDump.Add("wait" + (CurrentFrameId - LastCmdFrameId) + ";");
                 if (IsRussia)
-                    CommandsDump.Add(CurrentTimeString + " : " + s + "(" + CurrentTime + ") --> ВЫПОЛНЕНО СЕРВЕРОМ [НОМЕР КАДРА: " + CurrentFrameId + "]");
+                    CommandsDump.Add(CurrentTimeString + " [НОМЕР КАДРА: " + CurrentFrameId + "] : " + s + "(" + CurrentTime + ") --> ВЫПОЛНЕНО СЕРВЕРОМ");
                 else
-                    CommandsDump.Add(CurrentTimeString + " : " + s + "(" + CurrentTime + ") --> EXECUTED BY SERVER [FRAME NUMBER: " + CurrentFrameId + "]");
+                    CommandsDump.Add(CurrentTimeString + " [FRAME NUMBER: " + CurrentFrameId + "] : " + s + "(" + CurrentTime + ") --> EXECUTED BY SERVER");
 
                 return;
             }
@@ -1054,18 +1052,18 @@ namespace DemoScanner.DG
             {
                 CommandsDump.Add("wait" + (CurrentFrameId - LastCmdFrameId) + ";");
                 if (IsRussia)
-                    CommandsDump.Add(CurrentTimeString + " : " + s + "(" + CurrentTime + ") --> ВЫПОЛНЕНО ЧЕРЕЗ STUFFTEXT [НОМЕР КАДРА: " + CurrentFrameId + "]");
+                    CommandsDump.Add(CurrentTimeString + " [НОМЕР КАДРА: " + CurrentFrameId + "] : " + s + "(" + CurrentTime + ") --> ВЫПОЛНЕНО ЧЕРЕЗ STUFFTEXT");
                 else
-                    CommandsDump.Add(CurrentTimeString + " : " + s + "(" + CurrentTime + ") --> EXECUTED BY STUFFTEXT [FRAME NUMBER: " + CurrentFrameId + "]");
+                    CommandsDump.Add(CurrentTimeString + " [FRAME NUMBER: " + CurrentFrameId + "] : " + s + "(" + CurrentTime + ") --> EXECUTED BY STUFFTEXT");
 
             }
             else
             {
                 CommandsDump.Add("wait" + (CurrentFrameId - LastCmdFrameId) + ";");
                 if (IsRussia)
-                    CommandsDump.Add(CurrentTimeString + " : " + s + "(" + CurrentTime + ") --> [НОМЕР КАДРА: " + CurrentFrameId + "]");
+                    CommandsDump.Add(CurrentTimeString + " [НОМЕР КАДРА: " + CurrentFrameId + "] : " + s + "(" + CurrentTime + ")");
                 else
-                    CommandsDump.Add(CurrentTimeString + " : " + s + "(" + CurrentTime + ") --> [FRAME NUMBER: " + CurrentFrameId + "]");
+                    CommandsDump.Add(CurrentTimeString + " [FRAME NUMBER: " + CurrentFrameId + "] : " + s + "(" + CurrentTime + ")");
 
             }
 
