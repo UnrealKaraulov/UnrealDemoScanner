@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.66.1_BETA";
+        public const string PROGRAMVERSION = "1.66.2_BETA";
 
         public enum AngleDirection
         {
@@ -2133,7 +2133,7 @@ namespace DemoScanner.DG
 
             StartScanTime = DateTime.Now;
             if (!DUMP_ALL_FRAMES)
-                if (File.Exists(CurrentDir + @"\Frames.log"))
+                if (File.Exists(CurrentDir + @"\Frames.txt"))
                 {
                     DUMP_ALL_FRAMES = true;
                     Console.WriteLine("Dump mode activated.");
@@ -2143,11 +2143,11 @@ namespace DemoScanner.DG
             {
                 if (DUMP_ALL_FRAMES)
                 {
-                    File.Delete(CurrentDir + @"\Frames.log");
-                    File.Create(CurrentDir + @"\Frames.log").Close();
+                    File.Delete(CurrentDir + @"\Frames.txt");
+                    File.Create(CurrentDir + @"\Frames.txt").Close();
 
-                    if (File.Exists(CurrentDir + @"\Frames.log"))
-                        File.AppendAllText(CurrentDir + @"\Frames.log",
+                    if (File.Exists(CurrentDir + @"\Frames.txt"))
+                        File.AppendAllText(CurrentDir + @"\Frames.txt",
                             "Полный дамп демо в текстовом формате\n");
                 }
             }
@@ -5558,7 +5558,7 @@ namespace DemoScanner.DG
                                         {
                                             if (SkipNextAttack <= 0)
                                             {
-                                                //File.AppendAllText("bug.log", "NeedWriteAim" + CurrentTime + " " + IsAttackLastTime + "\n");
+                                                //File.AppendAllText("bug.txt", "NeedWriteAim" + CurrentTime + " " + IsAttackLastTime + "\n");
                                                 if (DEBUG_ENABLED) Console.WriteLine("Aim detected?... Teleport:" + IsAngleEditByEngine() + ". Alive:" + IsUserAlive());
                                                 if (!IsAngleEditByEngine() && CurrentFrameDuplicated == 0)
                                                 {
@@ -5771,7 +5771,7 @@ namespace DemoScanner.DG
 
             try
             {
-                if (File.Exists(CurrentDir + @"\Frames.log") || DUMP_ALL_FRAMES) File.WriteAllLines(CurrentDir + @"\Frames.log", outFrames.ToArray());
+                if (File.Exists(CurrentDir + @"\Frames.txt") || DUMP_ALL_FRAMES) File.WriteAllLines(CurrentDir + @"\Frames.txt", outFrames.ToArray());
             }
             catch
             {
@@ -6131,10 +6131,34 @@ namespace DemoScanner.DG
 
                     if (strikedir.EndsWith("/") || strikedir.EndsWith("\\")) strikedir.Remove(strikedir.Length - 1);
 
+                    if (!Directory.Exists(strikedir))
+                    {
+                        try
+                        {
+                            Directory.CreateDirectory(strikedir);
+                        }
+                        catch
+                        {
+                            
+                        }
+                    }
+
                     if (Directory.Exists(strikedir) && File.Exists(strikedir + "\\..\\" + "hw.dll"))
                     {
                         DownloadResources = DownloadResources.Distinct().ToList();
                         Console.WriteLine("Download " + DownloadResources.Count + " resources with total size: " + DownloadResourcesSize + " bytes");
+                        Console.WriteLine("Download start time:" + DateTime.Now.ToString("HH:mm:ss"));
+                        if (File.Exists(CurrentDir + @"\DownloadError.txt"))
+                        {
+                            try
+                            {
+                                File.Delete(CurrentDir + @"\DownloadError.txt");
+                            }
+                            catch
+                            {
+
+                            }
+                        }
 
                         object sync = new object();
                         int sum = 0;
@@ -6155,7 +6179,7 @@ namespace DemoScanner.DG
                                      ConsoleHelper.ClearCurrentConsoleLine();
                                      Console.Write("\rDownload \"" + s + "\" " + sum + " of " + DownloadResources.Count);
                                  }
-                                 WebClient myWebClient = new WebClient();
+                                 bWebClient myWebClient = new bWebClient();
 
                                  try
                                  {
@@ -6175,8 +6199,10 @@ namespace DemoScanner.DG
                                      lock (sync)
                                      {
                                          ConsoleHelper.ClearCurrentConsoleLine();
-                                         Console.Write("\rError download \"" + s + "\" file. Not found at FASTDL server");
-                                         Thread.Sleep(75);
+                                         string dwnerrorstr = "\rFailed to download \"" + s + "\" file.";
+                                         Console.Write(dwnerrorstr);
+                                         Thread.Sleep(50);
+                                         File.AppendAllText(CurrentDir + @"\DownloadError.txt", dwnerrorstr + "\r\n");
                                      }
                                  }
 
@@ -6184,6 +6210,11 @@ namespace DemoScanner.DG
                              Thread.Sleep(1);
                          });
                         Console.WriteLine();
+                        Console.WriteLine("Download end time:" + DateTime.Now.ToString("HH:mm:ss"));
+                        if (File.Exists(CurrentDir + @"\DownloadError.txt"))
+                        {
+                            Process.Start(CurrentDir + @"\DownloadError.txt");
+                        }
                     }
                     else
                     {
@@ -6273,8 +6304,8 @@ namespace DemoScanner.DG
                     table.Write(Format.Alternative);
                     try
                     {
-                        File.WriteAllText(CurrentDir + @"\SensHistory.log", table.ToStringAlternative());
-                        Process.Start(CurrentDir + @"\SensHistory.log");
+                        File.WriteAllText(CurrentDir + @"\SensHistory.txt", table.ToStringAlternative());
+                        Process.Start(CurrentDir + @"\SensHistory.txt");
                     }
                     catch
                     {
@@ -9272,9 +9303,10 @@ namespace DemoScanner.DG
 
                 if (has_extra) info = BitBuffer.ReadBytes(32);
 
-                DemoScanner.DownloadResources.Add(downloadname);
-                if (downloadname.EndsWith(".mp3") || downloadname.EndsWith(".wav"))
+                if (type == 0)
                     DemoScanner.DownloadResources.Add("sound\\" + downloadname);
+                else 
+                    DemoScanner.DownloadResources.Add(downloadname);
 
                 DemoScanner.DownloadResourcesSize += downloadsize;
             }
@@ -11510,7 +11542,18 @@ namespace DemoScanner.DG
                 public float PreMultiplier;
             }
         }
+
+        public class bWebClient : WebClient
+        {
+            protected override WebRequest GetWebRequest(Uri uri)
+            {
+                WebRequest w = base.GetWebRequest(uri);
+                w.Timeout = 1000 * 180;
+                return w;
+            }
+        }
     }
+
     /*
     public class MachineLearn_CheckAngles
     {
