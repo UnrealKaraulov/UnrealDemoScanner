@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.66.2_BETA";
+        public const string PROGRAMVERSION = "1.66.3_BETA";
 
         public enum AngleDirection
         {
@@ -34,6 +34,7 @@ namespace DemoScanner.DG
             AngleDirectionNO = 0
         }
 
+        public const int RESOURCE_DOWNLOAD_THREADS = 20;
 
         public enum WeaponIdType
         {
@@ -72,6 +73,14 @@ namespace DemoScanner.DG
             WEAPON_SHIELDGUN = 99,
             WEAPON_BAD2 = 255
         }
+
+        public struct MyThreadState
+        {
+            public int threadid;
+            public int state;
+        }
+
+        public static MyThreadState[] myThreadStates = new MyThreadState[RESOURCE_DOWNLOAD_THREADS + 1];
 
         public const bool INSPECT_BAD_SHOT = false;
 
@@ -350,6 +359,8 @@ namespace DemoScanner.DG
         public static bool FirstUserAlive = true;
 
         public static bool NeedWriteAim;
+
+        public static object sync = new object();
 
         public static bool NewAttack;
         public static bool NewAttackForLearn;
@@ -4248,7 +4259,7 @@ namespace DemoScanner.DG
                                     JumpHistory.Clear();
                                 }
 
-                                if (PreviousFrameOnGround && !CurrentFrameOnGround && (IsJump || Math.Abs(CurrentTime - LastJumpTime )< 0.2f))
+                                if (PreviousFrameOnGround && !CurrentFrameOnGround && (IsJump || Math.Abs(CurrentTime - LastJumpTime) < 0.2f))
                                 {
                                     if (JmpWarn - CurJmpWarns >= 1 && CurJmpWarns > 0)
                                         RealJumpEmulatorHackWarns++;
@@ -4371,7 +4382,7 @@ namespace DemoScanner.DG
                                         SearchNextJumpStrike = false;
                                         if (Math.Abs(IdealJmpTmpTime1 - LastUnJumpTime) > float.Epsilon &&
                                             Math.Abs(IdealJmpTmpTime2 - LastJumpTime) > float.Epsilon &&
-                                            PreviousFrameOnGround && !CurrentFrameOnGround && (Math.Abs(CurrentTime - LastUnJumpTime )< 0.25f
+                                            PreviousFrameOnGround && !CurrentFrameOnGround && (Math.Abs(CurrentTime - LastUnJumpTime) < 0.25f
                                             || Math.Abs(CurrentTime - LastJumpTime) < 0.25f))
                                         {
                                             IdealJmpTmpTime1 = LastUnJumpTime;
@@ -4606,7 +4617,7 @@ namespace DemoScanner.DG
                                         //}
                                         if (AngleBetweenAbsolute(CDFRAME_ViewAngles.Y, nf.RParms.Viewangles.Y) > float.Epsilon
                                             && AngleBetweenAbsolute(PREV_CDFRAME_ViewAngles.Y, nf.RParms.Viewangles.Y) > float.Epsilon)
-                                            if (CurrentFrameAttacked && CurrentFrameOnGround && Math.Abs(CurrentTime - LastDeathTime)> 2.0f
+                                            if (CurrentFrameAttacked && CurrentFrameOnGround && Math.Abs(CurrentTime - LastDeathTime) > 2.0f
                                                 && Math.Abs(CurrentTime - LastAliveTime) > 2.0f)
                                             {
                                                 float spreadtest = AngleBetweenAbsolute(CDFRAME_ViewAngles.Y, nf.RParms.Viewangles.Y - nf.RParms.Punchangle.Y);
@@ -4718,7 +4729,7 @@ namespace DemoScanner.DG
                                         if (CDFRAME_ViewAngles != nf.UCmd.Viewangles
                                             && CDFRAME_ViewAngles != nf.RParms.ClViewangles)
                                         {
-                                            if (Math.Abs(CurrentTime - FpsOverflowTime )< 1.0f)
+                                            if (Math.Abs(CurrentTime - FpsOverflowTime) < 1.0f)
                                             {
                                                 FPS_OVERFLOW++;
                                                 if (FPS_OVERFLOW == 20)
@@ -4743,7 +4754,7 @@ namespace DemoScanner.DG
                                     }
                                     else
                                     {
-                                        if (CurrentFrameDuplicated == 0 && Math.Abs(CurrentTime - PreviousTime )> 0.5f && CurrentFrameId > 10)
+                                        if (CurrentFrameDuplicated == 0 && Math.Abs(CurrentTime - PreviousTime) > 0.5f && CurrentFrameId > 10)
                                         {
                                             TimeShiftCount += 1;
 
@@ -5224,7 +5235,7 @@ namespace DemoScanner.DG
                                     }
 
                                 if (ForceUpdateName || Math.Abs(LastUsernameCheckTime) < float.Epsilon
-                                                    || Math.Abs(CurrentTime - LastUsernameCheckTime )> 60.0f || LastUername == "\tNO NAME")
+                                                    || Math.Abs(CurrentTime - LastUsernameCheckTime) > 60.0f || LastUername == "\tNO NAME")
                                 {
                                     ForceUpdateName = false;
                                     string plname = "\tNO NAME";
@@ -5381,7 +5392,7 @@ namespace DemoScanner.DG
                                                     "[AIM TYPE 2 " + CurrentWeapon + "] at (" + CurrentTime +
                                                     "):" + CurrentTimeString, false);
                                             }
-                                            else 
+                                            else
                                             {
                                                 /* if (AUTO_LEARN_HACK_DB)
                                                  {
@@ -5519,7 +5530,7 @@ namespace DemoScanner.DG
                                     }
                                     else
                                     {
-                                        if (FirstAttack )
+                                        if (FirstAttack)
                                         {
                                             /* if (AUTO_LEARN_HACK_DB)
                                              {
@@ -5530,7 +5541,7 @@ namespace DemoScanner.DG
                                                 "[AIM TYPE 1 " + CurrentWeapon + "] at (" + CurrentTime +
                                                 "):" + CurrentTimeString, !IsChangeWeapon() && !IsPlayerLossConnection() && !IsForceCenterView() && !IsAngleEditByEngine());
                                             if (!IsAngleEditByEngine() && !IsChangeWeapon() && !IsPlayerLossConnection() && !IsForceCenterView() && !IsAngleEditByEngine())
-                                            TotalAimBotDetected++;
+                                                TotalAimBotDetected++;
                                         }
                                     }
 
@@ -6131,94 +6142,114 @@ namespace DemoScanner.DG
 
                     if (strikedir.EndsWith("/") || strikedir.EndsWith("\\")) strikedir.Remove(strikedir.Length - 1);
 
-                    if (!Directory.Exists(strikedir))
+                    if (File.Exists(strikedir + "\\..\\" + "hw.dll"))
                     {
-                        try
-                        {
-                            Directory.CreateDirectory(strikedir);
-                        }
-                        catch
-                        {
-                            
-                        }
-                    }
-
-                    if (Directory.Exists(strikedir) && File.Exists(strikedir + "\\..\\" + "hw.dll"))
-                    {
-                        DownloadResources = DownloadResources.Distinct().ToList();
-                        Console.WriteLine("Download " + DownloadResources.Count + " resources with total size: " + DownloadResourcesSize + " bytes");
-                        Console.WriteLine("Download start time:" + DateTime.Now.ToString("HH:mm:ss"));
-                        if (File.Exists(CurrentDir + @"\DownloadError.txt"))
+                        if (!Directory.Exists(strikedir))
                         {
                             try
                             {
-                                File.Delete(CurrentDir + @"\DownloadError.txt");
+                                Directory.CreateDirectory(strikedir);
                             }
                             catch
                             {
 
                             }
                         }
+                        if (Directory.Exists(strikedir))
+                        {
+                            DownloadResources = DownloadResources.Distinct().ToList();
+                            Console.WriteLine("Download " + DownloadResources.Count + " resources with total size: " + DownloadResourcesSize + " bytes");
+                            Console.WriteLine("Download start time:" + DateTime.Now.ToString("HH:mm:ss"));
+                            if (File.Exists(CurrentDir + @"\DownloadError.txt"))
+                            {
+                                try
+                                {
+                                    File.Delete(CurrentDir + @"\DownloadError.txt");
+                                }
+                                catch
+                                {
 
-                        object sync = new object();
-                        int sum = 0;
-                        Parallel.ForEach
-                            (DownloadResources, new ParallelOptions { MaxDegreeOfParallelism = 20 }, s =>
-                         {
-                             s = s.Replace("/", "\\");
+                                }
+                            }
 
-                             lock (sync)
+                            int sum = 0;
+                            int threads = 0;
+                            int threadid = 0;
+                            Parallel.ForEach
+                                (DownloadResources, new ParallelOptions { MaxDegreeOfParallelism = RESOURCE_DOWNLOAD_THREADS }, s =>
                              {
-                                 sum = sum + 1;
-                             }
+                                 s = s.Replace("/", "\\");
+                                 int current_thread_id = 0;
 
-                             if (char.IsLetterOrDigit(s[0]) && !File.Exists(strikedir + "\\" + s) && !File.Exists(strikedir + "\\..\\cstrike\\" + s) && !File.Exists(strikedir + "\\..\\valve\\" + s))
-                             {
                                  lock (sync)
                                  {
-                                     ConsoleHelper.ClearCurrentConsoleLine();
-                                     Console.Write("\rDownload \"" + s + "\" " + sum + " of " + DownloadResources.Count);
+                                     if (threadid > RESOURCE_DOWNLOAD_THREADS)
+                                         threadid = 0;
+                                     current_thread_id = threadid;
+                                     threadid++;
+                                     sum = sum + 1;
+                                     threads++;
                                  }
-                                 bWebClient myWebClient = new bWebClient();
 
-                                 try
-                                 {
-                                     var tmpdata = myWebClient.DownloadData(DownloadLocation + s);
-                                     try
-                                     {
-                                         Directory.CreateDirectory(Path.GetDirectoryName(strikedir + "\\" + s));
-                                     }
-                                     catch
-                                     {
+                                 Thread.SetData(Thread.GetNamedDataSlot("int"), current_thread_id);
 
-                                     }
-                                     File.WriteAllBytes(strikedir + "\\" + s, tmpdata);
-                                 }
-                                 catch
+                                 if (char.IsLetterOrDigit(s[0]) && !File.Exists(strikedir + "\\" + s) && !File.Exists(strikedir + "\\..\\cstrike\\" + s) && !File.Exists(strikedir + "\\..\\valve\\" + s))
                                  {
                                      lock (sync)
                                      {
                                          ConsoleHelper.ClearCurrentConsoleLine();
-                                         string dwnerrorstr = "\rFailed to download \"" + s + "\" file.";
-                                         Console.Write(dwnerrorstr);
-                                         Thread.Sleep(50);
-                                         File.AppendAllText(CurrentDir + @"\DownloadError.txt", dwnerrorstr + "\r\n");
+                                         Console.Write("\rDownload \"" + s + "\" " + sum + " of " + DownloadResources.Count + ". In " + GetActiveDownloadThreads() + " of " + (GetActiveDownloadThreads()  > threads ? GetActiveDownloadThreads() : threads) + " threads.");
                                      }
+                                     bWebClient myWebClient = new bWebClient();
+                                     try
+                                     {
+                                         myWebClient.DownloadProgressChanged += MyWebClient_DownloadProgressChanged;
+                                         byte[] tmptaskdata = myWebClient.DownloadDataTaskAsync(DownloadLocation + s).Result;
+                                         try
+                                         {
+                                             Directory.CreateDirectory(Path.GetDirectoryName(strikedir + "\\" + s));
+                                         }
+                                         catch
+                                         {
+
+                                         }
+                                         File.WriteAllBytes(strikedir + "\\" + s, tmptaskdata);
+                                     }
+                                     catch
+                                     {
+                                         lock (sync)
+                                         {
+                                             ConsoleHelper.ClearCurrentConsoleLine();
+                                             string dwnerrorstr = "\rFailed to download \"" + s + "\" file.";
+                                             Console.Write(dwnerrorstr);
+                                             Thread.Sleep(50);
+                                             File.AppendAllText(CurrentDir + @"\DownloadError.txt", dwnerrorstr + "\r\n");
+                                         }
+                                     }
+
                                  }
 
-                             }
-                             Thread.Sleep(1);
-                         });
-                        Console.WriteLine();
-                        Console.WriteLine("Download end time:" + DateTime.Now.ToString("HH:mm:ss"));
-                        if (File.Exists(CurrentDir + @"\DownloadError.txt"))
+                                 lock (sync)
+                                 {
+                                     threads--;
+                                 }
+                                 Thread.Sleep(10);
+                             });
+                            Console.WriteLine();
+                            Console.WriteLine("Download end time:" + DateTime.Now.ToString("HH:mm:ss"));
+                            if (File.Exists(CurrentDir + @"\DownloadError.txt"))
+                            {
+                                Process.Start(CurrentDir + @"\DownloadError.txt");
+                            }
+                        }
+                        else
                         {
-                            Process.Start(CurrentDir + @"\DownloadError.txt");
+                            Console.WriteLine("Bad directory! Please enter path to Half Life directory!");
                         }
                     }
                     else
                     {
-                        Console.WriteLine("Bad directory found. Stop downloading.");
+                        Console.WriteLine("Bad directory! Please enter path to Half Life directory!");
                     }
 
                 }
@@ -6661,6 +6692,36 @@ namespace DemoScanner.DG
                     ForceFlushScanResults();
                 }
             }
+        }
+
+        public static void UpdateThreadState(int thredid, int state)
+        {
+            lock (sync)
+            {
+                myThreadStates[thredid].state = state;
+            }
+        }
+
+        public static int GetActiveDownloadThreads()
+        {
+            int cnt = 0;
+            lock (sync)
+            {
+                for (int i = 0; i < myThreadStates.Length; i++)
+                {
+                    if (Math.Abs(Environment.TickCount - myThreadStates[i].state) < 5000)
+                    {
+                        cnt++;
+                    }
+                }
+            }
+            return cnt;
+        }
+
+        private static void MyWebClient_DownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
+        {
+            int threadid = Thread.GetData(Thread.GetNamedDataSlot("int")) != null ? (int)Thread.GetData(Thread.GetNamedDataSlot("int")) : 0;
+            UpdateThreadState(threadid, Environment.TickCount);
         }
 
         private static void AddLerpAndMs(int lerpMsec, byte msec)
@@ -9305,7 +9366,7 @@ namespace DemoScanner.DG
 
                 if (type == 0)
                     DemoScanner.DownloadResources.Add("sound\\" + downloadname);
-                else 
+                else
                     DemoScanner.DownloadResources.Add(downloadname);
 
                 DemoScanner.DownloadResourcesSize += downloadsize;
