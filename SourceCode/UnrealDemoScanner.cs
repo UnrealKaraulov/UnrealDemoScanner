@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.66.3_BETA";
+        public const string PROGRAMVERSION = "1.66.4_BETA";
 
         public enum AngleDirection
         {
@@ -2219,52 +2219,7 @@ namespace DemoScanner.DG
 
             if (SourceCode.Length != 51) return;
 
-            if (File.Exists(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) +
-                            "cdb"))
-            {
-                if (File.Exists(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) +
-                                "cdb.bak"))
-                    try
-                    {
-                        File.Delete(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) +
-                                    "cdb.bak");
-                    }
-                    catch
-                    {
-                        Console.WriteLine("Error: No access to VDH log path.");
-                    }
-
-                try
-                {
-                    File.Delete(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) +
-                                "cdb");
-                }
-                catch
-                {
-                    Console.WriteLine(
-                        "File " +
-                        CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) + "cdb" +
-                        " open error : No access to remove!");
-                    Console.Write("No access to file... Try again!");
-                    Console.ReadKey();
-                    return;
-                }
-            }
-
-            try
-            {
-                ViewDemoHelperComments = new BinaryWriter(new MemoryStream());
-            }
-            catch
-            {
-                Console.WriteLine(
-                    "File " + CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) +
-                    "cdb" + " open error : No access to create!");
-                Console.Write("No access to file... Try again!");
-                Console.ReadKey();
-                return;
-            }
-
+            ViewDemoHelperComments = new BinaryWriter(new MemoryStream());
             ViewDemoHelperComments.Write(1751611137);
             ViewDemoHelperComments.Write(0);
 
@@ -6489,6 +6444,40 @@ namespace DemoScanner.DG
                 if (command == "1")
                 {
                     if (ViewDemoCommentCount > 0)
+                    {
+
+                        if (File.Exists(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) +
+                                        "cdb"))
+                        {
+                            if (File.Exists(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) +
+                                            "cdb.bak"))
+                                try
+                                {
+                                    File.Delete(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) +
+                                                "cdb.bak");
+                                }
+                                catch
+                                {
+                                    Console.WriteLine("Error: No access to VDH log path.");
+                                }
+
+                            try
+                            {
+                                File.Delete(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) +
+                                            "cdb");
+                            }
+                            catch
+                            {
+                                Console.WriteLine(
+                                    "File " +
+                                    CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) + "cdb" +
+                                    " open error : No access to remove!");
+                                Console.Write("No access to file... Try again!");
+                                Console.ReadKey();
+                                return;
+                            }
+                        }
+
                         try
                         {
                             BinaryReader binaryReader =
@@ -6506,6 +6495,7 @@ namespace DemoScanner.DG
                         {
                             Console.WriteLine("Can't write comments!");
                         }
+                    }
                     else
                         Console.WriteLine("No View Demo Helper comments found.");
                 }
