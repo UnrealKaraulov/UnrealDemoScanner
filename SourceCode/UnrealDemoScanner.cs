@@ -3310,6 +3310,13 @@ namespace DemoScanner.DG
                                 PreviousTime = CurrentTime;
                                 CurrentTime = nf.RParms.Time;
 
+
+                                if (CurrentTime <= PreviousTime)
+                                {
+                                    CurrentTime = PreviousTime;
+                                }
+
+
                                 if (Math.Abs(CurrentTime) > float.Epsilon && StartGameSecond > CurrentTime / 60.0f) StartGameSecond = Convert.ToInt32(CurrentTime / 60.0f);
 
                                 if (Math.Abs(CurrentTime - PreviousTime) > 0.20f)
