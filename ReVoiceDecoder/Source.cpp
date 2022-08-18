@@ -1,10 +1,10 @@
-#include "header.h"
-#include "Buffer.hpp"
-#include <iostream>
-
 #define SILK_VOICE_QUALITY			5
 #define OPUS_VOICE_QUALITY			5
 #define SPEEX_VOICE_QUALITY			5
+
+#include "header.h"
+#include "Buffer.hpp"
+#include <iostream>
 
 
 IVoiceCodec* speex_codec = new VoiceCodec_Frame(new VoiceEncoder_Speex());
