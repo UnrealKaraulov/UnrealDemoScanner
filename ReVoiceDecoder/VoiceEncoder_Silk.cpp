@@ -4,7 +4,7 @@ VoiceEncoder_Silk::VoiceEncoder_Silk()
 {
 	m_pEncoder = nullptr;
 	m_pDecoder = nullptr;
-	m_targetRate_bps = 25000;
+	m_targetRate_bps = 44000;
 	m_packetLoss_perc = 0;
 }
 
@@ -23,7 +23,7 @@ VoiceEncoder_Silk::~VoiceEncoder_Silk()
 
 bool VoiceEncoder_Silk::Init(int quality)
 {
-	m_targetRate_bps = 25000;
+	m_targetRate_bps = 44000;
 	m_packetLoss_perc = 0;
 
 	int encSizeBytes;

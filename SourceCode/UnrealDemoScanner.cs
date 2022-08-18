@@ -2424,7 +2424,7 @@ namespace DemoScanner.DG
                         CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) + "log" +
                         " open error : No access to remove!");
                     Console.Write("No access to file... Try again!");
-                    _ = Console.ReadKey();
+                    Console.ReadKey();
                     return;
                 }
             }
@@ -2439,7 +2439,7 @@ namespace DemoScanner.DG
                     "File " + CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) +
                     "log" + " open error : No access to create!");
                 Console.Write("No access to file... Try again!");
-                _ = Console.ReadKey();
+                Console.ReadKey();
                 return;
             }
 
@@ -6409,10 +6409,10 @@ namespace DemoScanner.DG
                     node.Text = row;
                     if (subnode.Text.Length > 0)
                     {
-                        _ = node.Nodes.Add(subnode);
+                        node.Nodes.Add(subnode);
                     }
 
-                    _ = entrynode.Nodes.Add(node);
+                    entrynode.Nodes.Add(node);
                 }
 
                 PrintNodesRecursive(entrynode);
@@ -6747,9 +6747,9 @@ namespace DemoScanner.DG
 
             Console.ForegroundColor = ConsoleColor.DarkGreen;
 
-            _ = ViewDemoHelperComments.Seek(4, SeekOrigin.Begin);
+            ViewDemoHelperComments.Seek(4, SeekOrigin.Begin);
             ViewDemoHelperComments.Write(ViewDemoCommentCount);
-            _ = ViewDemoHelperComments.Seek(0, SeekOrigin.Begin);
+            ViewDemoHelperComments.Seek(0, SeekOrigin.Begin);
 
 
             ForceFlushScanResults();
@@ -6809,20 +6809,20 @@ namespace DemoScanner.DG
                 {
                     table = new ConsoleTable("в CDB", "в TXT", "Демо инфо",
                         "Игроки", "Голоса", "История мыши", "Команды");
-                    _ = table.AddRow("1", "2", "3", "4", "5", "6", "7");
+                    table.AddRow("1", "2", "3", "4", "5", "6", "7");
                     table.Write(Format.Alternative);
                     table = new ConsoleTable("Помощь", "Скачать", "Выход");
-                    _ = table.AddRow("8", "9", "0/Enter");
+                    table.AddRow("8", "9", "0/Enter");
                     table.Write(Format.Alternative);
                 }
                 else
                 {
                     table = new ConsoleTable("Save CDB", "Save TXT", "Demo info",
                   "Player info", "Wav Player", "Sens History", "Commands");
-                    _ = table.AddRow("1", "2", "3", "4", "5", "6", "7");
+                    table.AddRow("1", "2", "3", "4", "5", "6", "7");
                     table.Write(Format.Alternative);
                     table = new ConsoleTable("Help", "Download", "Exit");
-                    _ = table.AddRow("8", "9", "0/Enter");
+                    table.AddRow("8", "9", "0/Enter");
                     table.Write(Format.Alternative);
                 }
 
@@ -6840,7 +6840,7 @@ namespace DemoScanner.DG
 
                     if (strikedir.EndsWith("/") || strikedir.EndsWith("\\"))
                     {
-                        _ = strikedir.Remove(strikedir.Length - 1);
+                        strikedir.Remove(strikedir.Length - 1);
                     }
 
                     if (File.Exists(strikedir + "\\..\\" + "hw.dll"))
@@ -6849,7 +6849,7 @@ namespace DemoScanner.DG
                         {
                             try
                             {
-                                _ = Directory.CreateDirectory(strikedir);
+                                Directory.CreateDirectory(strikedir);
                             }
                             catch
                             {
@@ -6876,7 +6876,7 @@ namespace DemoScanner.DG
                             int sum = 0;
                             int threads = 0;
                             int threadid = 0;
-                            _ = Parallel.ForEach
+                            Parallel.ForEach
                                 (DownloadResources, new ParallelOptions { MaxDegreeOfParallelism = RESOURCE_DOWNLOAD_THREADS }, s =>
                              {
                                  s = s.Replace("/", "\\");
@@ -6911,7 +6911,7 @@ namespace DemoScanner.DG
                                          byte[] tmptaskdata = myWebClient.DownloadDataTaskAsync(DownloadLocation + s).Result;
                                          try
                                          {
-                                             _ = Directory.CreateDirectory(Path.GetDirectoryName(strikedir + "\\" + s));
+                                             Directory.CreateDirectory(Path.GetDirectoryName(strikedir + "\\" + s));
                                          }
                                          catch
                                          {
@@ -6943,7 +6943,7 @@ namespace DemoScanner.DG
                             Console.WriteLine("Download end time:" + DateTime.Now.ToString("HH:mm:ss"));
                             if (File.Exists(CurrentDir + @"\DownloadError.txt"))
                             {
-                                _ = Process.Start(CurrentDir + @"\DownloadError.txt");
+                                Process.Start(CurrentDir + @"\DownloadError.txt");
                             }
                         }
                         else
@@ -7022,7 +7022,7 @@ namespace DemoScanner.DG
                     {
                         CommandsDump.Insert(0, "This file created by Unreal Demo Scanner\n\n");
                         File.WriteAllLines(CurrentDir + @"\Commands.txt", CommandsDump.ToArray());
-                        _ = Process.Start(CurrentDir + @"\Commands.txt");
+                        Process.Start(CurrentDir + @"\Commands.txt");
                     }
                     catch
                     {
@@ -7035,7 +7035,7 @@ namespace DemoScanner.DG
                     table = new ConsoleTable("Second", "Sensitivity", "Length", "Time", "Weapon");
                     for (int i = 0; i < PlayerSensitivityHistoryStr.Count; i++)
                     {
-                        _ = table.AddRow(i + 1, PlayerSensitivityHistoryStr[i], PlayerAngleLenHistory[i],
+                        table.AddRow(i + 1, PlayerSensitivityHistoryStr[i], PlayerAngleLenHistory[i],
                             PlayerSensitivityHistoryStrTime[i]
                             , PlayerSensitivityHistoryStrWeapon[i]);
                     }
@@ -7044,7 +7044,7 @@ namespace DemoScanner.DG
                     try
                     {
                         File.WriteAllText(CurrentDir + @"\SensHistory.txt", table.ToStringAlternative());
-                        _ = Process.Start(CurrentDir + @"\SensHistory.txt");
+                        Process.Start(CurrentDir + @"\SensHistory.txt");
                     }
                     catch
                     {
@@ -7083,7 +7083,7 @@ namespace DemoScanner.DG
 
                         if (!Directory.Exists(CurrentDir + @"\out"))
                         {
-                            _ = Directory.CreateDirectory(CurrentDir + @"\out");
+                            Directory.CreateDirectory(CurrentDir + @"\out");
                         }
 
                         fullPlayerList.AddRange(playerList);
@@ -7112,7 +7112,7 @@ namespace DemoScanner.DG
 
                                 BinaryReader binaryReader =
                                     new BinaryReader(player.voicedata_stream);
-                                _ = player.voicedata_stream.Seek(0, SeekOrigin.Begin);
+                                player.voicedata_stream.Seek(0, SeekOrigin.Begin);
                                 List<byte> data2 = new List<byte>(binaryReader.ReadBytes(
                                     (int)player.voicedata_stream.Length));
 
@@ -7123,7 +7123,7 @@ namespace DemoScanner.DG
                                 process.StartInfo.FileName = CurrentDir +
                             @"\revoicedecoder.exe";
                                 process.StartInfo.WorkingDirectory = CurrentDir;
-                                _ = process.Start();
+                                process.Start();
                                 process.WaitForExit();
 
                                 string filename = Regex.Replace(player.Name, @"[^\u0000-\u007F]+", "_") + "(" + player.Slot + ").wav";
@@ -7158,7 +7158,7 @@ namespace DemoScanner.DG
                         }
 
                         Console.WriteLine("Success players voice decode!");
-                        _ = Process.Start(CurrentDir + @"\out\");
+                        Process.Start(CurrentDir + @"\out\");
                     }
                     catch (Exception ex)
                     {
@@ -7184,10 +7184,10 @@ namespace DemoScanner.DG
                                     "Player:" + player.Name + "(" + player.Slot + ")");
                                 foreach (KeyValuePair<string, string> keys in player.InfoKeys)
                                 {
-                                    _ = table.AddRow(keys.Key + " = " + keys.Value);
+                                    table.AddRow(keys.Key + " = " + keys.Value);
                                 }
 
-                                _ = table.AddRow("SLOTID = " + player.Slot);
+                                table.AddRow("SLOTID = " + player.Slot);
                                 File.AppendAllText(CurrentDir + @"\players.txt",
                                     table.ToStringAlternative());
                             }
@@ -7202,17 +7202,17 @@ namespace DemoScanner.DG
                                     "Player:" + player.Name + "(" + player.Slot + ")");
                                 foreach (KeyValuePair<string, string> keys in player.InfoKeys)
                                 {
-                                    _ = table.AddRow(keys.Key + " = " + keys.Value);
+                                    table.AddRow(keys.Key + " = " + keys.Value);
                                 }
 
-                                _ = table.AddRow("SLOTID = " + player.Slot);
+                                table.AddRow("SLOTID = " + player.Slot);
                                 File.AppendAllText(CurrentDir + @"\players.txt",
                                     table.ToStringAlternative());
                             }
                         }
 
                         Console.WriteLine("All players saved to players.txt");
-                        _ = Process.Start(CurrentDir + @"\players.txt");
+                        Process.Start(CurrentDir + @"\players.txt");
                     }
                     catch
                     {
@@ -7254,7 +7254,7 @@ namespace DemoScanner.DG
                                     CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) + "cdb" +
                                     " open error : No access to remove!");
                                 Console.Write("No access to file... Try again!");
-                                _ = Console.ReadKey();
+                                Console.ReadKey();
                                 return;
                             }
                         }
@@ -7263,7 +7263,7 @@ namespace DemoScanner.DG
                         {
                             BinaryReader binaryReader =
                                 new BinaryReader(ViewDemoHelperComments.BaseStream);
-                            _ = ViewDemoHelperComments.BaseStream.Seek(0, SeekOrigin.Begin);
+                            ViewDemoHelperComments.BaseStream.Seek(0, SeekOrigin.Begin);
                             byte[] comments =
                                 binaryReader.ReadBytes((int)binaryReader.BaseStream
                                     .Length);
@@ -7290,7 +7290,7 @@ namespace DemoScanner.DG
                         try
                         {
                             BinaryReader binaryReader = new BinaryReader(TextCommentsStream);
-                            _ = TextCommentsStream.Seek(0, SeekOrigin.Begin);
+                            TextCommentsStream.Seek(0, SeekOrigin.Begin);
                             byte[] comments =
                                 binaryReader.ReadBytes((int)binaryReader.BaseStream
                                     .Length);
@@ -7298,7 +7298,7 @@ namespace DemoScanner.DG
                                 CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) +
                                 "txt", comments);
                             Console.WriteLine("Text comments saved");
-                            _ = Process.Start(
+                            Process.Start(
                                 CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) +
                                 "txt");
                         }
@@ -7323,7 +7323,7 @@ namespace DemoScanner.DG
 
                     table = new ConsoleTable("ТИП/TYPE", "ПРЫЖКИ/JUMPS", "АТАКА/ATTACKS");
 
-                    _ = table.AddRow(1, JumpCount, attackscounter)
+                    table.AddRow(1, JumpCount, attackscounter)
                         .AddRow(2, JumpCount2, attackscounter3)
                         .AddRow(3, JumpCount3, attackscounter4)
                         .AddRow(4, JumpCount4, attackscounter5)
@@ -7344,14 +7344,14 @@ namespace DemoScanner.DG
                     table = new ConsoleTable(
                         "УБИЙСТВ /KILLS", "СМЕРТЕЙ/DEATHS");
 
-                    _ = table.AddRow(KillsCount, DeathsCoount);
+                    table.AddRow(KillsCount, DeathsCoount);
 
                     table.Write(Format.Alternative);
 
                     Console.WriteLine("Calculated FPS / Подсчитанный FPS");
                     table = new ConsoleTable("Максимальный FPS / FPS MAX",
                         "Минимальная зареджка/Min Delay", "Средний FPS/Average FPS");
-                    _ = table.AddRow(
+                    table.AddRow(
                         Math.Round(CurrentDemoFile.GsDemoInfo.AditionalStats.FrametimeMin,
                             5) + "(" + Math.Round(
                             1000.0f / (1000.0f * CurrentDemoFile.GsDemoInfo.AditionalStats
@@ -7366,7 +7366,7 @@ namespace DemoScanner.DG
                     table.Write(Format.Alternative);
                     table = new ConsoleTable("Минимальный FPS / FPS MIN",
                         "Максимальная зареджка/Max Delay", "Средний FPS/Average FPS");
-                    _ = table.AddRow(
+                    table.AddRow(
                         Math.Round(CurrentDemoFile.GsDemoInfo.AditionalStats.FrametimeMax,
                             5) + "(" + Math.Round(
                             1000.0f / (1000.0f * CurrentDemoFile.GsDemoInfo.AditionalStats
@@ -7385,10 +7385,10 @@ namespace DemoScanner.DG
                         Console.WriteLine("Real FPS / Реальный FPS");
                         table = new ConsoleTable("Минимальный FPS / FPS MIN",
                             "Максимальный FPS / FPS MAX");
-                        _ = table.AddRow(
+                        table.AddRow(
                             RealFpsMin == int.MaxValue ? "UNKNOWN" : RealFpsMin.ToString(),
                             RealFpsMax == int.MinValue ? "UNKNOWN" : RealFpsMax.ToString());
-                        _ = table.AddRow(
+                        table.AddRow(
                             RealFpsMin2 == int.MaxValue
                                 ? "UNKNOWN"
                                 : RealFpsMin2.ToString(),
@@ -7408,7 +7408,7 @@ namespace DemoScanner.DG
                         table = new ConsoleTable("Screen resolution");
                         foreach (WindowResolution s in playerresolution)
                         {
-                            _ = table.AddRow(s.x + "x" + s.y);
+                            table.AddRow(s.x + "x" + s.y);
                         }
 
                         table.Write(Format.Alternative);
@@ -8461,9 +8461,8 @@ namespace DemoScanner.DG
             }
 
             long universe = id >> 56;
-            _ = (id >> 52) & 0xF;
-            _ = (id >> 32) & 0xFFFFF;
             long accountid = id & 0xFFFFFFFF;
+
             if (universe == 1)
             {
                 universe = 0;
@@ -9241,7 +9240,7 @@ namespace DemoScanner.DG
             }
             else
             {
-                _ = fileStream.Seek(offset, origin);
+                fileStream.Seek(offset, origin);
             }
         }
 
@@ -9293,7 +9292,7 @@ namespace DemoScanner.DG
             }
             else
             {
-                _ = BitBuffer.ReadString();
+                BitBuffer.ReadString();
             }
         }
 
@@ -9320,7 +9319,7 @@ namespace DemoScanner.DG
                 }
                 else
                 {
-                    _ = BitBuffer.ReadUnsignedBits(10);
+                    BitBuffer.ReadUnsignedBits(10);
                 }
 
                 bool packetIndexBit = BitBuffer.ReadBoolean();
@@ -9347,7 +9346,7 @@ namespace DemoScanner.DG
                     }
                     else
                     {
-                        _ = BitBuffer.ReadUnsignedBits(16);
+                        BitBuffer.ReadUnsignedBits(16);
                     }
                     //BitBuffer.SeekBits(16); // fire time
                 }
@@ -9394,7 +9393,7 @@ namespace DemoScanner.DG
 
         public void MessageTime()
         {
-            _ = BitBuffer.ReadSingle();
+            BitBuffer.ReadSingle();
             DemoScanner.SVC_TIMEMSGID = DemoScanner.MessageId;
         }
 
@@ -9406,22 +9405,29 @@ namespace DemoScanner.DG
             }
 
             uint flags = BitBuffer.ReadUnsignedBits(9);
+
             if ((flags & (1 << 0)) != 0) // volume
             {
-                _ = BitBuffer.ReadBits(8);
+                BitBuffer.ReadBits(8);
             }
+
             if ((flags & (1 << 1)) != 0) // attenuation * 64
             {
-                _ = BitBuffer.ReadBits(8);
+                BitBuffer.ReadBits(8);
             }
 
             int channel = BitBuffer.ReadBits(3); // channel
             int edictnum = BitBuffer.ReadBits(11); // edict number
-            _ = (flags & (1 << 2)) != 0 ? BitBuffer.ReadBits(16) : BitBuffer.ReadBits(8);
-            _ = BitBuffer.ReadVectorCoord(true); // position
+
+            if ((flags & (1 << 2)) != 0) // sound index (short)
+                BitBuffer.ReadBits(16);
+            else // sound index (byte)
+                BitBuffer.ReadBits(8);
+
+            BitBuffer.ReadVectorCoord(true); // position
             if ((flags & (1 << 3)) != 0) // pitch
             {
-                _ = BitBuffer.ReadBits(8);
+                BitBuffer.ReadBits(8);
             }
 
             BitBuffer.SkipRemainingBits();
@@ -9553,12 +9559,12 @@ namespace DemoScanner.DG
 
         private unsafe void MessageServerInfo()
         {
-            _ = BitBuffer.ReadInt32();
-            _ = BitBuffer.ReadInt32();
+            BitBuffer.ReadInt32();
+            BitBuffer.ReadInt32();
             int mapcrc32 = BitBuffer.ReadInt32();
 
             COM_UnMunge3((byte*)&mapcrc32, 4, (-1 - DemoScanner.StartPlayerID) & 0xFF);
-            _ = BitBuffer.ReadBytes(16);
+            BitBuffer.ReadBytes(16);
 
             demo.MaxClients = BitBuffer.ReadByte();
 
@@ -9597,7 +9603,7 @@ namespace DemoScanner.DG
 
                 if (extraInfo != (byte)MessageId.svc_sendextrainfo)
                 {
-                    _ = BitBuffer.ReadString(); // skip mapcycle
+                    BitBuffer.ReadString(); // skip mapcycle
 
                     if (BitBuffer.ReadByte() > 0)
                     {
@@ -9607,7 +9613,7 @@ namespace DemoScanner.DG
             }
             else
             {
-                _ = BitBuffer.ReadString(); // skip mapcycle
+                BitBuffer.ReadString(); // skip mapcycle
 
                 if (demo.GsDemoInfo.Header.NetProtocol > 43)
                 {
@@ -9639,7 +9645,7 @@ namespace DemoScanner.DG
         private void MessageLightStyle()
         {
             Seek(1);
-            _ = BitBuffer.ReadString();
+            BitBuffer.ReadString();
         }
 
         public void MessageUpdateUserInfo()
@@ -9651,7 +9657,7 @@ namespace DemoScanner.DG
                 update_name_if_need = true;
             }
 
-            _ = BitBuffer.ReadInt32();
+            BitBuffer.ReadInt32();
             string s = BitBuffer.ReadString();
             //Console.WriteLine(s);
             if (demo.GsDemoInfo.Header.NetProtocol > 43)
@@ -9743,7 +9749,7 @@ namespace DemoScanner.DG
                     // If the key already exists, overwrite it.
                     if (player.InfoKeys.ContainsKey(key))
                     {
-                        _ = player.InfoKeys.Remove(key);
+                        player.InfoKeys.Remove(key);
                     }
 
                     player.InfoKeys.Add(key, infoKeyTokens[n + 1]);
@@ -10149,7 +10155,7 @@ namespace DemoScanner.DG
                         Seek(2);
                     }
 
-                    _ = BitBuffer
+                    BitBuffer
                         .ReadString(); // capped to 512 bytes (including null terminator)
                     break;
 
@@ -10252,14 +10258,14 @@ namespace DemoScanner.DG
                     break;
 
                 case 123: // TE_FIREFIELD
-                    _ = BitBuffer.ReadInt16();
-                    _ = BitBuffer.ReadInt16();
-                    _ = BitBuffer.ReadInt16();
-                    _ = BitBuffer.ReadInt16();
-                    _ = BitBuffer.ReadInt16();
-                    _ = BitBuffer.ReadByte();
-                    _ = BitBuffer.ReadByte();
-                    _ = BitBuffer.ReadByte();
+                    BitBuffer.ReadInt16();
+                    BitBuffer.ReadInt16();
+                    BitBuffer.ReadInt16();
+                    BitBuffer.ReadInt16();
+                    BitBuffer.ReadInt16();
+                    BitBuffer.ReadByte();
+                    BitBuffer.ReadByte();
+                    BitBuffer.ReadByte();
                     break;
 
                 case 124: // TE_PLAYERATTACHMENT
@@ -10399,7 +10405,7 @@ namespace DemoScanner.DG
 
                 if (demo.GsDemoInfo.Header.GameDir == "tfc")
                 {
-                    _ = BitBuffer.ReadBoolean(); // unknown
+                    BitBuffer.ReadBoolean(); // unknown
                 }
 
                 bool custom = BitBuffer.ReadBoolean();
@@ -10476,7 +10482,7 @@ namespace DemoScanner.DG
                 {
                     if (demo.GsDemoInfo.Header.GameDir == "tfc")
                     {
-                        _ = BitBuffer.ReadBoolean(); // unknown
+                        BitBuffer.ReadBoolean(); // unknown
                     }
 
                     bool custom = BitBuffer.ReadBoolean();
@@ -10524,21 +10530,20 @@ namespace DemoScanner.DG
             {
                 uint type = BitBuffer.ReadUnsignedBits(4); // entry type
                 string downloadname = BitBuffer.ReadString(); // entry name
-                _ = BitBuffer.ReadUnsignedBits(12);
+                BitBuffer.ReadUnsignedBits(12);
                 ulong downloadsize = BitBuffer.ReadUnsignedBits(24);
                 uint flags = BitBuffer.ReadUnsignedBits(3);
-                _ = new byte[16];
+                
                 if ((flags & 4) != 0) // md5 hash
                 {
-                    _ = BitBuffer.ReadBytes(16);
+                    BitBuffer.ReadBytes(16);
                 }
 
                 bool has_extra = BitBuffer.ReadBoolean();
-                _ = new byte[32];
 
                 if (has_extra)
                 {
-                    _ = BitBuffer.ReadBytes(32);
+                    BitBuffer.ReadBytes(32);
                 }
 
                 if (type == 0)
@@ -10638,7 +10643,7 @@ namespace DemoScanner.DG
             // different size in network protocols < 45 like gamedata frame header???
 
             Seek(98);
-            _ = BitBuffer.ReadString();
+            BitBuffer.ReadString();
         }
 
         private bool IsBadMessage(string s)
@@ -10660,16 +10665,16 @@ namespace DemoScanner.DG
 
         private void MessageCustomization()
         {
-            _ = BitBuffer.ReadByte();
-            _ = BitBuffer.ReadByte();
-            _ = BitBuffer.ReadString();
-            _ = BitBuffer.ReadUInt16();
-            _ = BitBuffer.ReadUInt32();
+            BitBuffer.ReadByte();
+            BitBuffer.ReadByte();
+            BitBuffer.ReadString();
+            BitBuffer.ReadUInt16();
+            BitBuffer.ReadUInt32();
             byte resourceflags = BitBuffer.ReadByte();
-            _ = new byte[16];
+
             if ((resourceflags & (1 << 2)) > 0)
             {
-                _ = BitBuffer.ReadBytes(16);
+                BitBuffer.ReadBytes(16);
             }
 
             BitBuffer.SkipRemainingBits();
@@ -10679,7 +10684,7 @@ namespace DemoScanner.DG
         {
             DemoScanner.CurrentMsgCount++;
             // string: filename
-            _ = BitBuffer.ReadString();
+            BitBuffer.ReadString();
         }
 
         private void MessageHltv()
@@ -10704,16 +10709,16 @@ namespace DemoScanner.DG
 
             if (subCommand == 1) // HLTV_LISTEN/HLTV_CAMERA
             {
-                _ = BitBuffer.ReadInt32();
-                _ = BitBuffer.ReadInt16();
-                _ = BitBuffer.ReadInt16();
-                _ = BitBuffer.ReadInt32();
-                _ = BitBuffer.ReadInt32();
-                _ = BitBuffer.ReadInt16();
+                BitBuffer.ReadInt32();
+                BitBuffer.ReadInt16();
+                BitBuffer.ReadInt16();
+                BitBuffer.ReadInt32();
+                BitBuffer.ReadInt32();
+                BitBuffer.ReadInt16();
             }
             else if (subCommand == 2)
             {
-                _ = BitBuffer.ReadString();
+                BitBuffer.ReadString();
             }
             else if (subCommand > 0)
             {
@@ -10729,7 +10734,7 @@ namespace DemoScanner.DG
         private void MessageDirector()
         {
             byte len = BitBuffer.ReadByte();
-            _ = ByteArrayToString(BitBuffer.ReadBytes(len));
+            ByteArrayToString(BitBuffer.ReadBytes(len));
             DemoScanner.CurrentMsgCount++;
         }
 
@@ -10822,37 +10827,37 @@ namespace DemoScanner.DG
 
         private void MessageSendCvarValue()
         {
-            _ = BitBuffer.ReadString(); // The cvar.
+            BitBuffer.ReadString(); // The cvar.
         }
 
         private void MessageRestore()
         {
-            _ = BitBuffer.ReadString(); // CL_Restore(str)
+            BitBuffer.ReadString(); // CL_Restore(str)
         }
 
         private void MessageReplaceDecal()
         {
-            _ = BitBuffer.ReadByte();   // decal
-            _ = BitBuffer.ReadString(); // DecalSetName(decal,name)
+            BitBuffer.ReadByte();   // decal
+            BitBuffer.ReadString(); // DecalSetName(decal,name)
         }
 
         private void MessageTFC_Exec()
         {
             if (BitBuffer.ReadByte() == 1)
             {
-                _ = BitBuffer.ReadByte();
+                BitBuffer.ReadByte();
             }
         }
 
         private void MessageCutSceneCenterPrint()
         {
-            _ = BitBuffer.ReadString(); // CenterPrint(str)
+            BitBuffer.ReadString(); // CenterPrint(str)
         }
 
         private void MessageSendCvarValue2()
         {
             Seek(4); // unsigned int
-            _ = BitBuffer.ReadString(); // The cvar.
+            BitBuffer.ReadString(); // The cvar.
         }
 
         private void MessageSetAngle()
@@ -10870,14 +10875,14 @@ namespace DemoScanner.DG
 
         private void MessageAddAngle()
         {
-            _ = BitBuffer.ReadUInt16();
+            BitBuffer.ReadUInt16();
             DemoScanner.LastAngleManipulation = DemoScanner.CurrentTime;
             DemoScanner.SVC_ADDANGLEMSGID = DemoScanner.MessageId;
         }
 
         private void MessageRoomType()
         {
-            _ = BitBuffer.ReadUInt16();
+            BitBuffer.ReadUInt16();
             if (DemoScanner.DEBUG_ENABLED)
             {
                 Console.WriteLine("Alive 10 at " + DemoScanner.CurrentTimeString);
@@ -10996,12 +11001,12 @@ namespace DemoScanner.DG
 
         private void Damage()
         {
-            _ = BitBuffer.ReadByte();
-            _ = BitBuffer.ReadByte();
-            _ = BitBuffer.ReadInt32();
-            _ = BitBuffer.ReadInt16();
-            _ = BitBuffer.ReadInt16();
-            _ = BitBuffer.ReadInt16();
+            BitBuffer.ReadByte();
+            BitBuffer.ReadByte();
+            BitBuffer.ReadInt32();
+            BitBuffer.ReadInt16();
+            BitBuffer.ReadInt16();
+            BitBuffer.ReadInt16();
             // after it found NULL byte //fixme
             DemoScanner.LastDamageTime = DemoScanner.CurrentTime;
             //Console.WriteLine("Damage at " + DemoScanner.CurrentTimeString);
@@ -11025,15 +11030,15 @@ namespace DemoScanner.DG
 
         private void WeaponList()
         {
-            _ = BitBuffer.ReadString();
-            _ = BitBuffer.ReadByte();
-            _ = BitBuffer.ReadByte();
-            _ = BitBuffer.ReadByte();
-            _ = BitBuffer.ReadByte();
-            _ = BitBuffer.ReadByte();
-            _ = BitBuffer.ReadByte();
-            _ = BitBuffer.ReadByte();
-            _ = BitBuffer.ReadByte();
+            BitBuffer.ReadString();
+            BitBuffer.ReadByte();
+            BitBuffer.ReadByte();
+            BitBuffer.ReadByte();
+            BitBuffer.ReadByte();
+            BitBuffer.ReadByte();
+            BitBuffer.ReadByte();
+            BitBuffer.ReadByte();
+            BitBuffer.ReadByte();
 
             /* Console.Write("/WeaponName:" + WeaponName.Remove(0,1) + "\n");
              Console.Write("/PrimaryAmmoID:" + PrimaryAmmoID + "\n");
@@ -11102,7 +11107,7 @@ namespace DemoScanner.DG
             DemoScanner.CurrentMsgCount++;
             byte len = BitBuffer.ReadByte();
             int endbyte = BitBuffer.CurrentByte + len;
-            _ = BitBuffer.ReadByte();
+            BitBuffer.ReadByte();
             string arg1 = BitBuffer.ReadString().Trim();
 
             if (/*arg1 == "#Game_Commencing"
@@ -11135,10 +11140,10 @@ namespace DemoScanner.DG
 
         private void MessageDeath()
         {
-            _ = BitBuffer.ReadByte();
+            BitBuffer.ReadByte();
             byte iKiller = BitBuffer.ReadByte();
             byte iVictim = BitBuffer.ReadByte();
-            _ = BitBuffer.ReadByte();
+            BitBuffer.ReadByte();
             string weapon = BitBuffer.ReadString();
 
             if (iVictim > 32 || iKiller > 32)
@@ -11270,18 +11275,18 @@ namespace DemoScanner.DG
 
         private void MessageHealth()
         {
-            _ = BitBuffer.ReadByte();
+            BitBuffer.ReadByte();
         }
 
         private void MessageCrosshair()
         {
-            _ = BitBuffer.ReadByte();
+            BitBuffer.ReadByte();
         }
 
         private void MessageSpectator()
         {
             byte clientid = BitBuffer.ReadByte();
-            _ = BitBuffer.ReadByte();
+            BitBuffer.ReadByte();
             if (DemoScanner.UserId2 + 1 == clientid)
             {
                 if (DemoScanner.UserAlive || DemoScanner.FirstUserAlive)
@@ -11770,7 +11775,7 @@ namespace DemoScanner.DG
 
             for (int i = 0; i < nBits; i++)
             {
-                _ = sb.AppendFormat("{0}", ReadBoolean() ? 1 : 0);
+                sb.AppendFormat("{0}", ReadBoolean() ? 1 : 0);
             }
 
             writer.Write(sb + "\n");
@@ -12482,12 +12487,6 @@ namespace DemoScanner.DG
                                             }
                                         }
                                     }
-
-                                    if (entryList[index].Name == "punchangle[1]")
-                                    {
-                                        _ = value != null ? (float)value : 0.0f;
-                                    }
-
                                     if (entryList[index].Name == "flags")
                                     {
                                         uint flags = value != null ? (uint)value : 0;
@@ -12623,7 +12622,7 @@ namespace DemoScanner.DG
 
                                                 if (DemoScanner.INSPECT_BAD_SHOT)
                                                 {
-                                                    _ = Console.ReadKey();
+                                                    Console.ReadKey();
                                                 }
                                             }
                                             else if (Math.Abs(DemoScanner.CurrentTime - DemoScanner.LastAngleManipulation) < 0.50f)
@@ -12637,7 +12636,7 @@ namespace DemoScanner.DG
 
                                                 if (DemoScanner.INSPECT_BAD_SHOT)
                                                 {
-                                                    _ = Console.ReadKey();
+                                                    Console.ReadKey();
                                                 }
                                             }
                                             else if (DemoScanner.IsTakeDamage())
@@ -12651,7 +12650,7 @@ namespace DemoScanner.DG
 
                                                 if (DemoScanner.INSPECT_BAD_SHOT)
                                                 {
-                                                    _ = Console.ReadKey();
+                                                    Console.ReadKey();
                                                 }
                                             }
                                             else if (DemoScanner.IsPlayerFrozen())
@@ -12665,7 +12664,7 @@ namespace DemoScanner.DG
 
                                                 if (DemoScanner.INSPECT_BAD_SHOT)
                                                 {
-                                                    _ = Console.ReadKey();
+                                                    Console.ReadKey();
                                                 }
                                             }
                                             else if (Math.Abs(DemoScanner.CurrentTime - DemoScanner.LastCmdDuckTime) < 1.01f)
@@ -12679,7 +12678,7 @@ namespace DemoScanner.DG
 
                                                 if (DemoScanner.INSPECT_BAD_SHOT)
                                                 {
-                                                    _ = Console.ReadKey();
+                                                    Console.ReadKey();
                                                 }
                                             }
                                             else if (Math.Abs(DemoScanner.CurrentTime - DemoScanner.LastCmdUnduckTime) < 0.2f)
@@ -12693,7 +12692,7 @@ namespace DemoScanner.DG
 
                                                 if (DemoScanner.INSPECT_BAD_SHOT)
                                                 {
-                                                    _ = Console.ReadKey();
+                                                    Console.ReadKey();
                                                 }
                                             }
                                             else if (DemoScanner.IsViewChanged())
@@ -12707,7 +12706,7 @@ namespace DemoScanner.DG
 
                                                 if (DemoScanner.INSPECT_BAD_SHOT)
                                                 {
-                                                    _ = Console.ReadKey();
+                                                    Console.ReadKey();
                                                 }
                                             }
                                             else if (Math.Abs(DemoScanner.CurrentTime - DemoScanner.LastLookDisabled) < 0.75f)
@@ -12721,7 +12720,7 @@ namespace DemoScanner.DG
 
                                                 if (DemoScanner.INSPECT_BAD_SHOT)
                                                 {
-                                                    _ = Console.ReadKey();
+                                                    Console.ReadKey();
                                                 }
                                             }
                                             else if (DemoScanner.IsPlayerFrozen())
@@ -12735,7 +12734,7 @@ namespace DemoScanner.DG
 
                                                 if (DemoScanner.INSPECT_BAD_SHOT)
                                                 {
-                                                    _ = Console.ReadKey();
+                                                    Console.ReadKey();
                                                 }
                                             }
                                             else if (DemoScanner.IsPlayerLossConnection())
@@ -12749,7 +12748,7 @@ namespace DemoScanner.DG
 
                                                 if (DemoScanner.INSPECT_BAD_SHOT)
                                                 {
-                                                    _ = Console.ReadKey();
+                                                    Console.ReadKey();
                                                 }
                                             }
                                             else if (DemoScanner.IsRoundEnd())
@@ -12763,7 +12762,7 @@ namespace DemoScanner.DG
 
                                                 if (DemoScanner.INSPECT_BAD_SHOT)
                                                 {
-                                                    _ = Console.ReadKey();
+                                                    Console.ReadKey();
                                                 }
                                             }
                                             else if (DemoScanner.HideWeapon)
@@ -12777,7 +12776,7 @@ namespace DemoScanner.DG
 
                                                 if (DemoScanner.INSPECT_BAD_SHOT)
                                                 {
-                                                    _ = Console.ReadKey();
+                                                    Console.ReadKey();
                                                 }
                                             }
                                             else if (DemoScanner.CurrentFrameDuplicated > 1)
@@ -12791,7 +12790,7 @@ namespace DemoScanner.DG
 
                                                 if (DemoScanner.INSPECT_BAD_SHOT)
                                                 {
-                                                    _ = Console.ReadKey();
+                                                    Console.ReadKey();
                                                 }
                                             }
                                             /*else if (!DemoScanner.CurrentFrameOnGround)
@@ -12814,7 +12813,7 @@ namespace DemoScanner.DG
 
                                                 if (DemoScanner.INSPECT_BAD_SHOT)
                                                 {
-                                                    _ = Console.ReadKey();
+                                                    Console.ReadKey();
                                                 }
                                             }
                                             else if (DemoScanner.CurrentWeapon == DemoScanner.WeaponIdType.WEAPON_NONE
@@ -12834,7 +12833,7 @@ namespace DemoScanner.DG
 
                                                 if (DemoScanner.INSPECT_BAD_SHOT)
                                                 {
-                                                    _ = Console.ReadKey();
+                                                    Console.ReadKey();
                                                 }
                                             }
                                             else
