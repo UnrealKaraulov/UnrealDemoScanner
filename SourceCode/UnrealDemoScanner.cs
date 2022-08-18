@@ -1039,6 +1039,7 @@ namespace DemoScanner.DG
         public static void CheckConsoleCommand(string s2, bool isstuff = false)
         {
             string s = s2.Trim().TrimBad();
+            string sLower = s.ToLower();
 
             if (!isstuff) CheckConsoleCheat(s);
 
@@ -1083,15 +1084,15 @@ namespace DemoScanner.DG
 
             }
 
-            if (s.ToLower().IndexOf("-showscores") > -1)
+            if (sLower.IndexOf("-showscores") > -1)
             {
                 LastAltTabStart = LastCmdTimeString;
                 AltTabEndSearch = true;
             }
 
-            if (s.ToLower().IndexOf("-") > -1 && framecrashcmd != s.ToLower())
+            if (s.IndexOf("-") > -1 && framecrashcmd != sLower)
             {
-                framecrashcmd = s.ToLower();
+                framecrashcmd = sLower;
                 FrameCrash++;
                 if (FrameCrash > 7 && AltTabEndSearch)
                 {
@@ -1113,23 +1114,23 @@ namespace DemoScanner.DG
                 FrameCrash = 0;
             }
 
-            if (s.ToLower().IndexOf("+") > -1)
+            if (s.IndexOf("+") > -1)
             {
                 AltTabEndSearch = false;
                 FrameCrash = 0;
             }
 
-            if (s.ToLower().IndexOf("+reload") > -1)
+            if (sLower.IndexOf("+reload") > -1)
             {
                 FrameCrash = 0;
             }
-            else if (s.ToLower().IndexOf("-reload") > -1)
+            else if (sLower.IndexOf("-reload") > -1)
             {
             }
 
-            if (s.ToLower().IndexOf("+klook") > -1) CheatKey++;
+            if (sLower.IndexOf("+klook") > -1) CheatKey++;
 
-            if (s.ToLower().IndexOf("+camin") > -1 && FirstJump)
+            if (sLower.IndexOf("+camin") > -1 && FirstJump)
             {
                 CaminCount++;
                 if (CaminCount == 3)
@@ -1144,19 +1145,19 @@ namespace DemoScanner.DG
                     CaminCount = 0;
                 }
             }
-            else if (s.ToLower().IndexOf("-camin") > -1)
+            else if (sLower.IndexOf("-camin") > -1)
             {
                 CaminCount = 0;
             }
 
-            if (s.ToLower().IndexOf("force_centerview") > -1)
+            if (sLower.IndexOf("force_centerview") > -1)
             {
                 ForceCenterViewTime = CurrentTime;
                 FoundForceCenterView++;
             }
 
-            if (s.ToLower().IndexOf("slot") > -1 || s.ToLower().IndexOf("invprev") > -1 ||
-                s.ToLower().IndexOf("invnext") > -1)
+            if (sLower.IndexOf("slot") > -1 || sLower.IndexOf("invprev") > -1 ||
+                sLower.IndexOf("invnext") > -1)
             {
                 InitAimMissingSearch = -1;
                 SkipNextAttack = 2;
@@ -1167,9 +1168,9 @@ namespace DemoScanner.DG
                 ChangeWeaponTime = CurrentTime;
             }
 
-            if (s.ToLower().IndexOf("attack2") == -1 && s.ToLower().IndexOf("attack3") == -1)
+            if (sLower.IndexOf("attack2") == -1 && sLower.IndexOf("attack3") == -1)
             {
-                if (s.ToLower().IndexOf("+attack") > -1)
+                if (sLower.IndexOf("+attack") > -1)
                 {
                     AttackFloodTimes++;
 
@@ -1326,7 +1327,7 @@ namespace DemoScanner.DG
                     ShotFound = -1;
                     WeaponChanged = false;
                 }
-                else if (s.ToLower().IndexOf("-attack") > -1)
+                else if (sLower.IndexOf("-attack") > -1)
                 {
                     if (IsUserAlive())
                     {
@@ -1374,7 +1375,7 @@ namespace DemoScanner.DG
                 }
             }
 
-            if (s.ToLower().IndexOf("+duck") > -1)
+            if (sLower.IndexOf("+duck") > -1)
             {
                 if (!IsDuckPressed)
                     if (CurrentIdealJumpsStrike > 6) CurrentIdealJumpsStrike--;
@@ -1397,7 +1398,7 @@ namespace DemoScanner.DG
                     }
                 }
             }
-            else if (s.ToLower().IndexOf("-duck") > -1)
+            else if (sLower.IndexOf("-duck") > -1)
             {
                 IsDuckPressed = false;
                 FirstDuck = true;
@@ -1420,13 +1421,13 @@ namespace DemoScanner.DG
                 }
             }
 
-            if (s.ToLower().IndexOf("+forward") > -1)
+            if (sLower.IndexOf("+forward") > -1)
             {
                 InForward = true;
                 LastMoveForward = CurrentTime;
                 StrafeOptimizerFalse = false;
             }
-            else if (s.ToLower().IndexOf("-forward") > -1)
+            else if (sLower.IndexOf("-forward") > -1)
             {
                 StrafeOptimizerFalse = true;
                 if (InForward && DetectStrafeOptimizerStrikes >= 3)
@@ -1438,24 +1439,24 @@ namespace DemoScanner.DG
                 LastUnMoveForward = CurrentTime;
             }
 
-            if (s.ToLower().IndexOf("+back") > -1)
+            if (sLower.IndexOf("+back") > -1)
             {
                 InBack = true;
                 LastMoveBack = CurrentTime;
             }
-            else if (s.ToLower().IndexOf("-back") > -1)
+            else if (sLower.IndexOf("-back") > -1)
             {
                 InBack = false;
                 LastMoveBack = CurrentTime;
             }
 
 
-            if (s.ToLower().IndexOf("+strafe") > -1)
+            if (sLower.IndexOf("+strafe") > -1)
             {
                 InStrafe = true;
                 LastStrafeEnabled = CurrentTime;
             }
-            else if (s.ToLower().IndexOf("-strafe") > -1)
+            else if (sLower.IndexOf("-strafe") > -1)
             {
                 InStrafe = false;
                 LastStrafeDisabled = CurrentTime;
@@ -1464,21 +1465,21 @@ namespace DemoScanner.DG
 
 
 
-            if (s.ToLower().IndexOf("+mlook") > -1)
+            if (sLower.IndexOf("+mlook") > -1)
             {
                 InLook = true;
                 LastLookEnabled = CurrentTime;
             }
-            else if (s.ToLower().IndexOf("-mlook") > -1)
+            else if (sLower.IndexOf("-mlook") > -1)
             {
                 InLook = false;
                 LastLookDisabled = CurrentTime;
             }
 
 
-            if (s.ToLower().IndexOf("+use") > -1) LastUseTime = CurrentTime;
+            if (sLower.IndexOf("+use") > -1) LastUseTime = CurrentTime;
 
-            if (s.ToLower().IndexOf("+moveleft") > -1)
+            if (sLower.IndexOf("+moveleft") > -1)
             {
                 if (RealAlive && (!CurrentFrameOnGround || CurrentFrameJumped))
                 {
@@ -1513,7 +1514,7 @@ namespace DemoScanner.DG
                 MoveLeft = true;
                 LastMoveLeft = CurrentTime;
             }
-            else if (s.ToLower().IndexOf("-moveleft") > -1)
+            else if (sLower.IndexOf("-moveleft") > -1)
             {
                 if (RealAlive && (!CurrentFrameOnGround || CurrentFrameJumped))
                 {
@@ -1529,30 +1530,21 @@ namespace DemoScanner.DG
                 MoveLeft = false;
                 LastUnMoveLeft = CurrentTime;
             }
-            else if (s.ToLower().IndexOf("+moveright") > -1)
+            else if (sLower.IndexOf("+moveright") > -1)
             {
-                if (RealAlive && (!CurrentFrameOnGround || CurrentFrameJumped))
+                if (RealAlive && (!CurrentFrameOnGround || CurrentFrameJumped)
+                    && Math.Abs(CurrentTime - LastUnMoveLeft) < float.Epsilon
+                    && Math.Abs(CurrentTime - LastMoveLeft) < 1.00f)
                 {
-                    if (Math.Abs(CurrentTime - LastUnMoveLeft) < float.Epsilon && Math.Abs(CurrentTime - LastMoveLeft) < 1.00f)
-                    {
-                        /* if (DemoScanner.DEBUG_ENABLED)
-                             Console.WriteLine("22222:" + AngleStrikeDirection);*/
-                        if (!(AngleStrikeDirection > -2 && AngleStrikeDirection < 90)) StrafeOptimizerFalse = true;
+                    if (!(AngleStrikeDirection > -2 && AngleStrikeDirection < 90)) StrafeOptimizerFalse = true;
 
-                        if (Math.Abs(CurrentTime - LastMoveLeft) > 0.50f
-                            || Math.Abs(CurrentTime - LastMoveLeft) < 0.01)
-                            StrafeOptimizerFalse = true;
+                    if (Math.Abs(CurrentTime - LastMoveLeft) > 0.50f
+                        || Math.Abs(CurrentTime - LastMoveLeft) < 0.01)
+                        StrafeOptimizerFalse = true;
 
-                        NeedCheckAngleDiffForStrafeOptimizer = true;
-                        LastStrafeOptimizerWarnTime = CurrentTime;
-                        DetectStrafeOptimizerStrikes++;
-                    }
-                    else
-                    {
-                        StrafeOptimizerFalse = false;
-                        DetectStrafeOptimizerStrikes = 0;
-                        StrafeAngleDirectionChanges = 0;
-                    }
+                    NeedCheckAngleDiffForStrafeOptimizer = true;
+                    LastStrafeOptimizerWarnTime = CurrentTime;
+                    DetectStrafeOptimizerStrikes++;
                 }
                 else
                 {
@@ -1563,7 +1555,7 @@ namespace DemoScanner.DG
                 MoveRight = true;
                 LastMoveRight = CurrentTime;
             }
-            else if (s.ToLower().IndexOf("-moveright") > -1)
+            else if (sLower.IndexOf("-moveright") > -1)
             {
                 if (RealAlive && (!CurrentFrameOnGround || CurrentFrameJumped))
                 {
@@ -1580,7 +1572,7 @@ namespace DemoScanner.DG
                 LastUnMoveRight = CurrentTime;
             }
 
-            if (s.ToLower().IndexOf("+jump") > -1)
+            if (sLower.IndexOf("+jump") > -1)
             {
                 SearchJumpBug = true;
                 FrameCrash = 0;
@@ -1621,7 +1613,7 @@ namespace DemoScanner.DG
                 JumpHackCount2 = -1;
                 IsJump = true;
             }
-            if (s.ToLower().IndexOf("-jump") > -1)
+            if (sLower.IndexOf("-jump") > -1)
             {
                 FirstJump = true;
                 if (IsUserAlive())
@@ -6160,7 +6152,7 @@ namespace DemoScanner.DG
                                      lock (sync)
                                      {
                                          ConsoleHelper.ClearCurrentConsoleLine();
-                                         Console.Write("\rDownload \"" + s + "\" " + sum + " of " + DownloadResources.Count + ". In " + GetActiveDownloadThreads() + " of " + (GetActiveDownloadThreads()  > threads ? GetActiveDownloadThreads() : threads) + " threads.");
+                                         Console.Write("\rDownload \"" + s + "\" " + sum + " of " + DownloadResources.Count + ". In " + GetActiveDownloadThreads() + " of " + (GetActiveDownloadThreads() > threads ? GetActiveDownloadThreads() : threads) + " threads.");
                                      }
                                      bWebClient myWebClient = new bWebClient();
                                      try
