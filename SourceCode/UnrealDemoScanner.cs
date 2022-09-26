@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.66.4_BETA";
+        public const string PROGRAMVERSION = "1.66.5_BETA";
 
         public enum AngleDirection
         {
@@ -228,6 +228,7 @@ namespace DemoScanner.DG
         public static float IdealJmpTmpTime1;
         public static float IdealJmpTmpTime2;
 
+        public static int BadTimeFound = 0;
 
         public static WeaponIdType CurrentWeapon = WeaponIdType.WEAPON_NONE;
         public static WeaponIdType StrikesWeapon = WeaponIdType.WEAPON_NONE;
@@ -3697,12 +3698,21 @@ namespace DemoScanner.DG
                                 PreviousTime = CurrentTime;
                                 CurrentTime = nf.RParms.Time;
 
-
-                                if (CurrentTime <= PreviousTime)
+                                if (BadTimeFound > 300)
                                 {
-                                    CurrentTime = PreviousTime;
-                                }
+                                    float newtime = Math.Abs(CurrentTime3 - PreviousTime3);
+                                    if (newtime > 1.0f)
+                                        newtime = 1.0f;
 
+                                    CurrentTime = PreviousTime + newtime;
+                                }
+                                else
+                                {
+                                    if (CurrentTime <= PreviousTime)
+                                    {
+                                        BadTimeFound++;
+                                    }
+                                }
 
                                 if (Math.Abs(CurrentTime) > float.Epsilon && StartGameSecond > CurrentTime / 60.0f)
                                 {
@@ -6719,6 +6729,20 @@ namespace DemoScanner.DG
                 }
             }
 
+            //if (BadTimeFound > 100)
+            //{
+            //    if (IsRussia)
+            //    {
+            //        TextComments.WriteLine("[TIME HACK] Обнаружен обход сканера. Метод: остановка времени.");
+            //        Console.WriteLine("[TIME HACK] Обнаружен обход сканера. Метод: остановка времени.");
+            //    }
+            //    else
+            //    {
+            //        TextComments.WriteLine("[TIME HACK] Scanner bypass with method TIME detected!");
+            //        Console.WriteLine("[TIME HACK] Scanner bypass with method TIME detected!");
+            //    }
+            //}
+
 
             double maxfps1 =
                 Math.Round(
@@ -7474,8 +7498,11 @@ namespace DemoScanner.DG
                         }
                     }
 
-                    if (averagefps.Average() > MAX_MONITOR_REFRESHRATE ||
-               averagefps2.Average() > MAX_MONITOR_REFRESHRATE)
+                    if (
+                        (averagefps.Count > 0 && averagefps.Average() > MAX_MONITOR_REFRESHRATE)
+                        ||
+                        (averagefps2.Count > 0 && averagefps2.Average() > MAX_MONITOR_REFRESHRATE)
+                        )
                     {
                         if (IsRussia)
                         {
@@ -10533,7 +10560,7 @@ namespace DemoScanner.DG
                 BitBuffer.ReadUnsignedBits(12);
                 ulong downloadsize = BitBuffer.ReadUnsignedBits(24);
                 uint flags = BitBuffer.ReadUnsignedBits(3);
-                
+
                 if ((flags & 4) != 0) // md5 hash
                 {
                     BitBuffer.ReadBytes(16);
