@@ -632,7 +632,7 @@ namespace DemoScanner.DemoStuff.GoldSource
         public int Count;
         public float FrametimeMax;
         public float FrametimeMin;
-        public double FrametimeSum;
+        public float FrametimeSum;
         public int MsecMax;
         public int MsecMin;
         public long MsecSum;

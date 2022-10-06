@@ -295,6 +295,12 @@
     <Compile Include="Parser\ExtensionMethods\MoreLinq\ZipShortest.cs" />
     <Compile Include="Parser\ExtensionMethods\Traderain.cs" />
     <Compile Include="Parser\Demo stuff\GoldSource\GoldSourceParser.cs" />
+    <Compile Include="Preview.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Preview.Designer.cs">
+      <DependentUpon>Preview.cs</DependentUpon>
+    </Compile>
     <Compile Include="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
@@ -314,6 +320,9 @@
     <Compile Include="Parser\ValvePak\Utilities\AsnKeyParser.cs" />
     <Compile Include="Parser\ValvePak\Utilities\Crc32.cs" />
     <Compile Include="Parser\ValvePak\Utilities\StreamHelpers.cs" />
+    <EmbeddedResource Include="Preview.resx">
+      <DependentUpon>Preview.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Properties\Resources.resx">
       <Generator>PublicResXFileCodeGenerator</Generator>
       <SubType>Designer</SubType>

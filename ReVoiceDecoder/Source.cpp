@@ -117,7 +117,7 @@ void decodemy(char* encoded, int size)
 		free(wh);
 
 
-		for (int i = 0; i < samplesout.size(); i++) {
+		for (unsigned int i = 0; i < samplesout.size(); i++) {
 			//write the same data to both channels if you have a mono source.
 			//you could make a mono file, but this is just easier =)
 			fwrite(&samplesout[i], sizeof(int16_t), 1, file);
