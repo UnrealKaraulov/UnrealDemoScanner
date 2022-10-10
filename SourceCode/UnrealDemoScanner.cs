@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.67.0_ALPHA";
+        public const string PROGRAMVERSION = "1.67.1_ALPHA";
 
         public enum AngleDirection
         {
@@ -366,7 +366,7 @@ namespace DemoScanner.DG
 
         public static bool IsNewAttack()
         {
-            return NewAttackFrame <= CurrentFrameIdAll && Math.Abs(CurrentFrameIdAll - NewAttackFrame) < 5; 
+            return NewAttackFrame <= CurrentFrameIdAll && Math.Abs(CurrentFrameIdAll - NewAttackFrame) < 5;
         }
 
         public static bool NewAttackForLearn;
@@ -536,6 +536,8 @@ namespace DemoScanner.DG
         public static bool DemoScannerBypassDetected;
         public static int FramesOnGround;
         public static int FramesOnFly;
+        public static int FlyDirection;
+        public static bool SearchFakeJump = false;
 
         public static int TotalFramesOnFly;
         public static int TotalFramesOnGround;
@@ -2848,7 +2850,7 @@ namespace DemoScanner.DG
                                         ReturnToGameDetects++;
                                         if (!IsRussia)
                                         {
-                                            DemoScanner_AddWarn("['RETURN TO GAME' FEATURE]", ReturnToGameDetects > 2, true,true);
+                                            DemoScanner_AddWarn("['RETURN TO GAME' FEATURE]", ReturnToGameDetects > 2, true, true);
                                         }
                                         else
                                         {
@@ -3686,6 +3688,9 @@ namespace DemoScanner.DG
 
                                     subnode.Text += "}\n";
                                 }
+
+                                //FlyDirection = 0;
+                                //Console.WriteLine("FlyDirection 0:" + FlyDirection);
                                 //Console.WriteLine("Sound:" + CurrentTimeString);
                                 break;
                             }
@@ -4659,6 +4664,38 @@ namespace DemoScanner.DG
                                 {
                                     FramesOnFly++;
                                     FramesOnGround = 0;
+
+                                    if (nf.RParms.Simvel.Z > 100.0)
+                                    {
+                                        if (SearchFakeJump && FlyDirection < -5)
+                                        {
+                                            if (abs(CurrentTime - LastJumpBtnTime) > 0.1)
+                                            {
+                                                DemoScanner_AddWarn("[HPP JMPBUG] at (" + CurrentTime + ") : " + CurrentTimeString, true);
+                                            }
+                                        }
+                                        if (FlyDirection < 0)
+                                            FlyDirection = 0;
+                                        FlyDirection++;
+                                    }
+                                    else if (nf.RParms.Simvel.Z < -100.0)
+                                    {
+                                        if (FlyDirection > 0)
+                                            FlyDirection = 0;
+                                        FlyDirection--;
+                                    }
+                                    else
+                                    {
+                                        FlyDirection /= 2;
+                                    }
+
+                                    SearchFakeJump = true;
+                                }
+
+                                if (PreviousFrameOnGround || CurrentFrameOnGround)
+                                {
+                                    FlyDirection /= 2;
+                                    SearchFakeJump = false;
                                 }
 
                                 if (!RealAlive)
@@ -6443,7 +6480,6 @@ namespace DemoScanner.DG
 
                                     subnode.Text += "}\n";
                                 }
-
                                 PreviousFrameAlive = CurrentFrameAlive;
                                 PreviousFrameAttacked = CurrentFrameAttacked;
                                 PreviousFrameJumped = CurrentFrameJumped;
@@ -12348,6 +12384,14 @@ namespace DemoScanner.DG
                                                 value != null ? (float)value : 1.0f;
 
                                             DemoScanner.NewViewAngleSearcherAngle = tmpAngle;
+                                        }
+
+                                        if (entryList[index].Name == "movetype")
+                                        {
+                                            uint movetype =
+                                                value != null ? (uint)value : 0;
+                                           // Console.WriteLine("Change movetype to :" + movetype);
+                                            DemoScanner.FlyDirection = 0;
                                         }
 
                                         if (entryList[index].Name == "gaitsequence")
