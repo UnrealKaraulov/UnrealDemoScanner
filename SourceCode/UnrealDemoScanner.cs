@@ -1576,7 +1576,7 @@ namespace DemoScanner.DG
                 {
                     DemoScanner.DemoScanner_AddWarn(
                                  "[DUCK HACK TYPE 4] at (" + DemoScanner.CurrentTime +
-                                 ") " + DemoScanner.CurrentTimeString, false);
+                                 ") " + DemoScanner.CurrentTimeString, !IsPlayerLossConnection());
                 }
                 IsDuckPressed = false;
                 FirstDuck = true;
