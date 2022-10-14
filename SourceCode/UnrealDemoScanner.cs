@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.67.2_ALPHA";
+        public const string PROGRAMVERSION = "1.67.3_ALPHA";
 
         public enum AngleDirection
         {
@@ -216,7 +216,7 @@ namespace DemoScanner.DG
         public static bool CurrentFrameDuck;
         public static bool PreviousFrameDuck;
 
-        public static int JumpHackCount;
+        public static int KreedzHacksCount;
         public static int FakeLagAim;
 
         public static List<int> FakeLagsValus = new List<int>();
@@ -432,7 +432,7 @@ namespace DemoScanner.DG
         public static float ChangeWeaponTime;
         public static WeaponIdType LastWatchWeapon = WeaponIdType.WEAPON_NONE;
         public static int ReallyAim2;
-        public static float LastJumpHackTime;
+        public static float LastKreedzHackTime;
         public static bool NeedDetectBHOPHack;
         public static float LastDeathTime;
         public static List<Player> playerList = new List<Player>();
@@ -724,7 +724,6 @@ namespace DemoScanner.DG
         public static bool ForceUpdateName;
         public static float LastAttackCmdTime;
         public static float LastFloodAttackTime = 0.0f;
-        public static float LastFloodDuckTime = 0.0f;
         public static bool LASTFRAMEISCLIENTDATA;
         public static int BadAnglesFoundCount;
         public static int MapAndCrc32_Top;
@@ -1260,12 +1259,14 @@ namespace DemoScanner.DG
                 {
                     if (abs(CurrentTime - LastJumpTime) < 1.0)
                     {
-                        if (JumpHackCount < 10)
+                        if (abs(DemoScanner.CurrentTime - DemoScanner.LastKreedzHackTime) > 2.5f)
                         {
                             DemoScanner_AddWarn("[XTREME JUMPHACK] at (" + CurrentTime + ") " + CurrentTimeString);
-                        }
 
-                        JumpHackCount++;
+                            DemoScanner.LastKreedzHackTime = DemoScanner.CurrentTime;
+
+                            KreedzHacksCount++;
+                        }
                     }
 
                     CaminCount = 0;
@@ -1560,23 +1561,26 @@ namespace DemoScanner.DG
 
                 if (DuckStrikes == 8)
                 {
-                    if (abs(CurrentTime - LastFloodDuckTime) > 20.0)
+                    if (abs(CurrentTime - LastKreedzHackTime) > 20.0)
                     {
                         DemoScanner.DemoScanner_AddWarn(
                                 "[DUCK FLOOD TYPE 1] at (" + DemoScanner.CurrentTime +
                                 ") " + DemoScanner.CurrentTimeString);
-                        JumpHackCount++;
-                        LastFloodDuckTime = CurrentTime;
+                        KreedzHacksCount++;
+                        LastKreedzHackTime = CurrentTime;
                     }
                 }
             }
             else if (sLower.IndexOf("-duck") > -1)
             {
-                if (DuckHack3Search == 1 && IsUserAlive() && abs(CurrentTime - LastUnDuckTime) > 0.2)
+                if (DuckHack3Search == 1 && IsUserAlive() && abs(CurrentTime - LastUnDuckTime) > 0.2
+                    && abs(CurrentTime - LastKreedzHackTime) > 1.0)
                 {
                     DemoScanner.DemoScanner_AddWarn(
                                  "[DUCK HACK TYPE 4] at (" + DemoScanner.CurrentTime +
                                  ") " + DemoScanner.CurrentTimeString, !IsPlayerLossConnection());
+                    KreedzHacksCount++;
+                    LastKreedzHackTime = CurrentTime;
                 }
                 IsDuckPressed = false;
                 FirstDuck = true;
@@ -4338,8 +4342,8 @@ namespace DemoScanner.DG
                                                     "[MOVEMENT HACK TYPE 2] at (" +
                                                     CurrentTime + ") " + CurrentTimeString, !IsAngleEditByEngine() && !IsPlayerLossConnection() && (nf.UCmd.Sidemove < -100 || nf.UCmd.Sidemove > 100));
                                                 LastMovementHackTime = CurrentTime;
+                                                KreedzHacksCount++;
                                             }
-                                            JumpHackCount++;
                                         }
                                     }
                                 }
@@ -4373,6 +4377,7 @@ namespace DemoScanner.DG
                                                    "[MOVEMENT HACK TYPE 1] at (" +
                                                    CurrentTime + ") " + CurrentTimeString, false);
                                         SearchMoveHack1 = false;
+                                        KreedzHacksCount++;
                                     }
                                 }
 
@@ -4397,7 +4402,6 @@ namespace DemoScanner.DG
                                                 SearchMoveHack1 = true;
                                                 LastMovementHackTime = CurrentTime;
                                             }
-                                            JumpHackCount++;
                                         }
                                     }
                                 }
@@ -4596,13 +4600,13 @@ namespace DemoScanner.DG
                                     }
                                     else if (SearchOneFrameDuck && PreviousFrameDuck && !CurrentFrameDuck)
                                     {
-                                        if (abs(CurrentTime - LastJumpHackTime) > 2.5f)
+                                        if (abs(CurrentTime - LastKreedzHackTime) > 2.5f)
                                         {
                                             DemoScanner_AddWarn(
                                                 "[DUCK HACK TYPE 3] at (" +
                                                 CurrentTime + ") " + CurrentTimeString, !IsPlayerLossConnection());
-                                            LastJumpHackTime = CurrentTime;
-                                            JumpHackCount++;
+                                            LastKreedzHackTime = CurrentTime;
+                                            KreedzHacksCount++;
                                         }
                                     }
                                     else
@@ -4615,15 +4619,15 @@ namespace DemoScanner.DG
                                    abs(CurrentTime - LastDuckTime) > 5.0f)
                                     {
                                         DuckHack2Strikes++;
-                                        if (/*DemoScanner.DuckHack2Strikes > 5 &&*/ abs(CurrentTime - LastJumpHackTime) > 2.5f)
+                                        if (/*DemoScanner.DuckHack2Strikes > 5 &&*/ abs(CurrentTime - LastKreedzHackTime) > 2.5f)
                                         {
                                             //Console.WriteLine("1:" + (CurrentTime - LastUnDuckTime));
                                             //Console.WriteLine("2:" + (CurrentTime - LastDuckTime));
                                             DemoScanner_AddWarn(
                                                 "[DUCK HACK TYPE 2] at (" +
                                                 CurrentTime + ") " + CurrentTimeString, false);
-                                            LastJumpHackTime = CurrentTime;
-                                            JumpHackCount++;
+                                            LastKreedzHackTime = CurrentTime;
+                                            KreedzHacksCount++;
                                             DuckHack2Strikes = 0;
                                         }
                                     }
@@ -4639,15 +4643,15 @@ namespace DemoScanner.DG
                                         if (DuckStrikes < 2)
                                         {
                                             //DemoScanner.DuckHack1Strikes++;
-                                            if (/*DemoScanner.DuckHack1Strikes > 1 && */abs(CurrentTime - LastJumpHackTime) > 2.5f)
+                                            if (/*DemoScanner.DuckHack1Strikes > 1 && */abs(CurrentTime - LastKreedzHackTime) > 2.5f)
                                             {
                                                 //Console.WriteLine("11:" + (CurrentTime - LastUnDuckTime));
                                                 //Console.WriteLine("22:" + (CurrentTime - LastDuckTime));
                                                 DemoScanner_AddWarn(
                                                     "[DUCK HACK TYPE 1] at (" +
                                                     CurrentTime + ") " + CurrentTimeString, !IsPlayerLossConnection());
-                                                LastJumpHackTime = CurrentTime;
-                                                JumpHackCount++;
+                                                LastKreedzHackTime = CurrentTime;
+                                                KreedzHacksCount++;
                                                 DuckHack1Strikes = 0;
                                             }
                                         }
@@ -5658,7 +5662,7 @@ namespace DemoScanner.DG
                                             //      CurrentTime + "):" + DemoScanner.CurrentTimeString + " (???)", false);
                                             //if (maxfalsepositiveaim3 > 0 &&
                                             //    SilentAimDetected <= 1 &&
-                                            //    JumpHackCount <= 1)
+                                            //    KreedzHacksCount <= 1)
                                             //{
                                             //    DemoScanner_AddWarn(
                                             //        "Detected [AIM TYPE 3] at (" +
@@ -5731,43 +5735,43 @@ namespace DemoScanner.DG
                                                 if (abs(CurrentTime - LastUnJumpTime) > 1.5f &&
                                                     abs(CurrentTime - LastJumpTime) > 1.5f)
                                                 {
-                                                    if (abs(CurrentTime - LastJumpHackTime) > 2.5f && abs(LastJumpHackFalseDetectionTime) < EPSILON)
+                                                    if (abs(CurrentTime - LastKreedzHackTime) > 2.5f && abs(LastJumpHackFalseDetectionTime) < EPSILON)
                                                     {
                                                         DemoScanner_AddWarn(
                                                             "[JUMPHACK TYPE 1] at (" +
                                                             CurrentTime + ") " + CurrentTimeString, !IsAngleEditByEngine());
 
-                                                        LastJumpHackTime = CurrentTime;
-                                                        JumpHackCount++;
+                                                        LastKreedzHackTime = CurrentTime;
+                                                        KreedzHacksCount++;
                                                     }
 
                                                 }
                                                 else if (abs(CurrentTime - LastUnJumpTime) > 0.5f &&
                                                          abs(CurrentTime - LastJumpTime) > 0.5f)
                                                 {
-                                                    if (abs(CurrentTime - LastJumpHackTime) > 2.5f
+                                                    if (abs(CurrentTime - LastKreedzHackTime) > 2.5f
                                                         && !IsAngleEditByEngine() && abs(LastJumpHackFalseDetectionTime) < EPSILON)
                                                     {
                                                         DemoScanner_AddWarn(
                                                             "[JUMPHACK TYPE 3] at (" +
                                                             CurrentTime + ") " + CurrentTimeString, false);
 
-                                                        LastJumpHackTime = CurrentTime;
-                                                        JumpHackCount++;
+                                                        LastKreedzHackTime = CurrentTime;
+                                                        KreedzHacksCount++;
                                                     }
                                                 }
                                                 else if (abs(CurrentTime - LastUnJumpTime) > 0.3f &&
                                                          abs(CurrentTime - LastJumpTime) > 0.3f)
                                                 {
-                                                    if (abs(CurrentTime - LastJumpHackTime) > 2.5f
+                                                    if (abs(CurrentTime - LastKreedzHackTime) > 2.5f
                                                         && !IsAngleEditByEngine() && abs(LastJumpHackFalseDetectionTime) < EPSILON)
                                                     {
                                                         DemoScanner_AddWarn(
                                                             "[JUMPHACK TYPE 4] at (" +
                                                             CurrentTime + ") " + CurrentTimeString, false, false);
 
-                                                        LastJumpHackTime = CurrentTime;
-                                                        JumpHackCount++;
+                                                        LastKreedzHackTime = CurrentTime;
+                                                        KreedzHacksCount++;
                                                     }
                                                 }
                                             }
@@ -6324,7 +6328,7 @@ namespace DemoScanner.DG
                                         AimType1FalseDetect = false;
                                         if (FirstAttack)
                                         {
-                                            if ((TotalAimBotDetected > 0 || JumpHackCount > 0) && !IsAngleEditByEngine())
+                                            if ((TotalAimBotDetected > 0 || KreedzHacksCount > 0) && !IsAngleEditByEngine())
                                             {
                                                 /*  if (AUTO_LEARN_HACK_DB)
                                                   {
@@ -6899,25 +6903,25 @@ namespace DemoScanner.DG
                 }
             }
 
-            if (JumpHackCount > 0)
+            if (KreedzHacksCount > 0)
             {
                 if (IsRussia)
                 {
                     TextComments.WriteLine(
                         "[STRAFE/GROUND/FASTRUN ХАК] Количество предупреждений:" +
-                        JumpHackCount /*+ ". Found " + JumpCount + " +jump commands"*/);
+                        KreedzHacksCount /*+ ". Found " + JumpCount + " +jump commands"*/);
                     Console.WriteLine(
                         "[STRAFE/GROUND/FASTRUN ХАК] Количество предупреждений:" +
-                        JumpHackCount /*+ ". Found " + JumpCount + " +jump commands*/);
+                        KreedzHacksCount /*+ ". Found " + JumpCount + " +jump commands*/);
                 }
                 else
                 {
                     TextComments.WriteLine(
                         "[STRAFE/GROUND/FASTRUN HACK] Warn count:" +
-                        JumpHackCount /*+ ". Found " + JumpCount + " +jump commands"*/);
+                        KreedzHacksCount /*+ ". Found " + JumpCount + " +jump commands"*/);
                     Console.WriteLine(
                         "[STRAFE/GROUND/FASTRUN HACK] Warn count:" +
-                        JumpHackCount /*+ ". Found " + JumpCount + " +jump commands*/);
+                        KreedzHacksCount /*+ ". Found " + JumpCount + " +jump commands*/);
                 }
             }
 
@@ -7001,7 +7005,7 @@ namespace DemoScanner.DG
             }
 
             /*if (ENABLE_LEARN_CLEAN_DEMO)
-                if (BHOPcount < 4 && BadAttackCount < 4 && TotalAimBotDetected < 4 && FakeLagAim < 4 && JumpHackCount < 4) MachineLearnAnglesCLEAN.WriteAnglesDB();
+                if (BHOPcount < 4 && BadAttackCount < 4 && TotalAimBotDetected < 4 && FakeLagAim < 4 && KreedzHacksCount < 4) MachineLearnAnglesCLEAN.WriteAnglesDB();
 
 
             if (ENABLE_LEARN_HACK_DEMO_FORCE_SAVE || ENABLE_LEARN_HACK_DEMO_SAVE_ALL_ANGLES) MachineLearnAnglesHACK.WriteAnglesDB();
@@ -10131,9 +10135,9 @@ namespace DemoScanner.DG
                             DemoScanner.TotalAimBotDetected--;
                         }
 
-                        if (DemoScanner.JumpHackCount > 0)
+                        if (DemoScanner.KreedzHacksCount > 0)
                         {
-                            DemoScanner.JumpHackCount--;
+                            DemoScanner.KreedzHacksCount--;
                         }
 
                         if (DemoScanner.JumpHackCount2 > 0)
@@ -12555,14 +12559,14 @@ namespace DemoScanner.DG
                                                 {
                                                     if (!DemoScanner.IsPlayerAnyJumpPressed() && !DemoScanner.IsPlayerLossConnection())
                                                     {
-                                                        if (abs(DemoScanner.CurrentTime - DemoScanner.LastJumpHackTime) > 2.5f && abs(DemoScanner.LastJumpHackFalseDetectionTime) < EPSILON)
+                                                        if (abs(DemoScanner.CurrentTime - DemoScanner.LastKreedzHackTime) > 2.5f && abs(DemoScanner.LastJumpHackFalseDetectionTime) < EPSILON)
                                                         {
                                                             DemoScanner.DemoScanner_AddWarn(
                                                                 "[BHOP TYPE 3] at (" +
                                                                 DemoScanner.CurrentTime + ") " + DemoScanner.CurrentTimeString, false, false);
 
-                                                            DemoScanner.LastJumpHackTime = DemoScanner.CurrentTime;
-                                                            DemoScanner.JumpHackCount++;
+                                                            DemoScanner.LastKreedzHackTime = DemoScanner.CurrentTime;
+                                                            DemoScanner.KreedzHacksCount++;
                                                         }
                                                     }
                                                 }
@@ -12712,14 +12716,14 @@ namespace DemoScanner.DG
                                                     DemoScanner.JumpCount5++;
                                                     if (!DemoScanner.IsPlayerAnyJumpPressed() && !DemoScanner.IsPlayerLossConnection())
                                                     {
-                                                        if (abs(DemoScanner.CurrentTime - DemoScanner.LastJumpHackTime) > 2.5f)
+                                                        if (abs(DemoScanner.CurrentTime - DemoScanner.LastKreedzHackTime) > 2.5f)
                                                         {
                                                             DemoScanner.DemoScanner_AddWarn(
                                                                 "[JUMPHACK TYPE 2] at (" +
                                                                 DemoScanner.CurrentTime + ") " + DemoScanner.CurrentTimeString, !DemoScanner.IsAngleEditByEngine());
 
-                                                            DemoScanner.LastJumpHackTime = DemoScanner.CurrentTime;
-                                                            DemoScanner.JumpHackCount++;
+                                                            DemoScanner.LastKreedzHackTime = DemoScanner.CurrentTime;
+                                                            DemoScanner.KreedzHacksCount++;
                                                         }
                                                     }
                                                 }
