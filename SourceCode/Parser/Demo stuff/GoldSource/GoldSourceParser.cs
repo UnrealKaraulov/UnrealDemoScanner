@@ -1279,7 +1279,7 @@ namespace DemoScanner.DemoStuff.GoldSource
 
                         if ( gDemo.Header.DirectoryOffset == 0 )
                         {
-                            Console.WriteLine("Warning! Bad entries count! Using 'bruteforce' read method!");
+                            //Console.WriteLine("Warning! Bad entries count! Using 'bruteforce' read method!");
                             var tempvar = new GoldSource.DemoDirectoryEntry
                             {
                                 Type = 0,

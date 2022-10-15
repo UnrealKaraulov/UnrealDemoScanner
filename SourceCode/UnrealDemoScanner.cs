@@ -4064,7 +4064,7 @@ namespace DemoScanner.DG
                                                      ENABLE_LEARN_HACK_DEMO_FORCE_SAVE = true;
                                                  }*/
                                                 DemoScanner_AddWarn(
-                                                    "[AIM TYPE 1.4 " + CurrentWeapon + "] at (" + IsAttackLastTime +
+                                                    "[AIM TYPE 4.2 " + CurrentWeapon + "] at (" + IsAttackLastTime +
                                                     "):" + CurrentTimeString, !IsChangeWeapon() && !IsAngleEditByEngine() && !IsReload && SelectSlot <= 0 && !IsPlayerLossConnection() && !IsForceCenterView());
                                                 TotalAimBotDetected++;
                                                 InitAimMissingSearch = 0;
@@ -5599,7 +5599,7 @@ namespace DemoScanner.DG
                                                     RealAlive && FirstAttack)
                                                 {
                                                     DemoScanner_AddWarn(
-                                                        "[AIM TYPE 4 " + CurrentWeapon + "] at (" +
+                                                        "[AIM TYPE 4.1 " + CurrentWeapon + "] at (" +
                                                         CurrentTime + "):" + CurrentTimeString, !IsPlayerLossConnection() && !IsChangeWeapon());
                                                     TotalAimBotDetected++;
                                                 }

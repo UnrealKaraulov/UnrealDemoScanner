@@ -5,31 +5,36 @@
 
 #define PLUGIN "Unreal Demo Plugin"
 #define AUTHOR "karaulov"
-#define VERSION "1.51"
+#define VERSION "1.52"
+
+
+new g_iDemoHelperInitStage[33];
+new g_iFrameNum[33];
 
 public plugin_init() 
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
 	register_cvar( "unreal_demoplug", VERSION, FCVAR_SERVER | FCVAR_SPONLY | FCVAR_UNLOGGED );
-	register_clcmd("fullupdate", "UnrealDemoHelpInitialize");
-	RegisterHookChain(RG_PM_Move, "PM_Move")
 	
+	register_clcmd("fullupdate", "UnrealDemoHelpInitialize");
+	
+	RegisterHookChain(RG_PM_Move, "PM_Move")
 	RegisterHookChain(RG_CBasePlayer_Jump, "HC_CBasePlayer_Jump_Pre", .post = false);
 
 	register_forward(FM_PlaybackEvent, "fw_PlaybackEvent")	
 }
 
-new frameID[33];
 
 public client_disconnected(id)
 {
-	frameID[id] = 0;
+	g_iFrameNum[id] = 0;
+	g_iDemoHelperInitStage[id] = 0;
 }
 
 /*Server not processed angles. Always empty.*/
 public fw_PlaybackEvent( iFlags, id, eventIndex )
 {
-	if(id > 0 && id < 33)
+	if(id > 0 && id < 33 && g_iDemoHelperInitStage[id] == -1)
 	{
 		WriteDemoInfo(id, "UDS/EVENT/1");
 	}
@@ -43,6 +48,12 @@ public fw_PlaybackEvent( iFlags, id, eventIndex )
 public HC_CBasePlayer_Jump_Pre(id) 
 {
 	new iFlags = get_entvar(id,var_flags);
+	
+	if (g_iDemoHelperInitStage[id] != -1)
+	{
+		return HC_CONTINUE;
+	}
+	
 	if (iFlags & FL_WATERJUMP)
 	{
 		return HC_CONTINUE;
@@ -79,37 +90,65 @@ public PM_Move(const id)
 {
 	new button = get_entvar(id, var_button)
 	new oldbuttons = get_entvar(id, var_oldbuttons)
-	if (!(button & IN_ATTACK) && (oldbuttons & IN_ATTACK))
+	if (g_iDemoHelperInitStage[id] == -1 && !(button & IN_ATTACK) && (oldbuttons & IN_ATTACK))
 	{
 		new cmdx = get_pmove( pm_cmd );
 		
-		frameID[id]++;
-		// DETECT FAKE LAG 
-		WriteDemoInfo(id, "UDS/XCMD/%i/%i/%i", get_ucmd(cmdx, ucmd_lerp_msec), get_ucmd(cmdx, ucmd_msec),frameID[id]);
+		g_iFrameNum[id]++;
+		WriteDemoInfo(id, "UDS/XCMD/%i/%i/%i", get_ucmd(cmdx, ucmd_lerp_msec), get_ucmd(cmdx, ucmd_msec),g_iFrameNum[id]);
 	}
 	return HC_CONTINUE;
 }
 
 public UnrealDemoHelpInitialize(id) 
 {
-	new szAuth[64];
-	get_user_authid(id,szAuth,charsmax(szAuth));
-	WriteDemoInfo(id,"UDS/AUTH/%s",szAuth);
-	
-	new szDate[64];
-	get_time( "%d.%m.%Y %H:%M:%S", szDate, charsmax( szDate ) );
-	WriteDemoInfo(id,"UDS/DATE/%s",szDate);
-	
-	WriteDemoInfo(id,"UDS/VER/%s",VERSION);
-	
-	if (get_cvar_num("sv_minrate") < 25000 || get_cvar_num("sv_maxrate") < 25000)
+	g_iFrameNum[id] = 0;
+	g_iDemoHelperInitStage[id] = 0;
+	if (is_user_connected(id))
 	{
-		WriteDemoInfo(id,"UDS/BAD/1");
+		set_task(1.0,"DemoHelperInitializeTask",id);
 	}
-	
-	if (get_cvar_num("sv_minupdaterate") < 30 || get_cvar_num("sv_maxupdaterate") < 30)
+}
+
+public DemoHelperInitializeTask(id)
+{
+	if (!is_user_connected(id) || g_iDemoHelperInitStage[id] == -1)
 	{
-		WriteDemoInfo(id,"UDS/BAD/2");
+		return;
+	}
+	g_iDemoHelperInitStage[id]++;
+	switch(g_iDemoHelperInitStage[id])
+	{
+		case 1:
+		{
+			WriteDemoInfo(id,"UDS/VER/%s",VERSION);
+			set_task(1.0,"DemoHelperInitializeTask",id);
+		}
+		case 2:
+		{
+			new szAuth[64];
+			get_user_authid(id,szAuth,charsmax(szAuth));
+			WriteDemoInfo(id,"UDS/AUTH/%s",szAuth);
+			
+			new szDate[64];
+			get_time( "%d.%m.%Y %H:%M:%S", szDate, charsmax( szDate ) );
+			WriteDemoInfo(id,"UDS/DATE/%s",szDate);
+			set_task(1.0,"DemoHelperInitializeTask",id);
+		}
+		case 3:
+		{
+			if (get_cvar_num("sv_minrate") < 25000 || get_cvar_num("sv_maxrate") < 25000)
+			{
+				WriteDemoInfo(id,"UDS/BAD/1");
+			}
+			
+			if (get_cvar_num("sv_minupdaterate") < 30 || get_cvar_num("sv_maxupdaterate") < 30)
+			{
+				WriteDemoInfo(id,"UDS/BAD/2");
+			}
+			
+			g_iDemoHelperInitStage[id] = -1;
+		}
 	}
 }
 
