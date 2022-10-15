@@ -1,7 +1,7 @@
-﻿using System;
-using System.Text;
-using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
+﻿using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
 using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DT;
+using System;
+using System.Text;
 
 namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
 {
@@ -34,11 +34,11 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
         {
             if (prop.Flags.HasFlagFast(SendPropertyFlags.VarInt))
             {
-                if (prop.Flags.HasFlagFast(SendPropertyFlags.Unsigned)) return (int) reader.ReadVarInt();
-                return (int) reader.ReadSignedVarInt();
+                if (prop.Flags.HasFlagFast(SendPropertyFlags.Unsigned)) return (int)reader.ReadVarInt();
+                return (int)reader.ReadSignedVarInt();
             }
 
-            if (prop.Flags.HasFlagFast(SendPropertyFlags.Unsigned)) return (int) reader.ReadInt(prop.NumberOfBits);
+            if (prop.Flags.HasFlagFast(SendPropertyFlags.Unsigned)) return (int)reader.ReadInt(prop.NumberOfBits);
             return reader.ReadSignedInt(prop.NumberOfBits);
         }
 
@@ -52,7 +52,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
             //Encoding: The range between lowVal and highVal is splitted into the same steps.
             //Read an int, fit it into the range. 
             dwInterp = reader.ReadInt(prop.NumberOfBits);
-            fVal = (float) dwInterp / ((1 << prop.NumberOfBits) - 1);
+            fVal = (float)dwInterp / ((1 << prop.NumberOfBits) - 1);
             fVal = prop.LowValue + (prop.HighValue - prop.LowValue) * fVal;
 
             return fVal;
@@ -81,7 +81,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
                 //v0v0v1v1 in original instead of margin. 
                 var absolute = v.X * v.X + v.Y * v.Y;
                 if (absolute < 1.0f)
-                    v.Z = (float) Math.Sqrt(1 - absolute);
+                    v.Z = (float)Math.Sqrt(1 - absolute);
                 else
                     v.Z = 0f;
 
@@ -100,7 +100,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
 
             while ((maxElements >>= 1) != 0) numBits++;
 
-            var nElements = (int) reader.ReadInt(numBits);
+            var nElements = (int)reader.ReadInt(numBits);
 
             var result = new object[nElements];
 
@@ -112,7 +112,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
 
         public static string DecodeString(SendTableProperty prop, IBitStream reader)
         {
-            return Encoding.Default.GetString(reader.ReadBytes((int) reader.ReadInt(9)));
+            return Encoding.Default.GetString(reader.ReadBytes((int)reader.ReadInt(9)));
         }
 
         public static Vector DecodeVectorXY(SendTableProperty prop, IBitStream reader)
@@ -205,8 +205,8 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
             var isNegative = false;
 
             // Read the required integer and fraction flags
-            intVal = (int) reader.ReadInt(1);
-            fractVal = (int) reader.ReadInt(1);
+            intVal = (int)reader.ReadInt(1);
+            fractVal = (int)reader.ReadInt(1);
 
             // If we got either parse them, otherwise it's a zero.
             if ((intVal | fractVal) != 0)
@@ -217,10 +217,10 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
                 // If there's an integer, read it in
                 if (intVal == 1)
                     // Adjust the integers from [0..MAX_COORD_VALUE-1] to [1..MAX_COORD_VALUE]
-                    intVal = (int) reader.ReadInt(14) + 1; //14 --> Coord int bits
+                    intVal = (int)reader.ReadInt(14) + 1; //14 --> Coord int bits
 
                 //If there's a fraction, read it in
-                if (fractVal == 1) fractVal = (int) reader.ReadInt(COORD_FRACTIONAL_BITS);
+                if (fractVal == 1) fractVal = (int)reader.ReadInt(COORD_FRACTIONAL_BITS);
 
                 value = intVal + fractVal * COORD_RESOLUTION;
             }
@@ -277,7 +277,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
                 }
 
                 // If there's a fraction, read it in
-                fractval = (int) reader.ReadInt(isLowPrecision ? 3 : 5);
+                fractval = (int)reader.ReadInt(isLowPrecision ? 3 : 5);
 
                 // Calculate the correct floating point value
                 value = intval + fractval * (isLowPrecision ? COORD_RESOLUTION_LOWPRECISION : COORD_RESOLUTION);
@@ -299,9 +299,9 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
             }
             else
             {
-                intval = (int) reader.ReadInt(bits);
+                intval = (int)reader.ReadInt(bits);
                 fractval =
-                    (int) reader.ReadInt(lowPrecision ? COORD_FRACTIONAL_BITS_MP_LOWPRECISION : COORD_FRACTIONAL_BITS);
+                    (int)reader.ReadInt(lowPrecision ? COORD_FRACTIONAL_BITS_MP_LOWPRECISION : COORD_FRACTIONAL_BITS);
 
 
                 value = intval + fractval * (lowPrecision ? COORD_RESOLUTION_LOWPRECISION : COORD_RESOLUTION);

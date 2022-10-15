@@ -47,7 +47,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo
                 else
                     while (remaining > 0)
                     {
-                        Underlying.Read(Dignitrash, 0, checked((int) Math.Min(TrashSize, remaining)));
+                        Underlying.Read(Dignitrash, 0, checked((int)Math.Min(TrashSize, remaining)));
                         remaining -= TrashSize; // could go beyond 0, but it's signed so who cares
                     }
             }
@@ -75,7 +75,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo
 
         public override int Read(byte[] buffer, int offset, int count)
         {
-            count = checked((int) Math.Min(count, Length - _Position)); // should never throw (count <= int_max)
+            count = checked((int)Math.Min(count, Length - _Position)); // should never throw (count <= int_max)
             var ret = Underlying.Read(buffer, offset, count);
             _Position += ret;
             return ret;

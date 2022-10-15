@@ -347,7 +347,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo
         internal int EntityID { get; set; }
         public EquipmentElement Weapon { get; set; }
 
-        public EquipmentClass Class => (EquipmentClass) ((int) Weapon / 100 + 1);
+        public EquipmentClass Class => (EquipmentClass)((int)Weapon / 100 + 1);
 
         public string OriginalString { get; set; }
         public string SkinID { get; set; }

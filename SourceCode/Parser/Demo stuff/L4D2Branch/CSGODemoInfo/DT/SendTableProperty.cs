@@ -4,7 +4,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DT
 {
     public class SendTableProperty
     {
-        public SendPropertyFlags Flags => (SendPropertyFlags) RawFlags;
+        public SendPropertyFlags Flags => (SendPropertyFlags)RawFlags;
 
         public int RawFlags { get; set; }
         public string Name { get; set; }
@@ -16,7 +16,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DT
         public int Priority { get; set; }
         public int RawType { get; set; }
 
-        public SendPropertyType Type => (SendPropertyType) RawType;
+        public SendPropertyType Type => (SendPropertyType)RawType;
     }
 
     public enum SendPropertyType

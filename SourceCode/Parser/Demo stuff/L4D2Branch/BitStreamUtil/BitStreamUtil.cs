@@ -109,13 +109,13 @@ namespace DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil
                 // not particulary efficient, but probably fine
                 for (var b = bs.ReadByte(); b != 0; b = bs.ReadByte()) memstream.WriteByte(b);
 
-                return Encoding.Default.GetString(memstream.GetBuffer(), 0, checked((int) memstream.Length));
+                return Encoding.Default.GetString(memstream.GetBuffer(), 0, checked((int)memstream.Length));
             }
         }
 
         public static string ReadCString(this IBitStream reader, int length)
         {
-            return Encoding.Default.GetString(reader.ReadBytes(length)).Split(new[] {'\0'}, 2)[0];
+            return Encoding.Default.GetString(reader.ReadBytes(length)).Split(new[] { '\0' }, 2)[0];
         }
 
         public static uint ReadVarInt(this IBitStream bs)
@@ -136,7 +136,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil
         public static uint ReadSignedVarInt(this IBitStream bs)
         {
             var result = bs.ReadVarInt();
-            return (uint) ((result >> 1) ^ -(result & 1));
+            return (uint)((result >> 1) ^ -(result & 1));
         }
 
         public static int ReadProtobufVarIntStub(IBitStream reader)

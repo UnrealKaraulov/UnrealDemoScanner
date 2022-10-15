@@ -52,7 +52,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil
             // Just like PeekInt, but we cast to signed long before the shr because we need to sext
             var result =
                 (int)
-                ((long) (BitConverter.ToUInt64(Buffer, (Offset / 8) & ~3) << (8 * 8 - Offset % (8 * 4) - numBits)) >>
+                ((long)(BitConverter.ToUInt64(Buffer, (Offset / 8) & ~3) << (8 * 8 - Offset % (8 * 4) - numBits)) >>
                  (8 * 8 - numBits));
             Advance(numBits);
             return result;
@@ -73,7 +73,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil
         public byte ReadByte(int bits)
         {
             BitStreamUtil.AssertMaxBits(8, bits);
-            return (byte) ReadInt(bits);
+            return (byte)ReadInt(bits);
         }
 
         public byte[] ReadBytes(int bytes)
@@ -149,7 +149,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil
                 Advance(1 * 8);
             }
 
-            return unchecked((int) result);
+            return unchecked((int)result);
         }
 
         public void BeginChunk(int length)
@@ -168,7 +168,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil
 			 * so we might as well verify that this difference isn't negative.
 			 */
             var target = ChunkTargets.Pop();
-            var delta = checked((int) (target - ActualGlobalPosition));
+            var delta = checked((int)(target - ActualGlobalPosition));
             if (delta < 0) throw new InvalidOperationException("Someone read beyond a chunk boundary");
 
             if (delta > 0)

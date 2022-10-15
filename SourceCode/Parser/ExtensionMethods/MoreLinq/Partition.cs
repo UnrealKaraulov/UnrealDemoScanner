@@ -105,7 +105,7 @@ namespace DemoScanner.ExtensionMethods.MoreLinq
             // Zip shortest
             foreach (
                 var itemInstructionPair in
-                source.ZipShortest(splitInstructions, (x, y) => new {Item = x, Instruction = y}))
+                source.ZipShortest(splitInstructions, (x, y) => new { Item = x, Instruction = y }))
                 switch (itemInstructionPair.Instruction)
                 {
                     case PartitionInstruction.Yield:

@@ -1,6 +1,6 @@
-﻿using System;
+﻿using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
+using System;
 using System.IO;
-using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
 
 namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.ST
 {
@@ -20,7 +20,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.ST
 
         public void ParseStringTable(IBitStream reader, string tableName, DemoParser parser)
         {
-            var numStrings = (int) reader.ReadInt(16);
+            var numStrings = (int)reader.ReadInt(16);
 
             if (tableName == "modelprecache") parser.modelprecache.Clear();
 
@@ -32,7 +32,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.ST
 
                 if (reader.ReadBit())
                 {
-                    var userDataSize = (int) reader.ReadInt(16);
+                    var userDataSize = (int)reader.ReadInt(16);
 
                     var data = reader.ReadBytes(userDataSize);
 
@@ -58,14 +58,14 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.ST
             // Client side stuff
             if (reader.ReadBit())
             {
-                var numstrings = (int) reader.ReadInt(16);
+                var numstrings = (int)reader.ReadInt(16);
                 for (var i = 0; i < numstrings; i++)
                 {
                     reader.ReadString(); // stringname
 
                     if (reader.ReadBit())
                     {
-                        var userDataSize = (int) reader.ReadInt(16);
+                        var userDataSize = (int)reader.ReadInt(16);
 
                         reader.ReadBytes(userDataSize);
                     }

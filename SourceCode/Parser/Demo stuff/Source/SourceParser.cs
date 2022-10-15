@@ -65,7 +65,7 @@ namespace DemoScanner.DemoStuff.Source
             if (Info.DemoProtocol >> 2 > 0)
             {
                 Info.ParsingErrors.Add("Unsupported L4D2 branch demo!");
-            //return;
+                //return;
             }
 
             Info.NetProtocol = reader.ReadInt32();
@@ -83,7 +83,7 @@ namespace DemoScanner.DemoStuff.Source
 
             while (true)
             {
-                var msg = new DemoMessage {Type = (MessageType) reader.ReadByte()};
+                var msg = new DemoMessage { Type = (MessageType)reader.ReadByte() };
                 if (msg.Type == MessageType.Stop)
                     break;
                 msg.Tick = reader.ReadInt32();
@@ -121,7 +121,7 @@ namespace DemoScanner.DemoStuff.Source
                         var tempf = new Saveflag
                         {
                             Tick = msg.Tick,
-                            Time = (float) (msg.Tick * 0.015)
+                            Time = (float)(msg.Tick * 0.015)
                         };
                         if (Encoding.ASCII.GetString(msg.Data).Contains("#SAVE#"))
                             tempf.Name = "#SAVE#";

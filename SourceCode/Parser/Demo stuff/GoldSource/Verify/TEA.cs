@@ -11,7 +11,7 @@ namespace DemoScanner.DemoStuff.GoldSource.Verify
         /// <summary>
         ///     Key used by bxt for TEA encryption.
         /// </summary>
-        public static uint[] BxtKey = {0x1337FACE, 0x12345678, 0xDEADBEEF, 0xFEEDABCD};
+        public static uint[] BxtKey = { 0x1337FACE, 0x12345678, 0xDEADBEEF, 0xFEEDABCD };
 
         /// <summary>
         ///     Decrypts an array of Uin32s encrypted with BXT's TEA key.
@@ -31,7 +31,7 @@ namespace DemoScanner.DemoStuff.GoldSource.Verify
                 sum -= 0x9e3779b9;
             }
 
-            return new[] {v0, v1};
+            return new[] { v0, v1 };
         }
 
         /// <summary>

@@ -363,7 +363,7 @@ namespace DemoScanner.ExtensionMethods.MoreLinq
                         if (members != null) yield return resultSelector(group, members);
 
                         group = key;
-                        members = new List<TElement> {element};
+                        members = new List<TElement> { element };
                     }
                 }
 

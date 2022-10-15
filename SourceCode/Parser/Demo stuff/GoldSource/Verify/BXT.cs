@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using DemoScanner.DemoStuff.L4D2Branch.PortalStuff.Result;
 
 namespace DemoScanner.DemoStuff.GoldSource.Verify
 {
@@ -40,7 +39,7 @@ namespace DemoScanner.DemoStuff.GoldSource.Verify
 
             public override string[] ToString()
             {
-                return new[] {$"Version: [BUILD: {build_number}] [BXT_VERSION: {bxt_version}"};
+                return new[] { $"Version: [BUILD: {build_number}] [BXT_VERSION: {bxt_version}" };
             }
         }
 
@@ -54,7 +53,7 @@ namespace DemoScanner.DemoStuff.GoldSource.Verify
 
             public override string[] ToString()
             {
-                return new[] {hours + ":" + minutes + ":" + (seconds + remainder).ToString("F4")};
+                return new[] { hours + ":" + minutes + ":" + (seconds + remainder).ToString("F4") };
             }
 
 
@@ -79,7 +78,7 @@ namespace DemoScanner.DemoStuff.GoldSource.Verify
 
             public override string[] ToString()
             {
-                return new[] {$"Command: {command}"};
+                return new[] { $"Command: {command}" };
             }
         }
 
@@ -97,7 +96,7 @@ namespace DemoScanner.DemoStuff.GoldSource.Verify
 
             public override string[] ToString()
             {
-                return new[] {$"alias {name} \"{command}\""};
+                return new[] { $"alias {name} \"{command}\"" };
             }
         }
 
@@ -193,7 +192,7 @@ namespace DemoScanner.DemoStuff.GoldSource.Verify
 
             public override string[] ToString()
             {
-                return new[] {"Game end marker"};
+                return new[] { "Game end marker" };
             }
         }
 

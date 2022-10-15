@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
+using System.Collections.Generic;
 using System.IO;
-using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
 
 namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.FastNetmessages
 {

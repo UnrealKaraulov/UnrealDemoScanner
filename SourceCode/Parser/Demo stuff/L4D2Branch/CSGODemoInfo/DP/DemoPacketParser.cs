@@ -29,29 +29,29 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP
                 var cmd = bitstream.ReadProtobufVarInt(); //What type of packet is this?
                 var length = bitstream.ReadProtobufVarInt(); //And how long is it?
                 bitstream.BeginChunk(length * 8); //read length bytes
-                if (cmd == (int) SVC_Messages.svc_PacketEntities)
+                if (cmd == (int)SVC_Messages.svc_PacketEntities)
                 {
                     //Parse packet entities
                     new PacketEntities().Parse(bitstream, demo);
                 }
-                else if (cmd == (int) SVC_Messages.svc_GameEventList)
+                else if (cmd == (int)SVC_Messages.svc_GameEventList)
                 {
                     //and all this other stuff
                     new GameEventList().Parse(bitstream, demo);
                 }
-                else if (cmd == (int) SVC_Messages.svc_GameEvent)
+                else if (cmd == (int)SVC_Messages.svc_GameEvent)
                 {
                     new GameEvent().Parse(bitstream, demo);
                 }
-                else if (cmd == (int) SVC_Messages.svc_CreateStringTable)
+                else if (cmd == (int)SVC_Messages.svc_CreateStringTable)
                 {
                     new CreateStringTable().Parse(bitstream, demo);
                 }
-                else if (cmd == (int) SVC_Messages.svc_UpdateStringTable)
+                else if (cmd == (int)SVC_Messages.svc_UpdateStringTable)
                 {
                     new UpdateStringTable().Parse(bitstream, demo);
                 }
-                else if (cmd == (int) NET_Messages.net_Tick)
+                else if (cmd == (int)NET_Messages.net_Tick)
                 {
                     //and all this other stuff
                     new NETTick().Parse(bitstream, demo);

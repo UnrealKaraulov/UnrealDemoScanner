@@ -67,7 +67,7 @@ namespace DemoScanner.ExtensionMethods.MoreLinq
                     case 1:
                         return list[0];
 
-                    // anything but 0 and 1 is not handled
+                        // anything but 0 and 1 is not handled
                 }
             else
                 using (var iterator = source.GetEnumerator())

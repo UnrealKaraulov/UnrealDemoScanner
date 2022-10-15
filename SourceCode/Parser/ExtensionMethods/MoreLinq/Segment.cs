@@ -126,7 +126,7 @@ namespace DemoScanner.ExtensionMethods.MoreLinq
                     yield return segment; // yield the completed segment
 
                     // start a new segment...
-                    segment = new List<T> {iter.Current};
+                    segment = new List<T> { iter.Current };
                 }
 
                 // handle the case of the sequence ending before new segment is detected

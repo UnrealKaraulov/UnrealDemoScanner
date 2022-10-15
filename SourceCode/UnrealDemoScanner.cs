@@ -86,6 +86,8 @@ namespace DemoScanner.DG
 
         public const float EPSILON = 0.0000005f;
 
+        public const int SENS_COUNT_FOR_AIM = 15;
+
         public const int MAX_MONITOR_REFRESHRATE = 365;
         public const int MAX_DEFAULT_FPS_LIMIT = 105; // default fps limit 100 without vsync
 
@@ -100,6 +102,7 @@ namespace DemoScanner.DG
 
         public const float MIN_SENS_WARN_DETECTED = 0.0004f; //SENS < 0.02 (0.018)
         public const float MIN_SENS_WARN_WARNING = 0.004f; //SENS < 0.2 (0.18)
+        public const float MIN_PLAYABLE_SENS = 0.004f;
 
 
         public static string OutDumpString = "";
@@ -329,10 +332,20 @@ namespace DemoScanner.DG
 
         public static float CurrentSensitivity = -1.0f;
         public static List<float> PlayerSensitivityHistory = new List<float>();
+
+
+        public static int CheckedSensCount = 0;
+        public struct PLAYER_USED_SENS
+        {
+            public float sens;
+            public int usagecount;
+        }
+
+        public static List<PLAYER_USED_SENS> PlayerSensUsageList = new List<PLAYER_USED_SENS>();
+
         public static float AngleLength = -1.0f;
         public static float AngleLengthStartTime = 0.0f;
         public static List<float> PlayerAngleLenHistory = new List<float>();
-        public static List<string> PlayerSensitivityHistoryStr = new List<string>();
         public static List<string> PlayerSensitivityHistoryStrTime = new List<string>();
         public static List<string> PlayerSensitivityHistoryStrWeapon = new List<string>();
         public static string LastSensWeapon = "";
@@ -760,8 +773,15 @@ namespace DemoScanner.DG
 
         public static int MsgOverflowSecondsCount;
 
-        public static int CurrentMsgCount;
-        public static int MaxMsgPerSecond;
+        public static int CurrentMsgHudCount;
+        public static int CurrentMsgPrintCount;
+        public static int CurrentMsgStuffCmdCount;
+
+        public static int MaxHudMsgPerSecond;
+        public static int MaxStuffCmdMsgPerSecond;
+        public static int MaxPrintCmdMsgPerSecond;
+
+
         public static int SkipChangeWeapon;
         public static byte VoiceQuality = 5;
         public static int SearchJumpHack5;
@@ -771,7 +791,7 @@ namespace DemoScanner.DG
         public static bool NeedSearchCMDHACK4 = false;
         public static bool BadPunchAngle = false;
 
-
+        public static float FrametimeMin = 9999.0f, MsecMin = 9999.0f, FrametimeMax = 0.0f, MsecMax = 0.0f;
 
         public static WeaponIdType GetWeaponByStr(string str)
         {
@@ -1587,7 +1607,7 @@ namespace DemoScanner.DG
                 LastUnDuckTime = CurrentTime;
                 DuckStrikes = 0;
 
-               
+
                 DuckHack3Search = 0;
             }
 
@@ -2746,20 +2766,17 @@ namespace DemoScanner.DG
                             break;
                         case GoldSource.DemoFrameType.ConsoleCommand:
                             {
+                                var cmdframe = (GoldSource.ConsoleCommandFrame)frame.Value;
                                 LASTFRAMEISCLIENTDATA = false;
                                 if (DUMP_ALL_FRAMES)
                                 {
                                     subnode.Text += "{\n";
-                                    subnode.Text +=
-                                        ((GoldSource.ConsoleCommandFrame)frame.Value).Command;
-                                }
-
-                                CheckConsoleCommand(
-                                    ((GoldSource.ConsoleCommandFrame)frame.Value).Command);
-                                if (DUMP_ALL_FRAMES)
-                                {
+                                    subnode.Text += cmdframe.Command;
+                                    //subnode.Text += "(" + cmdframe.BxtData.Length + ")";
                                     subnode.Text += "}\n";
                                 }
+
+                                CheckConsoleCommand(cmdframe.Command);
 
                                 break;
                             }
@@ -2954,10 +2971,11 @@ namespace DemoScanner.DG
                                             RealFpsMin = CurrentFps;
                                         }
 
-                                        if (abs(CurrentTime) < EPSILON ||
-                                            abs(CurrentTime2) < EPSILON)
+                                        if (abs(CurrentTime) <= EPSILON ||
+                                            abs(CurrentTime2) <= EPSILON)
                                         {
-                                            CurrentMsgBytes = CurrentMsgCount = 0;
+                                            CurrentMsgBytes = CurrentMsgHudCount =
+                                                CurrentMsgStuffCmdCount = CurrentMsgPrintCount = 0;
                                         }
                                         else
                                         {
@@ -2971,17 +2989,26 @@ namespace DemoScanner.DG
                                                 MsgOverflowSecondsCount++;
                                             }
 
-                                            if (MaxMsgPerSecond < CurrentMsgCount)
+                                            if (MaxHudMsgPerSecond < CurrentMsgHudCount)
                                             {
-                                                MaxMsgPerSecond = CurrentMsgCount;
+                                                MaxHudMsgPerSecond = CurrentMsgHudCount;
+                                            }
+
+                                            if (MaxStuffCmdMsgPerSecond < CurrentMsgStuffCmdCount)
+                                            {
+                                                MaxStuffCmdMsgPerSecond = CurrentMsgStuffCmdCount;
+                                            }
+
+                                            if (MaxPrintCmdMsgPerSecond < CurrentMsgPrintCount)
+                                            {
+                                                MaxPrintCmdMsgPerSecond = CurrentMsgPrintCount;
                                             }
                                         }
-                                        CurrentMsgCount = 0;
-                                        CurrentMsgBytes = 0;
 
+                                        CurrentMsgBytes = CurrentMsgHudCount =
+                                            CurrentMsgStuffCmdCount = CurrentMsgPrintCount = 0;
 
                                         SecondFound = true;
-
 
                                         averagefps.Add(CurrentFps);
                                         CurrentFps = 0;
@@ -3072,26 +3099,52 @@ namespace DemoScanner.DG
                                     float flAngleRealDetect = MIN_SENS_WARN_DETECTED;
                                     float flAngleWarnDetect = MIN_SENS_WARN_WARNING;
 
-                                    if (PlayerSensitivityHistory.Count > 15)
-                                    {
-                                        flAngleRealDetect = 100.0f;
-                                        flAngleWarnDetect = 100.0f;
 
-                                        int maxcheckangels = 15;
+                                    if (PlayerSensitivityHistory.Count > SENS_COUNT_FOR_AIM)
+                                    {
+                                        float flMinSensAngle = 9999.0f;
+                                        int maxcheckangels = SENS_COUNT_FOR_AIM;
+
                                         for (int i = PlayerSensitivityHistory.Count - maxcheckangels; i < PlayerSensitivityHistory.Count; i++)
                                         {
-                                            float cursens = PlayerSensitivityHistory[i] * 0.022f;
+                                            float cursens = PlayerSensitivityHistory[i];
+                                            if (cursens < flMinSensAngle)
+                                                flMinSensAngle = cursens;
+                                        }
 
-                                            if (cursens > MIN_SENS_WARN_DETECTED && flAngleRealDetect > cursens / 2.1f)
+                                        if (flMinSensAngle < MIN_PLAYABLE_SENS)
+                                        {
+                                            flMinSensAngle = MIN_PLAYABLE_SENS;
+                                        }
+
+                                        flAngleRealDetect = flMinSensAngle / 2.1f;
+                                        flAngleWarnDetect = flMinSensAngle / 1.1f;
+
+                                        CheckedSensCount++;
+
+                                        if (CheckedSensCount == SENS_COUNT_FOR_AIM)
+                                        {
+                                            CheckedSensCount = 0;
+                                            bool foundUsageSens = false;
+                                            for (int i = 0; i < PlayerSensUsageList.Count; i++)
                                             {
-                                                flAngleRealDetect = PlayerSensitivityHistory[i] * 0.022f / 2.1f;
+                                                var tmpSensUsageStruct = PlayerSensUsageList[i];
+                                                if (abs(tmpSensUsageStruct.sens - flMinSensAngle) < 0.001)
+                                                {
+                                                    foundUsageSens = true;
+                                                    tmpSensUsageStruct.usagecount++;
+                                                    PlayerSensUsageList[i] = tmpSensUsageStruct;
+                                                }
                                             }
-
-                                            if (cursens > MIN_SENS_WARN_WARNING && flAngleWarnDetect > cursens / 1.1f)
+                                            if (!foundUsageSens)
                                             {
-                                                flAngleWarnDetect = PlayerSensitivityHistory[i] * 0.022f / 1.1f;
+                                                PLAYER_USED_SENS tmpSensUsageStruct = new PLAYER_USED_SENS();
+                                                tmpSensUsageStruct.sens = flMinSensAngle;
+                                                tmpSensUsageStruct.usagecount = 1;
+                                                PlayerSensUsageList.Add(tmpSensUsageStruct);
                                             }
                                         }
+
                                     }
 
 
@@ -3328,9 +3381,9 @@ namespace DemoScanner.DG
                                         }
                                     }
 
-                                    if (Math.Sign(CurrentSensitivity) < 0 || (abs(tmpXangle) > EPSILON && tmpXangle / 0.022f < CurrentSensitivity))
+                                    if (Math.Sign(CurrentSensitivity) < 0 || (abs(tmpXangle) > EPSILON && tmpXangle < CurrentSensitivity))
                                     {
-                                        CurrentSensitivity = tmpXangle / 0.022f;
+                                        CurrentSensitivity = tmpXangle;
                                     }
 
                                     if (CurrentWeapon == WeaponIdType.WEAPON_NONE
@@ -3358,8 +3411,6 @@ namespace DemoScanner.DG
 
                                             PlayerSensitivityHistory.Add(
                                                 (float)CurrentSensitivity);
-                                            PlayerSensitivityHistoryStr.Add(CurrentSensitivity
-                                                .ToString());
                                             PlayerSensitivityHistoryStrTime.Add(
                                                 "(" + LastFpsCheckTime + "): " + CurrentTimeString);
                                             PlayerSensitivityHistoryStrWeapon.Add(
@@ -3869,7 +3920,9 @@ namespace DemoScanner.DG
                                     }
                                 }
 
-                                CurrentMsgBytes += nf.MsgBytes.Length;
+                                if (abs(CurrentTime) > EPSILON)
+                                    CurrentMsgBytes += nf.MsgBytes.Length;
+
                                 ParseGameData(nf.MsgBytes);
                                 if (nf.MsgBytes.Length < 8 && abs(CurrentTime) > EPSILON)
                                 {
@@ -3918,6 +3971,29 @@ namespace DemoScanner.DG
 
                                 PreviousFrameTime = CurrentFrameTime;
                                 CurrentFrameTime = nf.RParms.Frametime;
+
+                                if (abs(CurrentTime) > EPSILON)
+                                {
+                                    if (FrametimeMin > CurrentFrameTime && CurrentFrameTime > 0.0f)
+                                    {
+                                        FrametimeMin = CurrentFrameTime;
+                                    }
+
+                                    if (FrametimeMax < CurrentFrameTime)
+                                    {
+                                        FrametimeMax = CurrentFrameTime;
+                                    }
+
+                                    if (MsecMin > nf.UCmd.Msec && nf.UCmd.Msec > 0.0f)
+                                    {
+                                        MsecMin = nf.UCmd.Msec;
+                                    }
+
+                                    if (MsecMax < nf.UCmd.Msec)
+                                    {
+                                        MsecMax = nf.UCmd.Msec;
+                                    }
+                                }
 
                                 if (abs(CurrentTime) > EPSILON && PreviousNetMsgFrame.RParms.Time == nf.RParms.Time)
                                 {
@@ -5201,6 +5277,11 @@ namespace DemoScanner.DG
                                                 MaxIdealJumps = 7;
                                             }
                                         }
+
+                                        if (nf.RParms.Frametime > EPSILON)
+                                        {
+                                            averagefps2.Add(1000.0f / (1000.0f * nf.RParms.Frametime));
+                                        }
                                         CurrentFps2 = 0;
                                     }
                                     else
@@ -5225,7 +5306,7 @@ namespace DemoScanner.DG
                                 }
                                 else
                                 {
-                                    if (CurrentFrameAttacked || PreviousFrameAttacked || 
+                                    if (CurrentFrameAttacked || PreviousFrameAttacked ||
                                         (CurrentWeapon == WeaponIdType.WEAPON_KNIFE && (CurrentFrameAttacked2 || PreviousFrameAttacked2)))
                                     {
                                         if (IsForceCenterView())
@@ -5865,11 +5946,6 @@ namespace DemoScanner.DG
                                 {
                                     // Console.WriteLine("Intermiss");
                                     Intermission = true;
-                                }
-
-                                if (nf.RParms.Frametime > EPSILON)
-                                {
-                                    averagefps2.Add(1000.0f / (1000.0f * nf.RParms.Frametime));
                                 }
 
                                 if (DUMP_ALL_FRAMES)
@@ -6958,22 +7034,14 @@ namespace DemoScanner.DG
             //}
 
 
-            float maxfps1 = 1000.0f / (1000.0f * CurrentDemoFile.GsDemoInfo.AditionalStats.FrametimeMin);
-            float maxfps2 = 1000.0f / CurrentDemoFile.GsDemoInfo.AditionalStats.MsecMin;
-
-            if (averagefps2.Count > 2 && abs(maxfps1 - 1000.0f) < EPSILON && abs(maxfps2 - 1000.0f) < EPSILON &&
-                maxfps1 / averagefps2.Average() > 4.0f)
-            {
-                DemoScanner_AddWarn("[UNKNOWN BHOP/JUMPHACK] in demo file!", false);
-            }
-            //if (Math.Round((1000.0f / CurrentDemoFile.GsDemoInfo.AditionalStats.MsecMin), 5) /
-            //    Math.Round(1000.0 / (1000.0f * CurrentDemoFile.GsDemoInfo.AditionalStats.FrametimeMin), 5) > 1.75f)
+            //if (Math.Round((1000.0f / MsecMin), 5) /
+            //    Math.Round(1000.0 / (1000.0f * FrametimeMin), 5) > 1.75f)
             //{
             //    Console.WriteLine(" [aim/jump] Обнаружены манипуляции с задержкой. (???)");
             //    Console.WriteLine("Unknown delay/timer hack detected. (???)");
             //}
 
-            //if (Convert.ToSingle(RealFpsMax) / Math.Round(1000.0 / (1000.0f * CurrentDemoFile.GsDemoInfo.AditionalStats.FrametimeMin), 5) > 1.5f)
+            //if (Convert.ToSingle(RealFpsMax) / Math.Round(1000.0 / (1000.0f * FrametimeMin), 5) > 1.5f)
             //{
             //    Console.WriteLine(" [speedhack] Обнаружены манипуляции с задержкой. (???)");
             //    Console.WriteLine("Unknown delay/timer hack detected. (???)");
@@ -7017,27 +7085,31 @@ namespace DemoScanner.DG
 
             while (true)
             {
+                Console.WriteLine();
                 Console.ForegroundColor = ConsoleColor.Gray;
                 ConsoleTable table = null;
                 if (IsRussia)
                 {
-                    Console.WriteLine("Выберите следующее действие:");
+                    Console.WriteLine("------------Выберите команду:------------");
                 }
                 else
                 {
-                    Console.WriteLine("Choose next actions:");
+                    Console.WriteLine("------------Select command:------------");
                 }
-
+                Console.ForegroundColor = ConsoleColor.Red;
                 if (IsRussia)
                 {
-                    Console.WriteLine("Нажмите 8 получения для инструкции!");
+                    Console.WriteLine();
+                    Console.WriteLine("Выберите команду '8' для получения помощи.");
                 }
                 else
                 {
-                    Console.WriteLine("Choose 8 for read help!");
+                    Console.WriteLine();
+                    Console.WriteLine("Enter command '8' for get help!");
                 }
-
                 Console.WriteLine();
+
+                Console.ForegroundColor = ConsoleColor.Gray;
 
                 if (IsRussia)
                 {
@@ -7267,9 +7339,9 @@ namespace DemoScanner.DG
                 if (command == "6")
                 {
                     table = new ConsoleTable("Second", "Sensitivity", "Length", "Time", "Weapon");
-                    for (int i = 0; i < PlayerSensitivityHistoryStr.Count; i++)
+                    for (int i = 0; i < PlayerSensitivityHistory.Count; i++)
                     {
-                        table.AddRow(i + 1, PlayerSensitivityHistoryStr[i], PlayerAngleLenHistory[i],
+                        table.AddRow(i + 1, (PlayerSensitivityHistory[i] / 0.022f).ToString("F6"), PlayerAngleLenHistory[i],
                             PlayerSensitivityHistoryStrTime[i]
                             , PlayerSensitivityHistoryStrWeapon[i]);
                     }
@@ -7586,13 +7658,12 @@ namespace DemoScanner.DG
                     table = new ConsoleTable("Максимальный FPS / FPS MAX",
                         "Минимальная зареджка/Min Delay", "Средний FPS/Average FPS");
                     table.AddRow(
-                        Math.Round(CurrentDemoFile.GsDemoInfo.AditionalStats.FrametimeMin,
+                        Math.Round(FrametimeMin,
                             5) + "(" + Math.Round(
-                            1000.0f / (1000.0f * CurrentDemoFile.GsDemoInfo.AditionalStats
-                                .FrametimeMin), 5) + " FPS)",
-                        CurrentDemoFile.GsDemoInfo.AditionalStats.MsecMin + "(" +
+                            1000.0f / (1000.0f * FrametimeMin), 5) + " FPS)",
+                        MsecMin + "(" +
                         Math.Round(
-                            1000.0f / CurrentDemoFile.GsDemoInfo.AditionalStats.MsecMin,
+                            1000.0f / MsecMin,
                             5) + " FPS)",
                         averagefps2.Count > 2
                             ? averagefps2.Average().ToString()
@@ -7601,13 +7672,12 @@ namespace DemoScanner.DG
                     table = new ConsoleTable("Минимальный FPS / FPS MIN",
                         "Максимальная зареджка/Max Delay", "Средний FPS/Average FPS");
                     table.AddRow(
-                        Math.Round(CurrentDemoFile.GsDemoInfo.AditionalStats.FrametimeMax,
+                        Math.Round(FrametimeMax,
                             5) + "(" + Math.Round(
-                            1000.0f / (1000.0f * CurrentDemoFile.GsDemoInfo.AditionalStats
-                                .FrametimeMax), 5) + " FPS)",
-                        CurrentDemoFile.GsDemoInfo.AditionalStats.MsecMax + "(" +
+                            1000.0f / (1000.0f * FrametimeMax), 5) + " FPS)",
+                        MsecMax + "(" +
                         Math.Round(
-                            1000.0f / CurrentDemoFile.GsDemoInfo.AditionalStats.MsecMax,
+                            1000.0f / MsecMax,
                             5) + " FPS)",
                         averagefps.Count > 2 ? averagefps.Average().ToString() : "UNKNOWN");
                     table.Write(Format.Alternative);
@@ -7726,7 +7796,9 @@ namespace DemoScanner.DG
 
                     Console.WriteLine("Max input bytes per second : " + MaxBytesPerSecond + ". Count:" + MsgOverflowSecondsCount);
 
-                    Console.WriteLine("Max text messages per seconds : " + MaxMsgPerSecond);
+                    Console.WriteLine("Max HUD messages per seconds : " + MaxHudMsgPerSecond);
+                    Console.WriteLine("Max PRINT messages per seconds : " + MaxPrintCmdMsgPerSecond);
+                    Console.WriteLine("Max STUFFCMD messages per seconds : " + MaxStuffCmdMsgPerSecond);
 
                     Console.WriteLine("Loss count:" + LossPackets);
 
@@ -9677,7 +9749,7 @@ namespace DemoScanner.DG
 
         private void MessagePrint()
         {
-            DemoScanner.CurrentMsgCount++;
+            DemoScanner.CurrentMsgPrintCount++;
             string message = BitBuffer.ReadString();
             if (DemoScanner.DEBUG_ENABLED)
             {
@@ -9692,7 +9764,7 @@ namespace DemoScanner.DG
 
         private void MessageStuffText()
         {
-            DemoScanner.CurrentMsgCount++;
+            DemoScanner.CurrentMsgStuffCmdCount++;
             string stuffstr =
                 BitBuffer.ReadString();
             if (DemoScanner.DUMP_ALL_FRAMES)
@@ -10382,7 +10454,7 @@ namespace DemoScanner.DG
                     break;
 
                 case 29: // TE_TEXTMESSAGE
-                    DemoScanner.CurrentMsgCount++;
+                    DemoScanner.CurrentMsgHudCount++;
                     Seek(5);
                     byte textParmsEffect = BitBuffer.ReadByte();
                     Seek(14);
@@ -10548,7 +10620,7 @@ namespace DemoScanner.DG
 
         private void MessageCenterPrint()
         {
-            DemoScanner.CurrentMsgCount++;
+            DemoScanner.CurrentMsgPrintCount++;
             string msgprint = BitBuffer.ReadString();
             if (DemoScanner.DEBUG_ENABLED)
             {
@@ -10919,7 +10991,7 @@ namespace DemoScanner.DG
 
         private void MessageFileTransferFailed()
         {
-            DemoScanner.CurrentMsgCount++;
+            DemoScanner.CurrentMsgPrintCount++;
             // string: filename
             BitBuffer.ReadString();
         }
@@ -10972,7 +11044,7 @@ namespace DemoScanner.DG
         {
             byte len = BitBuffer.ReadByte();
             ByteArrayToString(BitBuffer.ReadBytes(len));
-            DemoScanner.CurrentMsgCount++;
+            DemoScanner.CurrentMsgHudCount++;
         }
 
         private void MessageVoiceInit()
@@ -11341,7 +11413,7 @@ namespace DemoScanner.DG
 
         private void TextMsg()
         {
-            DemoScanner.CurrentMsgCount++;
+            DemoScanner.CurrentMsgPrintCount++;
             byte len = BitBuffer.ReadByte();
             int endbyte = BitBuffer.CurrentByte + len;
             BitBuffer.ReadByte();

@@ -46,8 +46,8 @@ namespace DemoScanner.ExtensionMethods.MoreLinq
             if (resultSelector == null) throw new ArgumentNullException("resultSelector");
 
             return from item1 in first
-                from item2 in second
-                select resultSelector(item1, item2);
+                   from item2 in second
+                   select resultSelector(item1, item2);
         }
     }
 }

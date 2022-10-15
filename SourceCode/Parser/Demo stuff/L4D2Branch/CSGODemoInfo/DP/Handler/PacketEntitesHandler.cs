@@ -1,8 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
+﻿using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
 using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.FastNetmessages;
 using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DT;
+using System;
+using System.Collections.Generic;
 
 namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
 {
@@ -21,7 +21,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
             for (var i = 0; i < packetEntities.UpdatedEntries; i++)
             {
                 //First read which entity is updated
-                currentEntity += 1 + (int) reader.ReadUBitInt();
+                currentEntity += 1 + (int)reader.ReadUBitInt();
 
                 //Find out whether we should create, destroy or update it. 
                 // Leave flag
@@ -65,7 +65,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
         private static Entity ReadEnterPVS(IBitStream reader, int id, DemoParser parser)
         {
             //What kind of entity?
-            var serverClassID = (int) reader.ReadInt(parser.SendTableParser.ClassBits);
+            var serverClassID = (int)reader.ReadInt(parser.SendTableParser.ClassBits);
 
             //So find the correct server class
             var entityClass = parser.SendTableParser.ServerClasses[serverClassID];

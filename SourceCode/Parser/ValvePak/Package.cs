@@ -24,13 +24,13 @@
  * distribution.
  */
 
+using DemoScanner.ValvePak.Utilities;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
-using DemoScanner.ValvePak.Utilities;
 
 namespace DemoScanner.ValvePak
 {
@@ -203,7 +203,7 @@ namespace DemoScanner.ValvePak
                 throw new InvalidDataException(string.Format("Bad VPK version. ({0})", Version));
             }
 
-            HeaderSize = (uint) input.Position;
+            HeaderSize = (uint)input.Position;
 
             ReadEntries();
 
@@ -327,7 +327,7 @@ namespace DemoScanner.ValvePak
                     }
 
                     fs.Seek(offset, SeekOrigin.Begin);
-                    fs.Read(output, entry.SmallData.Length, (int) entry.Length);
+                    fs.Read(output, entry.SmallData.Length, (int)entry.Length);
                 }
                 finally
                 {
@@ -404,7 +404,7 @@ namespace DemoScanner.ValvePak
                 Reader.BaseStream.Position = 0;
 
                 var hash = md5.ComputeHash(
-                    Reader.ReadBytes((int) (HeaderSize + TreeSize + FileDataSectionSize + ArchiveMD5SectionSize + 32)));
+                    Reader.ReadBytes((int)(HeaderSize + TreeSize + FileDataSectionSize + ArchiveMD5SectionSize + 32)));
 
                 if (!hash.SequenceEqual(WholeFileChecksum))
                     throw new InvalidDataException(
@@ -412,7 +412,7 @@ namespace DemoScanner.ValvePak
 
                 Reader.BaseStream.Position = HeaderSize;
 
-                hash = md5.ComputeHash(Reader.ReadBytes((int) TreeSize));
+                hash = md5.ComputeHash(Reader.ReadBytes((int)TreeSize));
 
                 if (!hash.SequenceEqual(TreeChecksum))
                     throw new InvalidDataException(
@@ -420,7 +420,7 @@ namespace DemoScanner.ValvePak
 
                 Reader.BaseStream.Position = HeaderSize + TreeSize + FileDataSectionSize;
 
-                hash = md5.ComputeHash(Reader.ReadBytes((int) ArchiveMD5SectionSize));
+                hash = md5.ComputeHash(Reader.ReadBytes((int)ArchiveMD5SectionSize));
 
                 if (!hash.SequenceEqual(ArchiveMD5EntriesChecksum))
                     throw new InvalidDataException(
@@ -447,7 +447,7 @@ namespace DemoScanner.ValvePak
             var rsa = RSA.Create();
             rsa.ImportParameters(keyParser.ParseRSAPublicKey());
             var tmp = rsa.ExportParameters(true);
-            var data = Reader.ReadBytes((int) (HeaderSize + TreeSize + FileDataSectionSize + ArchiveMD5SectionSize +
+            var data = Reader.ReadBytes((int)(HeaderSize + TreeSize + FileDataSectionSize + ArchiveMD5SectionSize +
                                                OtherMD5SectionSize));
 
             return true;

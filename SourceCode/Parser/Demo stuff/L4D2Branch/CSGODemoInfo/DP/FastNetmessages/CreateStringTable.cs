@@ -1,7 +1,7 @@
-﻿using System;
-using System.IO;
-using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
+﻿using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
 using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler;
+using System;
+using System.IO;
 
 namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.FastNetmessages
 {

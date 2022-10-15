@@ -49,7 +49,7 @@
             {
                 var totalLength = Length;
 
-                if (SmallData != null) totalLength += (uint) SmallData.Length;
+                if (SmallData != null) totalLength += (uint)SmallData.Length;
 
                 return totalLength;
             }

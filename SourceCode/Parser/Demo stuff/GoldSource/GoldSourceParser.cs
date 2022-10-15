@@ -1,13 +1,10 @@
-﻿using System;
+﻿using DemoScanner.DemoStuff.GoldSource.Verify;
+using System;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Windows.Forms;
-using DemoScanner.DemoStuff.GoldSource.Verify;
-using DemoScanner.DemoStuff.L4D2Branch.PortalStuff.Result;
 
 namespace DemoScanner.DemoStuff.GoldSource
 {
@@ -16,7 +13,7 @@ namespace DemoScanner.DemoStuff.GoldSource
     /// </summary>
     public class Hlsooe
     {
-       
+
 
         public enum DemoFrameType : sbyte
         {
@@ -31,7 +28,7 @@ namespace DemoScanner.DemoStuff.GoldSource
         }
 
         public interface IFrame
-        {}
+        { }
 
         public class DemoFrame
         {
@@ -52,16 +49,16 @@ namespace DemoScanner.DemoStuff.GoldSource
         }
 
         public class JumpTimeFrame : IFrame
-        {}
+        { }
 
         public class NextSectionFrame : IFrame
-        {}
+        { }
 
         public class StartupPacketFrame : NetMsgFrame
-        {}
+        { }
 
         public class ErrorFrame : NetMsgFrame
-        {}
+        { }
 
         public class NetworkDataTableFrame : IFrame
         {
@@ -282,7 +279,7 @@ namespace DemoScanner.DemoStuff.GoldSource
         }
 
         public interface IFrame
-        {}
+        { }
 
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
         public struct Point4D
@@ -643,33 +640,11 @@ namespace DemoScanner.DemoStuff.GoldSource
         }
     }
 
-
-    /// <summary>
-    ///     Aditional demo stats
-    /// </summary>
-    /// 
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
-    public struct Stats
-    {
-        public int Count;
-        public float FrametimeMax;
-        public float FrametimeMin;
-        public float FrametimeSum;
-        public int MsecMax;
-        public int MsecMin;
-        public long MsecSum;
-    }
-
     /// <summary>
     ///     Info class about normal GoldSource engine demos
     /// </summary>
     public class GoldSourceDemoInfo : DemoInfo
     {
-        /// <summary>
-        ///     Info about FPS and such
-        /// </summary>
-        public Stats AditionalStats;
-
         /// <summary>
         /// Whether there are any non allowed commands in the demo
         /// </summary>
@@ -916,7 +891,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                 using (var br = new BinaryReader(new MemoryStream(File.ReadAllBytes(s))))
                 {
                     if (UnexpectedEof(br, 540)) //520 + 12 + 8 = 540 -> IDString size
-                    hlsooeDemo.ParsingErrors.Add("Unexpected end of file at the header!");
+                        hlsooeDemo.ParsingErrors.Add("Unexpected end of file at the header!");
                     // return hlsooeDemo;
                     var mw = Encoding.ASCII.GetString(br.ReadBytes(8)).Trim('\0').Replace("\0", string.Empty);
                     if (mw == "HLDEMO")
@@ -933,13 +908,13 @@ namespace DemoScanner.DemoStuff.GoldSource
                         //IDString Parsed... now we read the directory entries
                         br.BaseStream.Seek(hlsooeDemo.Header.DirectoryOffset, SeekOrigin.Begin);
                         if (UnexpectedEof(br, 4))
-                        hlsooeDemo.ParsingErrors.Add("Unexpected end of file after the header!");
+                            hlsooeDemo.ParsingErrors.Add("Unexpected end of file after the header!");
                         //return hlsooeDemo;
                         var entryCount = br.ReadInt32();
                         for (var i = 0; i < entryCount; i++)
                         {
                             if (UnexpectedEof(br, 20))
-                            hlsooeDemo.ParsingErrors.Add("Unexpected end of when reading frames!");
+                                hlsooeDemo.ParsingErrors.Add("Unexpected end of when reading frames!");
                             // return hlsooeDemo;
                             var tempvar = new Hlsooe.DemoDirectoryEntry
                             {
@@ -959,7 +934,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                         {
                             dirid++;
                             if (entry.Offset > br.BaseStream.Length)
-                            hlsooeDemo.ParsingErrors.Add("Couldn't seek to directoryentry the file is corrupted.");
+                                hlsooeDemo.ParsingErrors.Add("Couldn't seek to directoryentry the file is corrupted.");
                             //return hlsooeDemo;
                             br.BaseStream.Seek(entry.Offset, SeekOrigin.Begin);
                             var i = 0;
@@ -967,8 +942,8 @@ namespace DemoScanner.DemoStuff.GoldSource
                             while (!nextSectionRead)
                             {
                                 if (UnexpectedEof(br, 9))
-                                hlsooeDemo.ParsingErrors.Add(
-                                    "Failed to read next frame details after frame no.: " + i);
+                                    hlsooeDemo.ParsingErrors.Add(
+                                        "Failed to read next frame details after frame no.: " + i);
                                 //return hlsooeDemo;
                                 var currentDemoFrame = new Hlsooe.DemoFrame
                                 {
@@ -987,15 +962,12 @@ namespace DemoScanner.DemoStuff.GoldSource
                                     nextSectionRead = true;
                                     continue;
                                 }
-
-                                #region FrameType Switch
-
                                 switch (currentDemoFrame.Type)
                                 {
                                     case Hlsooe.DemoFrameType.StartupPacket:
                                         if (UnexpectedEof(br, 108))
-                                        hlsooeDemo.ParsingErrors.Add("Failed to read startup packet at frame:" +
-                                                                     i);
+                                            hlsooeDemo.ParsingErrors.Add("Failed to read startup packet at frame:" +
+                                                                         i);
                                         // return hlsooeDemo;
                                         var g = new Hlsooe.StartupPacketFrame
                                         {
@@ -1024,11 +996,11 @@ namespace DemoScanner.DemoStuff.GoldSource
                                         g.Msg = Encoding.ASCII.GetString(br.ReadBytes(spml))
                                             .Trim('\0')
                                             .Replace("\0", string.Empty);
-                                        entry.Frames.Add(new Hlsooe.FramesHren2( currentDemoFrame, g));
+                                        entry.Frames.Add(new Hlsooe.FramesHren2(currentDemoFrame, g));
                                         break;
                                     case Hlsooe.DemoFrameType.NetworkPacket:
                                         if (UnexpectedEof(br, 108))
-                                        hlsooeDemo.ParsingErrors.Add("Failed to read netmessage at frame: " + i);
+                                            hlsooeDemo.ParsingErrors.Add("Failed to read netmessage at frame: " + i);
                                         // return hlsooeDemo;
                                         var b = new Hlsooe.NetMsgFrame
                                         {
@@ -1065,16 +1037,16 @@ namespace DemoScanner.DemoStuff.GoldSource
                                         break;
                                     case Hlsooe.DemoFrameType.ConsoleCommand:
                                         if (UnexpectedEof(br, 4))
-                                        hlsooeDemo.ParsingErrors.Add(
-                                            "Unexpected enf of file when reading console command length at frame: " +
-                                            i + " brpos: " + br.BaseStream.Position);
+                                            hlsooeDemo.ParsingErrors.Add(
+                                                "Unexpected enf of file when reading console command length at frame: " +
+                                                i + " brpos: " + br.BaseStream.Position);
                                         //  return hlsooeDemo;
                                         var a = new Hlsooe.ConsoleCommandFrame();
                                         var commandlength = br.ReadInt32();
                                         if (UnexpectedEof(br, commandlength))
-                                        hlsooeDemo.ParsingErrors.Add(
-                                            "Unexpected end of file when reading the console command at frame: " +
-                                            i + " brpos: " + br.BaseStream.Position);
+                                            hlsooeDemo.ParsingErrors.Add(
+                                                "Unexpected end of file when reading the console command at frame: " +
+                                                i + " brpos: " + br.BaseStream.Position);
                                         //  return hlsooeDemo;
                                         a.Command = Encoding.ASCII.GetString(br.ReadBytes(commandlength))
                                             .Trim('\0')
@@ -1089,9 +1061,9 @@ namespace DemoScanner.DemoStuff.GoldSource
                                         break;
                                     case Hlsooe.DemoFrameType.Usercmd:
                                         if (UnexpectedEof(br, 4 + 4 + 2))
-                                        hlsooeDemo.ParsingErrors.Add(
-                                            "Unexpected end of file when reading UserCMD header at frame: " + i +
-                                            " brpos: " + br.BaseStream.Position);
+                                            hlsooeDemo.ParsingErrors.Add(
+                                                "Unexpected end of file when reading UserCMD header at frame: " + i +
+                                                " brpos: " + br.BaseStream.Position);
                                         //  return hlsooeDemo;
                                         var c = new Hlsooe.UserCmdFrame
                                         {
@@ -1100,9 +1072,9 @@ namespace DemoScanner.DemoStuff.GoldSource
                                         };
                                         var usercmdlength = br.ReadUInt16();
                                         if (UnexpectedEof(br, usercmdlength))
-                                        hlsooeDemo.ParsingErrors.Add(
-                                            "Unexpected end of file when reading userCMD at frame: " + i +
-                                            " brpos: " + br.BaseStream.Position);
+                                            hlsooeDemo.ParsingErrors.Add(
+                                                "Unexpected end of file when reading userCMD at frame: " + i +
+                                                " brpos: " + br.BaseStream.Position);
                                         // return hlsooeDemo;
                                         c.Data =
                                             Encoding.ASCII.GetString(br.ReadBytes(usercmdlength))
@@ -1113,15 +1085,15 @@ namespace DemoScanner.DemoStuff.GoldSource
                                     case Hlsooe.DemoFrameType.Stringtables:
                                         var e = new Hlsooe.StringTablesFrame();
                                         if (UnexpectedEof(br, 4))
-                                        hlsooeDemo.ParsingErrors.Add(
-                                            "Unexpected end of file when reading stringtablelength at frame: " +
-                                            i + " brpos: " + br.BaseStream.Position);
+                                            hlsooeDemo.ParsingErrors.Add(
+                                                "Unexpected end of file when reading stringtablelength at frame: " +
+                                                i + " brpos: " + br.BaseStream.Position);
                                         //  return hlsooeDemo;
                                         var stringtablelength = br.ReadInt32();
                                         if (UnexpectedEof(br, stringtablelength))
-                                        hlsooeDemo.ParsingErrors.Add(
-                                            "Unexpected end of file when reading stringtable data at frame: " +
-                                            i + " brpos: " + br.BaseStream.Position);
+                                            hlsooeDemo.ParsingErrors.Add(
+                                                "Unexpected end of file when reading stringtable data at frame: " +
+                                                i + " brpos: " + br.BaseStream.Position);
                                         // return hlsooeDemo;
                                         var edata = Encoding.ASCII.GetString(br.ReadBytes(stringtablelength))
                                             .Trim('\0')
@@ -1132,15 +1104,15 @@ namespace DemoScanner.DemoStuff.GoldSource
                                     case Hlsooe.DemoFrameType.NetworkDataTable:
                                         var d = new Hlsooe.NetworkDataTableFrame();
                                         if (UnexpectedEof(br, 4))
-                                        hlsooeDemo.ParsingErrors.Add(
-                                            "Unexpected end of file when reading networktable length at frame: " +
-                                            i + " brpos: " + br.BaseStream.Position);
+                                            hlsooeDemo.ParsingErrors.Add(
+                                                "Unexpected end of file when reading networktable length at frame: " +
+                                                i + " brpos: " + br.BaseStream.Position);
                                         //  return hlsooeDemo;
                                         var networktablelength = br.ReadInt32();
                                         if (UnexpectedEof(br, 4))
-                                        hlsooeDemo.ParsingErrors.Add(
-                                            "Unexpected end of file when reading NetWorkTable data at frame: " +
-                                            i + " brpos: " + br.BaseStream.Position);
+                                            hlsooeDemo.ParsingErrors.Add(
+                                                "Unexpected end of file when reading NetWorkTable data at frame: " +
+                                                i + " brpos: " + br.BaseStream.Position);
                                         // return hlsooeDemo;
                                         d.Data = Encoding.ASCII.GetString(br.ReadBytes(networktablelength))
                                             .Trim('\0')
@@ -1153,9 +1125,9 @@ namespace DemoScanner.DemoStuff.GoldSource
                                         break;
                                     default:
                                         if (UnexpectedEof(br, 108))
-                                        hlsooeDemo.ParsingErrors.Add(
-                                            "Unexpected end of file when reading default frame at frame: " + i +
-                                            " brpos: " + br.BaseStream.Position);
+                                            hlsooeDemo.ParsingErrors.Add(
+                                                "Unexpected end of file when reading default frame at frame: " + i +
+                                                " brpos: " + br.BaseStream.Position);
                                         //return hlsooeDemo;
                                         var err = new Hlsooe.ErrorFrame
                                         {
@@ -1186,8 +1158,6 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             .Replace("\0", string.Empty);
                                         entry.Frames.Add(new Hlsooe.FramesHren2(currentDemoFrame, err));
                                         break;
-
-                                        #endregion
                                 }
                             }
                         }
@@ -1263,7 +1233,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                             throw new Exception("E2");
                         }
                         //  return gDemo;
-                       
+
                         //if (entryCount < 1 || entryCount > 5)
                         //{
                         //   // entryCount = 2;
@@ -1277,7 +1247,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                         //    Console.WriteLine("Warning!Hacked demo! ");
                         //}
 
-                        if ( gDemo.Header.DirectoryOffset == 0 )
+                        if (gDemo.Header.DirectoryOffset == 0)
                         {
                             //Console.WriteLine("Warning! Bad entries count! Using 'bruteforce' read method!");
                             var tempvar = new GoldSource.DemoDirectoryEntry
@@ -1289,7 +1259,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                 CdTrack = 0,
                                 TrackTime = 444.0f,
                                 FrameCount = 44444444,
-                                Offset = 0 ,
+                                Offset = 0,
                                 FileLength = 0,
                                 Frames = new List<GoldSource.FramesHren>()
                             };
@@ -1381,13 +1351,6 @@ namespace DemoScanner.DemoStuff.GoldSource
                                         Index = ind
                                     };
 
-                                    // Application.DoEvents();
-
-
-
-                                    // File.AppendAllText("events.log", currentDemoFrame.Type + "->" + currentDemoFrame.Index + "->" + currentDemoFrame.FrameIndex + "->" + currentDemoFrame.Time + "\n");
-
-                                    #region Frame Switch
                                     //Console.WriteLine(currentDemoFrame.Type);
                                     switch (currentDemoFrame.Type)
                                     {
@@ -1406,9 +1369,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                                 break;
                                             }
                                             var cmd = br.ReadBytes(64);
-                                            ccframe.Command = Encoding.ASCII.GetString(cmd)
-                                                .Trim('\0')
-                                                .Replace("\0", string.Empty);
+                                            ccframe.Command = Encoding.ASCII.GetString(cmd).Trim('\0').Replace("\0", string.Empty);
                                             ccframe.BxtData = ExtractIncludedBytes(cmd);
                                             entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame, ccframe));
                                             break;
@@ -1438,8 +1399,8 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame, cdframe));
                                             break;
                                         case GoldSource.DemoFrameType.NextSection:
-                                            if ( entry.Offset != 0 )
-                                            nextSectionRead = true;
+                                            if (entry.Offset != 0)
+                                                nextSectionRead = true;
                                             entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame, new GoldSource.NextSectionFrame()));
                                             break;
                                         case GoldSource.DemoFrameType.Event:
@@ -1586,7 +1547,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             //if (tmpfloat.ToString().IndexOf("E") > 0)
                                             //    cdframe.ErrAngles++;
                                             nf.RParms.Viewangles.X = tmpfloat2;
-                                            
+
                                             tmpfloat2 = br.ReadSingle();
                                             //if (tmpfloat.ToString().IndexOf("E") > 0)
                                             //    cdframe.ErrAngles++;
@@ -1666,7 +1627,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             //if (tmpfloat.ToString().IndexOf("E") > 0)
                                             //    cdframe.ErrAngles++;
                                             nf.UCmd.Viewangles.X = tmpfloat2;
-                                            
+
                                             tmpfloat2 = br.ReadSingle();
                                             //if (tmpfloat.ToString().IndexOf("E") > 0)
                                             //    cdframe.ErrAngles++;
@@ -1749,15 +1710,13 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             }
                                             else
                                             {
-                                                
+
                                             }
                                             nf.Msg = ByteArrayToString(nf.MsgBytes);
                                             entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame, nf));
                                             break;
 
                                     }
-
-                                    #endregion
                                 }
                             }
                             catch (Exception ex)
@@ -1765,43 +1724,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                 Console.WriteLine("Fatal error:" + ex.Message);
                             }
 
-                        //here
-                        var first = true;
-                        foreach (var f in from entry in gDemo.DirectoryEntries
-                                          from frame in entry.Frames
-                                          where (int)frame.Key.Type < 2 || (int)frame.Key.Type > 9
-                                          select (GoldSource.NetMsgFrame)frame.Value)
-                        {
-                            gDemo.AditionalStats.FrametimeSum += f.RParms.Frametime;
-                            gDemo.AditionalStats.MsecSum += f.UCmd.Msec;
-                            gDemo.AditionalStats.Count++;
-
-                            if (first)
-                            {
-                                first = false;
-                                gDemo.AditionalStats.FrametimeMin = int.MaxValue;
-                                gDemo.AditionalStats.FrametimeMax = int.MinValue;
-                                gDemo.AditionalStats.MsecMin = int.MaxValue;
-                                gDemo.AditionalStats.MsecMax = int.MinValue;
-                            }
-                            else
-                            {
-                                if (f.RParms.Frametime > 0) gDemo.AditionalStats.FrametimeMin = Math.Min(gDemo.AditionalStats.FrametimeMin, f.RParms.Frametime);
-                                //Console.WriteLine(f.RParms.Frametime);
-                                gDemo.AditionalStats.FrametimeMax = Math.Max(gDemo.AditionalStats.FrametimeMax, f.RParms.Frametime);
-                                if (f.UCmd.Msec > 0) gDemo.AditionalStats.MsecMin = Math.Min(gDemo.AditionalStats.MsecMin, f.UCmd.Msec);
-
-                                gDemo.AditionalStats.MsecMax = Math.Max(gDemo.AditionalStats.MsecMax, f.UCmd.Msec);
-                            }
-                        }
-                        //s2.Stop();
-                        //var s3 = new System.Diagnostics.Stopwatch();
-                        //s3.Start();
                         gDemo.IncludedBXtData = ParseIncludedBytes(gDemo).Select(FormatBxtData).ToList();
-                        //s3.Stop();
-                        /*MessageBox.Show($@"Parsing header: {s1.ElapsedMilliseconds}ms
-Parsing frames:{s2.ElapsedMilliseconds}ms
-Parsing bxt data:{s3.ElapsedMilliseconds}ms");*/
                     }
                     else
                     {
@@ -1816,7 +1739,7 @@ Parsing bxt data:{s3.ElapsedMilliseconds}ms");*/
                 //Main.//Log("Exception happened in the goldsource parser: " + e.Message);
                 gDemo.ParsingErrors.Add(e.Message);
             }
-            
+
             return gDemo;
         }
 

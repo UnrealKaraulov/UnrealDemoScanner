@@ -47,11 +47,11 @@ namespace DemoScanner.DemoStuff.Source
                     CurrentBit = offset;
                     break;
                 case SeekOrigin.End:
-                    CurrentBit = (_data.Count*8) - offset;
+                    CurrentBit = (_data.Count * 8) - offset;
                     break;
             }
 
-            if (CurrentBit < 0 || CurrentBit > _data.Count*8)
+            if (CurrentBit < 0 || CurrentBit > _data.Count * 8)
             {
                 throw new BitBufferOutOfRangeException();
             }
@@ -89,16 +89,16 @@ namespace DemoScanner.DemoStuff.Source
             }
 
             // check for overflow
-            if (CurrentBit + nBits > _data.Count*8)
+            if (CurrentBit + nBits > _data.Count * 8)
             {
                 throw new BitBufferOutOfRangeException();
             }
 
             var currentByte = CurrentBit / 8;
-            var bitOffset = CurrentBit - (currentByte*8);
+            var bitOffset = CurrentBit - (currentByte * 8);
             var nBytesToRead = (bitOffset + nBits) / 8;
 
-            if ((bitOffset + nBits)%8 != 0)
+            if ((bitOffset + nBits) % 8 != 0)
             {
                 nBytesToRead++;
             }
@@ -108,17 +108,17 @@ namespace DemoScanner.DemoStuff.Source
             for (var i = 0; i < nBytesToRead; i++)
             {
                 var b = _data[currentByte + (nBytesToRead - 1) - i];
-                currentValue += (ulong) b << (i * 8);
+                currentValue += (ulong)b << (i * 8);
             }
 
             // get bits we need from bytes
-            currentValue >>= ((nBytesToRead*8 - bitOffset) - nBits);
-            currentValue &= (uint) (((long) 1 << nBits) - 1);
+            currentValue >>= ((nBytesToRead * 8 - bitOffset) - nBits);
+            currentValue &= (uint)(((long)1 << nBits) - 1);
 
             // increment current bit
             CurrentBit += nBits;
 
-            return (uint) currentValue;
+            return (uint)currentValue;
         }
 
         private uint ReadUnsignedBitsLittleEndian(int nBits)
@@ -130,16 +130,16 @@ namespace DemoScanner.DemoStuff.Source
             }
 
             // check for overflow
-            if (CurrentBit + nBits > _data.Count*8)
+            if (CurrentBit + nBits > _data.Count * 8)
             {
                 throw new BitBufferOutOfRangeException();
             }
 
             var currentByte = CurrentBit / 8;
-            var bitOffset = CurrentBit - (currentByte*8);
+            var bitOffset = CurrentBit - (currentByte * 8);
             var nBytesToRead = (bitOffset + nBits) / 8;
 
-            if ((bitOffset + nBits)%8 != 0)
+            if ((bitOffset + nBits) % 8 != 0)
             {
                 nBytesToRead++;
             }
@@ -149,17 +149,17 @@ namespace DemoScanner.DemoStuff.Source
             for (var i = 0; i < nBytesToRead; i++)
             {
                 var b = _data[currentByte + i];
-                currentValue += (ulong) b << (i * 8);
+                currentValue += (ulong)b << (i * 8);
             }
 
             // get bits we need from bytes
             currentValue >>= bitOffset;
-            currentValue &= (uint) (((long) 1 << nBits) - 1);
+            currentValue &= (uint)(((long)1 << nBits) - 1);
 
             // increment current bit
             CurrentBit += nBits;
 
-            return (uint) currentValue;
+            return (uint)currentValue;
         }
 
         public uint ReadUnsignedBits(int nBits)
@@ -173,7 +173,7 @@ namespace DemoScanner.DemoStuff.Source
 
         public int ReadBits(int nBits)
         {
-            var result = (int) ReadUnsignedBits(nBits - 1);
+            var result = (int)ReadUnsignedBits(nBits - 1);
             var sign = (ReadBoolean() ? 1 : 0);
 
             if (sign == 1)
@@ -187,24 +187,24 @@ namespace DemoScanner.DemoStuff.Source
         public bool ReadBoolean()
         {
             // check for overflow
-            if (CurrentBit + 1 > _data.Count*8)
+            if (CurrentBit + 1 > _data.Count * 8)
             {
                 throw new BitBufferOutOfRangeException();
             }
 
-            var result = (_data[CurrentBit/8] & ((Endian == EndianType.Little ? 1 << CurrentBit%8 : 128 >> CurrentBit%8))) != 0;
+            var result = (_data[CurrentBit / 8] & ((Endian == EndianType.Little ? 1 << CurrentBit % 8 : 128 >> CurrentBit % 8))) != 0;
             CurrentBit++;
             return result;
         }
 
         public byte ReadByte()
         {
-            return (byte) ReadUnsignedBits(8);
+            return (byte)ReadUnsignedBits(8);
         }
 
         public sbyte ReadSByte()
         {
-            return (sbyte) ReadBits(8);
+            return (sbyte)ReadBits(8);
         }
 
         public byte[] ReadBytes(int nBytes)
@@ -225,7 +225,7 @@ namespace DemoScanner.DemoStuff.Source
 
             for (var i = 0; i < nChars; i++)
             {
-                result[i] = (char) ReadByte(); // not unicode
+                result[i] = (char)ReadByte(); // not unicode
             }
 
             return result;
@@ -233,12 +233,12 @@ namespace DemoScanner.DemoStuff.Source
 
         public short ReadInt16()
         {
-            return (short) ReadBits(16);
+            return (short)ReadBits(16);
         }
 
         public ushort ReadUInt16()
         {
-            return (ushort) ReadUnsignedBits(16);
+            return (ushort)ReadUnsignedBits(16);
         }
 
         public int ReadInt32()
@@ -349,7 +349,7 @@ namespace DemoScanner.DemoStuff.Source
                 else
                 {
                     intValue = ReadUnsignedBits(14) + 1;
-            }
+                }
             }
 
             if (fractionFlag)
@@ -357,7 +357,7 @@ namespace DemoScanner.DemoStuff.Source
                 fractionValue = ReadUnsignedBits(goldSrc ? 3 : 5);
             }
 
-            value = intValue + (fractionValue*1.0f/32.0f);
+            value = intValue + (fractionValue * 1.0f / 32.0f);
 
             if (sign)
             {
@@ -377,10 +377,10 @@ namespace DemoScanner.DemoStuff.Source
             for (var i = 0; i < nBits; i++)
             {
                 var currentByte = CurrentBit / 8;
-                var bitOffset = CurrentBit - (currentByte*8);
+                var bitOffset = CurrentBit - (currentByte * 8);
 
                 var temp = _data[currentByte];
-                temp -= (byte) (_data[currentByte] & (1 << bitOffset));
+                temp -= (byte)(_data[currentByte] & (1 << bitOffset));
                 _data[currentByte] = temp;
 
                 CurrentBit++;
@@ -452,12 +452,12 @@ namespace DemoScanner.DemoStuff.Source
         /// <summary>
         ///     The byte we are reading the bits of currently
         /// </summary>
-        public int CurrentByte => (CurrentBit - (CurrentBit%8))/8;
+        public int CurrentByte => (CurrentBit - (CurrentBit % 8)) / 8;
 
         /// <summary>
         ///     Bits left from the buffer
         /// </summary>
-        public int BitsLeft => (_data.Count*8) - CurrentBit;
+        public int BitsLeft => (_data.Count * 8) - CurrentBit;
 
         /// <summary>
         ///     Bytes left from the buffer
@@ -501,7 +501,7 @@ namespace DemoScanner.DemoStuff.Source
         public void WriteUnsignedBits(uint value, int nBits)
         {
             var currentByte = _currentBit / 8;
-            var bitOffset = _currentBit - (currentByte*8);
+            var bitOffset = _currentBit - (currentByte * 8);
 
             // calculate how many bits need to be written to the current byte
             var bitsToWriteToCurrentByte = 8 - bitOffset;
@@ -518,7 +518,7 @@ namespace DemoScanner.DemoStuff.Source
                 var temp = nBits - bitsToWriteToCurrentByte;
                 bytesToAdd = temp / 8;
 
-                if ((temp%8) != 0)
+                if ((temp % 8) != 0)
                 {
                     bytesToAdd++;
                 }
@@ -538,7 +538,7 @@ namespace DemoScanner.DemoStuff.Source
             var nBitsWritten = 0;
 
             // write bits to the current byte
-            var b = (byte) (value & ((1 << bitsToWriteToCurrentByte) - 1));
+            var b = (byte)(value & ((1 << bitsToWriteToCurrentByte) - 1));
             b <<= bitOffset;
             b += _data[currentByte];
             _data[currentByte] = b;
@@ -555,7 +555,7 @@ namespace DemoScanner.DemoStuff.Source
                     bitsToWriteToCurrentByte = 8;
                 }
 
-                b = (byte) ((value >> nBitsWritten) & ((1 << bitsToWriteToCurrentByte) - 1));
+                b = (byte)((value >> nBitsWritten) & ((1 << bitsToWriteToCurrentByte) - 1));
                 _data[currentByte] = b;
 
                 nBitsWritten += bitsToWriteToCurrentByte;
@@ -568,7 +568,7 @@ namespace DemoScanner.DemoStuff.Source
 
         public void WriteBits(int value, int nBits)
         {
-            WriteUnsignedBits((uint) value, nBits - 1);
+            WriteUnsignedBits((uint)value, nBits - 1);
 
             var sign = (value < 0 ? 1u : 0u);
             WriteUnsignedBits(sign, 1);
@@ -585,7 +585,7 @@ namespace DemoScanner.DemoStuff.Source
 
             if (value)
             {
-                _data[currentByte] += (byte) (1 << _currentBit%8);
+                _data[currentByte] += (byte)(1 << _currentBit % 8);
             }
 
             _currentBit++;
@@ -613,7 +613,7 @@ namespace DemoScanner.DemoStuff.Source
         {
             foreach (char t in values)
             {
-                WriteByte((byte) t);
+                WriteByte((byte)t);
             }
         }
 
@@ -641,7 +641,7 @@ namespace DemoScanner.DemoStuff.Source
         {
             foreach (char t in value)
             {
-                WriteByte((byte) t);
+                WriteByte((byte)t);
             }
 
             // null terminator
@@ -682,7 +682,7 @@ namespace DemoScanner.DemoStuff.Source
             // sign
             WriteBoolean(value < 0.0f);
 
-            var intValue = (uint) value;
+            var intValue = (uint)value;
 
             if (goldSrc)
             {

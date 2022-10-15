@@ -1,5 +1,5 @@
-﻿using System.IO;
-using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
+﻿using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
+using System.IO;
 
 namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.FastNetmessages
 {
@@ -19,7 +19,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.FastNetmessages
                 var fieldnum = desc >> 3;
                 if (wireType != 0) throw new InvalidDataException();
 
-                var val = (uint) bitstream.ReadProtobufVarInt();
+                var val = (uint)bitstream.ReadProtobufVarInt();
 
                 switch (fieldnum)
                 {

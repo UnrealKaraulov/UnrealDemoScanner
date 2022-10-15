@@ -1,11 +1,11 @@
-﻿using System;
+﻿using DemoScanner.DemoStuff.GoldSource;
+using DemoScanner.DemoStuff.L4D2Branch;
+using DemoScanner.DemoStuff.Source;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using DemoScanner.DemoStuff.GoldSource;
-using DemoScanner.DemoStuff.L4D2Branch;
-using DemoScanner.DemoStuff.Source;
 
 namespace DemoScanner.DemoStuff
 {
@@ -139,7 +139,7 @@ namespace DemoScanner.DemoStuff
         /// <returns></returns>
         public static CrossParseResult[] MultiDemoParse(string[] filenames)
         {
-            var results = new List<CrossParseResult> {new CrossParseResult()};
+            var results = new List<CrossParseResult> { new CrossParseResult() };
             //filenames.Select(AsyncParse).ToArray();
             return results.ToArray();
         }
@@ -305,19 +305,7 @@ namespace DemoScanner.DemoStuff
                         result.Add(new Tuple<string, string>("Frame count",
                             $"{demo.GsDemoInfo.DirectoryEntries.Sum(x => x.FrameCount)}"));
                         result.Add(new Tuple<string, string>("Highest FPS",
-                            $"{(1 / demo.GsDemoInfo.AditionalStats.FrametimeMin).ToString("N2")}"));
-                        result.Add(new Tuple<string, string>("Lowest FPS",
-                            $"{(1 / demo.GsDemoInfo.AditionalStats.FrametimeMax).ToString("N2")}"));
-                        result.Add(new Tuple<string, string>("Average FPS",
-                            $"{(demo.GsDemoInfo.AditionalStats.Count / demo.GsDemoInfo.AditionalStats.FrametimeSum).ToString("N2")}"));
-                        result.Add(new Tuple<string, string>("Lowest msec",
-                            $"{(1000.0 / demo.GsDemoInfo.AditionalStats.MsecMin).ToString("N2")} FPS"));
-                        result.Add(new Tuple<string, string>("Highest msec",
-                            $"{(1000.0 / demo.GsDemoInfo.AditionalStats.MsecMax).ToString("N2")} FPS"));
-                        result.Add(new Tuple<string, string>("Frame count",
                             $"{demo.GsDemoInfo.DirectoryEntries.Sum(x => x.FrameCount)}"));
-                        result.Add(new Tuple<string, string>("Average msec",
-                            $"{(1000.0 / (demo.GsDemoInfo.AditionalStats.MsecSum / (double) demo.GsDemoInfo.AditionalStats.Count)).ToString("N2")} FPS"));
                     }
                     catch
                     {

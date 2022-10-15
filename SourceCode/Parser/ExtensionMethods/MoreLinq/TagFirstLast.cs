@@ -71,11 +71,11 @@ namespace DemoScanner.ExtensionMethods.MoreLinq
         private static IEnumerable<TResult> TagFirsLastImpl<TSource, TResult>(IEnumerable<TSource> source,
             Func<TSource, bool, bool, TResult> resultSelector)
         {
-            KeyValuePair<bool, TSource>[] edge = {new KeyValuePair<bool, TSource>(false, default)};
+            KeyValuePair<bool, TSource>[] edge = { new KeyValuePair<bool, TSource>(false, default) };
             return edge.Concat(source.Select(e => new KeyValuePair<bool, TSource>(true, e)))
                 .Concat(edge)
-                .Pairwise((a, b) => new {Prev = a, Curr = b})
-                .Pairwise((a, b) => new {a.Prev, a.Curr, Next = b.Curr})
+                .Pairwise((a, b) => new { Prev = a, Curr = b })
+                .Pairwise((a, b) => new { a.Prev, a.Curr, Next = b.Curr })
                 .Select(e => resultSelector(e.Curr.Value, !e.Prev.Key, !e.Next.Key));
         }
     }

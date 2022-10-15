@@ -162,7 +162,7 @@ namespace DemoScanner.ExtensionMethods.MoreLinq
 
             if (fallback == null) throw new ArgumentNullException("fallback");
 
-            return source.FallbackIfEmpty((IEnumerable<T>) fallback);
+            return source.FallbackIfEmpty((IEnumerable<T>)fallback);
         }
 
         /// <summary>

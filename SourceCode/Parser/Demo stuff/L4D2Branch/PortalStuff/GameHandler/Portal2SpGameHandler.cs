@@ -1,7 +1,7 @@
+using DemoScanner.DemoStuff.L4D2Branch.PortalStuff.Result;
 using System;
 using System.IO;
 using System.Text;
-using DemoScanner.DemoStuff.L4D2Branch.PortalStuff.Result;
 
 namespace DemoScanner.DemoStuff.L4D2Branch.PortalStuff.GameHandler
 {
@@ -73,7 +73,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.PortalStuff.GameHandler
             var consoleCmdResult = base.ProcessConsoleCmd(br);
 
             var stringBuilder = _debugBuffer;
-            object[] currentTick = {CurrentTick, ": ", consoleCmdResult.Command, Environment.NewLine};
+            object[] currentTick = { CurrentTick, ": ", consoleCmdResult.Command, Environment.NewLine };
             stringBuilder.Append(string.Concat(currentTick));
             if (consoleCmdResult.Command.Contains("#SAVE#"))
             {
@@ -88,7 +88,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.PortalStuff.GameHandler
         {
             var packetResult = base.ProcessPacket(br);
             var stringBuilder = _debugBuffer;
-            object[] currentTick = {CurrentTick, ": ", packetResult.CurrentPosition, Environment.NewLine};
+            object[] currentTick = { CurrentTick, ": ", packetResult.CurrentPosition, Environment.NewLine };
             stringBuilder.Append(string.Concat(currentTick));
             if (_startAdjustType == null && Map == "sp_a1_intro1" && atSpawn(packetResult.CurrentPosition))
             {

@@ -34,7 +34,7 @@ namespace DemoScanner.ExtensionMethods.MoreLinq
 
             // If it's a field access, boxing was used, we need the field
             if (body.NodeType == ExpressionType.Convert || body.NodeType == ExpressionType.ConvertChecked)
-                body = ((UnaryExpression) body).Operand;
+                body = ((UnaryExpression)body).Operand;
 
             // Check if the MemberExpression is valid and is a "first level" member access e.g. not a.b.c 
             var memberExpression = body as MemberExpression;
@@ -53,10 +53,10 @@ namespace DemoScanner.ExtensionMethods.MoreLinq
 
             if (expressions == null || expressions.Count == 0)
                 return from m in typeof(T).GetMembers(BindingFlags.Public | BindingFlags.Instance)
-                    where m.MemberType == MemberTypes.Field
-                          ||
-                          m.MemberType == MemberTypes.Property && ((PropertyInfo) m).GetIndexParameters().Length == 0
-                    select m;
+                       where m.MemberType == MemberTypes.Field
+                             ||
+                             m.MemberType == MemberTypes.Property && ((PropertyInfo)m).GetIndexParameters().Length == 0
+                       select m;
 
             //
             // Ensure none of the expressions is null.
@@ -89,18 +89,18 @@ namespace DemoScanner.ExtensionMethods.MoreLinq
             var columns = table.Columns;
 
             var schemas = from m in members
-                let type = m.MemberType == MemberTypes.Property
-                    ? ((PropertyInfo) m).PropertyType
-                    : ((FieldInfo) m).FieldType
-                select new
-                {
-                    Member = m,
-                    Type = type.IsGenericType
-                           && typeof(Nullable<>) == type.GetGenericTypeDefinition()
-                        ? type.GetGenericArguments()[0]
-                        : type,
-                    Column = columns[m.Name]
-                };
+                          let type = m.MemberType == MemberTypes.Property
+                              ? ((PropertyInfo)m).PropertyType
+                              : ((FieldInfo)m).FieldType
+                          select new
+                          {
+                              Member = m,
+                              Type = type.IsGenericType
+                                     && typeof(Nullable<>) == type.GetGenericTypeDefinition()
+                                  ? type.GetGenericArguments()[0]
+                                  : type,
+                              Column = columns[m.Name]
+                          };
 
             //
             // If the table has no columns then build the schema.
@@ -154,7 +154,7 @@ namespace DemoScanner.ExtensionMethods.MoreLinq
             //
 
             var initializers = members.Select(m => m != null
-                ? (Expression) CreateMemberAccessor(parameter, m)
+                ? (Expression)CreateMemberAccessor(parameter, m)
                 : Expression.Constant(null, typeof(object)));
 
             var array = Expression.NewArrayInit(typeof(object), initializers);

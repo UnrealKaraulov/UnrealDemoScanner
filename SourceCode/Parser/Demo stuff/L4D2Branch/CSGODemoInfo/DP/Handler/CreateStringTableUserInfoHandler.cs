@@ -1,8 +1,8 @@
-﻿using System;
+﻿using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
+using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.FastNetmessages;
+using System;
 using System.Collections.Generic;
 using System.IO;
-using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
-using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.FastNetmessages;
 
 namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
 {
@@ -28,7 +28,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
             {
                 var entryIndex = lastEntry + 1;
                 // d in the entity-index
-                if (!reader.ReadBit()) entryIndex = (int) reader.ReadInt(nEntryBits);
+                if (!reader.ReadBit()) entryIndex = (int)reader.ReadInt(nEntryBits);
 
                 lastEntry = entryIndex;
 
@@ -43,8 +43,8 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
 
                     if (substringcheck)
                     {
-                        var index = (int) reader.ReadInt(5);
-                        var bytestocopy = (int) reader.ReadInt(5);
+                        var index = (int)reader.ReadInt(5);
+                        var bytestocopy = (int)reader.ReadInt(5);
 
                         entry = history[index].Substring(0, bytestocopy);
 
@@ -72,7 +72,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
                     }
                     else
                     {
-                        var bytesToRead = (int) reader.ReadInt(14);
+                        var bytesToRead = (int)reader.ReadInt(14);
 
                         userdata = reader.ReadBytes(bytesToRead);
                     }

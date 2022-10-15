@@ -1,7 +1,4 @@
-﻿using System.Runtime.InteropServices;
-using System.Windows.Forms;
-
-namespace DemoScanner.Settings
+﻿namespace DemoScanner.Settings
 {
     public static class asdf
     {

@@ -191,7 +191,7 @@ namespace DemoScanner.ExtensionMethods.MoreLinq
                     _continue = _subset.Length > 0;
                 }
 
-                public IList<T> Current => (IList<T>) _subset.Clone();
+                public IList<T> Current => (IList<T>)_subset.Clone();
 
                 object IEnumerator.Current => Current;
 

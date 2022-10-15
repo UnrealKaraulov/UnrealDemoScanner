@@ -18,9 +18,9 @@ namespace DemoScanner.DemoStuff.Source
 
                 for (var i = 0; i < numprops; i++)
                 {
-                    var type = (SendPropType) bb.ReadBits(5);
+                    var type = (SendPropType)bb.ReadBits(5);
                     var propnode = dtnode.Nodes.Add("DPT_" + type + " " + bb.ReadString());
-                    var flags = (SendPropFlags) bb.ReadBits(16);
+                    var flags = (SendPropFlags)bb.ReadBits(16);
 
                     if (type == SendPropType.DataTable || (flags & SendPropFlags.Exclude) != 0)
                         propnode.Text += " : " + bb.ReadString();

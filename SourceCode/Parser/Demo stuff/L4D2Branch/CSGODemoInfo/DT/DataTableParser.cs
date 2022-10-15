@@ -1,8 +1,8 @@
-﻿using System;
+﻿using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
+using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.Messages;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
-using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.Messages;
 
 namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DT
 {
@@ -13,13 +13,13 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DT
         public List<SendTable> DataTables = new List<SendTable>();
         public List<ServerClass> ServerClasses = new List<ServerClass>();
 
-        public int ClassBits => (int) Math.Ceiling(Math.Log(ServerClasses.Count, 2));
+        public int ClassBits => (int)Math.Ceiling(Math.Log(ServerClasses.Count, 2));
 
         public void ParsePacket(IBitStream bitstream)
         {
             while (true)
             {
-                var type = (SVC_Messages) bitstream.ReadProtobufVarInt();
+                var type = (SVC_Messages)bitstream.ReadProtobufVarInt();
                 if (type != SVC_Messages.svc_SendTable) throw new Exception("Expected SendTable, got " + type);
 
                 var size = bitstream.ReadProtobufVarInt();
@@ -32,13 +32,13 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DT
                 DataTables.Add(sendTable);
             }
 
-            var serverClassCount = checked((int) bitstream.ReadInt(16));
+            var serverClassCount = checked((int)bitstream.ReadInt(16));
 
             for (var i = 0; i < serverClassCount; i++)
             {
                 var entry = new ServerClass
                 {
-                    ClassID = checked((int) bitstream.ReadInt(16))
+                    ClassID = checked((int)bitstream.ReadInt(16))
                 };
 
                 if (entry.ClassID > serverClassCount) throw new Exception("Invalid class index");

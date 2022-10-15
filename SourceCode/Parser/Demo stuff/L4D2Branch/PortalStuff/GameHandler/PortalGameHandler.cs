@@ -1,5 +1,5 @@
-using System.IO;
 using DemoScanner.DemoStuff.L4D2Branch.PortalStuff.Result;
+using System.IO;
 
 namespace DemoScanner.DemoStuff.L4D2Branch.PortalStuff.GameHandler
 {

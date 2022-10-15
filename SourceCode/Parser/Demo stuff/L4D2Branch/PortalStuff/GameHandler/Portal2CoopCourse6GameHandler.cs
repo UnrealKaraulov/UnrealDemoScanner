@@ -1,7 +1,7 @@
+using DemoScanner.DemoStuff.L4D2Branch.PortalStuff.Result;
 using System;
 using System.IO;
 using System.Text;
-using DemoScanner.DemoStuff.L4D2Branch.PortalStuff.Result;
 
 namespace DemoScanner.DemoStuff.L4D2Branch.PortalStuff.GameHandler
 {
@@ -42,7 +42,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.PortalStuff.GameHandler
         {
             var consoleCmdResult = base.ProcessConsoleCmd(br);
             var stringBuilder = _debugBuffer;
-            object[] currentTick = {CurrentTick, ": ", consoleCmdResult.Command, Environment.NewLine};
+            object[] currentTick = { CurrentTick, ": ", consoleCmdResult.Command, Environment.NewLine };
             stringBuilder.Append(string.Concat(currentTick));
             if (_startAdjustType == null && CurrentTick > 0 &&
                 consoleCmdResult.Command == "ss_force_primary_fullscreen 0")
@@ -75,7 +75,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.PortalStuff.GameHandler
         {
             var packetResult = base.ProcessPacket(br);
             var stringBuilder = _debugBuffer;
-            object[] currentTick = {CurrentTick, ": ", packetResult.CurrentPosition, Environment.NewLine};
+            object[] currentTick = { CurrentTick, ": ", packetResult.CurrentPosition, Environment.NewLine };
             stringBuilder.Append(string.Concat(currentTick));
             if (_startAdjustType == null && packetResult.CurrentPosition.Equals(new Point3D(-9896f, -4400f, 3048f)))
             {

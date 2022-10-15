@@ -1,8 +1,8 @@
+using DemoScanner.DemoStuff.L4D2Branch.PortalStuff.GameHandler;
+using DemoScanner.DemoStuff.L4D2Branch.PortalStuff.Result;
 using System;
 using System.IO;
 using System.Text;
-using DemoScanner.DemoStuff.L4D2Branch.PortalStuff.GameHandler;
-using DemoScanner.DemoStuff.L4D2Branch.PortalStuff.Result;
 
 namespace DemoScanner.DemoStuff.L4D2Branch.PortalStuff
 {
@@ -16,8 +16,8 @@ namespace DemoScanner.DemoStuff.L4D2Branch.PortalStuff
             {
                 if (Encoding.ASCII.GetString(binaryReader.ReadBytes(8)).TrimEnd(new char[1]) != "HL2DEMO")
                     throw new Exception("Not a demo");
-                var demoProtocolVersion = (DemoProtocolVersion) binaryReader.ReadInt32();
-                if ((int) demoProtocolVersion == 2) demoProtocolVersion = DemoProtocolVersion.HL2;
+                var demoProtocolVersion = (DemoProtocolVersion)binaryReader.ReadInt32();
+                if ((int)demoProtocolVersion == 2) demoProtocolVersion = DemoProtocolVersion.HL2;
                 if (!Enum.IsDefined(typeof(DemoProtocolVersion), demoProtocolVersion))
                     throw new Exception(string.Concat("Unknown demo protocol version: 0x",
                         demoProtocolVersion.ToString("x")));

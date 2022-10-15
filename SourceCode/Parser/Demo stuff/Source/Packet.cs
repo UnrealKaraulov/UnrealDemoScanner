@@ -82,7 +82,7 @@ namespace DemoScanner.DemoStuff.Source
 
         private static void net_tick(BitBuffer bb, TreeNode node)
         {
-            node.Nodes.Add("Index: " + (int) bb.ReadBits(32));
+            node.Nodes.Add("Index: " + (int)bb.ReadBits(32));
             node.Nodes.Add("Host frametime: " + bb.ReadBits(16));
             node.Nodes.Add("Host frametime StdDev: " + bb.ReadBits(16));
         }
@@ -101,8 +101,8 @@ namespace DemoScanner.DemoStuff.Source
 
         private static void net_signonstate(BitBuffer bb, TreeNode node)
         {
-            node.Nodes.Add("Signon state: " + (SigOnState) bb.ReadBits(8));
-            node.Nodes.Add("Spawn count: " + (int) bb.ReadBits(32));
+            node.Nodes.Add("Signon state: " + (SigOnState)bb.ReadBits(8));
+            node.Nodes.Add("Spawn count: " + (int)bb.ReadBits(32));
         }
 
         private static void svc_print(BitBuffer bb, TreeNode node)
@@ -112,9 +112,9 @@ namespace DemoScanner.DemoStuff.Source
 
         private static void svc_serverinfo(BitBuffer bb, TreeNode node)
         {
-            var version = (short) bb.ReadBits(16);
+            var version = (short)bb.ReadBits(16);
             node.Nodes.Add("Version: " + version);
-            node.Nodes.Add("Server count: " + (int) bb.ReadBits(32));
+            node.Nodes.Add("Server count: " + (int)bb.ReadBits(32));
             node.Nodes.Add("SourceTV: " + bb.ReadBoolean());
             node.Nodes.Add("Dedicated: " + bb.ReadBoolean());
             node.Nodes.Add("Server client CRC: 0x" + bb.ReadBits(32).ToString("X8"));
@@ -126,7 +126,7 @@ namespace DemoScanner.DemoStuff.Source
             node.Nodes.Add("Current player count: " + bb.ReadBits(8));
             node.Nodes.Add("Max player count: " + bb.ReadBits(8));
             node.Nodes.Add("Interval per tick: " + bb.ReadSingle());
-            node.Nodes.Add("Platform: " + (((char) bb.ReadBits(8)).ToString().ToUpper() == "W" ? "Windows" : "Linux"));
+            node.Nodes.Add("Platform: " + (((char)bb.ReadBits(8)).ToString().ToUpper() == "W" ? "Windows" : "Linux"));
             node.Nodes.Add("Game directory: " + bb.ReadString());
             node.Nodes.Add("Map name: " + bb.ReadString());
             node.Nodes.Add("Skybox name: " + bb.ReadString());
@@ -151,7 +151,7 @@ namespace DemoScanner.DemoStuff.Source
             if (!cc)
                 while (n-- > 0)
                 {
-                    node.Nodes.Add("Class ID: " + bb.ReadBits((int) Math.Log(n, 2) + 1));
+                    node.Nodes.Add("Class ID: " + bb.ReadBits((int)Math.Log(n, 2) + 1));
                     node.Nodes.Add("Class name: " + bb.ReadString());
                     node.Nodes.Add("Datatable name: " + bb.ReadString());
                 }
@@ -167,7 +167,7 @@ namespace DemoScanner.DemoStuff.Source
             node.Nodes.Add("Table name: " + bb.ReadString());
             var m = bb.ReadBits(16);
             node.Nodes.Add("Max entries: " + m);
-            node.Nodes.Add("Number of entries: " + bb.ReadBits((int) Math.Log(m, 2) + 1));
+            node.Nodes.Add("Number of entries: " + bb.ReadBits((int)Math.Log(m, 2) + 1));
             var n = bb.ReadBits(20);
             node.Nodes.Add("Length in bits: " + n);
             var f = bb.ReadBoolean();

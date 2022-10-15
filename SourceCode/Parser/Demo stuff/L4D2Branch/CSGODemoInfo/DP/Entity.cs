@@ -1,10 +1,10 @@
-﻿using System;
+﻿using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
+using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler;
+using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DT;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
-using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler;
-using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DT;
 
 namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP
 {
@@ -61,21 +61,21 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP
             var ret = 0;
             if (bNewWay && reader.ReadBit())
             {
-                ret = (int) reader.ReadInt(3); // read 3 bits
+                ret = (int)reader.ReadInt(3); // read 3 bits
             }
             else
             {
-                ret = (int) reader.ReadInt(7); // read 7 bits
+                ret = (int)reader.ReadInt(7); // read 7 bits
                 switch (ret & (32 | 64))
                 {
                     case 32:
-                        ret = (ret & ~96) | ((int) reader.ReadInt(2) << 5);
+                        ret = (ret & ~96) | ((int)reader.ReadInt(2) << 5);
                         break;
                     case 64:
-                        ret = (ret & ~96) | ((int) reader.ReadInt(4) << 5);
+                        ret = (ret & ~96) | ((int)reader.ReadInt(4) << 5);
                         break;
                     case 96:
-                        ret = (ret & ~96) | ((int) reader.ReadInt(7) << 5);
+                        ret = (ret & ~96) | ((int)reader.ReadInt(7) << 5);
                         break;
                 }
             }
@@ -177,58 +177,58 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP
             switch (Entry.Prop.Type)
             {
                 case SendPropertyType.Int:
-                {
-                    var val = PropDecoder.DecodeInt(Entry.Prop, stream);
-                    if (IntRecived != null) IntRecived(this, new PropertyUpdateEventArgs<int>(val, e, this));
+                    {
+                        var val = PropDecoder.DecodeInt(Entry.Prop, stream);
+                        if (IntRecived != null) IntRecived(this, new PropertyUpdateEventArgs<int>(val, e, this));
 
-                    SaveValue(val);
-                    FireDataReceived_DebugEvent(val, e);
-                }
+                        SaveValue(val);
+                        FireDataReceived_DebugEvent(val, e);
+                    }
                     break;
                 case SendPropertyType.Float:
-                {
-                    var val = PropDecoder.DecodeFloat(Entry.Prop, stream);
-                    if (FloatRecived != null) FloatRecived(this, new PropertyUpdateEventArgs<float>(val, e, this));
+                    {
+                        var val = PropDecoder.DecodeFloat(Entry.Prop, stream);
+                        if (FloatRecived != null) FloatRecived(this, new PropertyUpdateEventArgs<float>(val, e, this));
 
-                    SaveValue(val);
-                    FireDataReceived_DebugEvent(val, e);
-                }
+                        SaveValue(val);
+                        FireDataReceived_DebugEvent(val, e);
+                    }
                     break;
                 case SendPropertyType.Vector:
-                {
-                    var val = PropDecoder.DecodeVector(Entry.Prop, stream);
-                    if (VectorRecived != null) VectorRecived(this, new PropertyUpdateEventArgs<Vector>(val, e, this));
+                    {
+                        var val = PropDecoder.DecodeVector(Entry.Prop, stream);
+                        if (VectorRecived != null) VectorRecived(this, new PropertyUpdateEventArgs<Vector>(val, e, this));
 
-                    SaveValue(val);
-                    FireDataReceived_DebugEvent(val, e);
-                }
+                        SaveValue(val);
+                        FireDataReceived_DebugEvent(val, e);
+                    }
                     break;
                 case SendPropertyType.Array:
-                {
-                    var val = PropDecoder.DecodeArray(Entry, stream);
-                    if (ArrayRecived != null) ArrayRecived(this, new PropertyUpdateEventArgs<object[]>(val, e, this));
+                    {
+                        var val = PropDecoder.DecodeArray(Entry, stream);
+                        if (ArrayRecived != null) ArrayRecived(this, new PropertyUpdateEventArgs<object[]>(val, e, this));
 
-                    SaveValue(val);
-                    FireDataReceived_DebugEvent(val, e);
-                }
+                        SaveValue(val);
+                        FireDataReceived_DebugEvent(val, e);
+                    }
                     break;
                 case SendPropertyType.String:
-                {
-                    var val = PropDecoder.DecodeString(Entry.Prop, stream);
-                    if (StringRecived != null) StringRecived(this, new PropertyUpdateEventArgs<string>(val, e, this));
+                    {
+                        var val = PropDecoder.DecodeString(Entry.Prop, stream);
+                        if (StringRecived != null) StringRecived(this, new PropertyUpdateEventArgs<string>(val, e, this));
 
-                    SaveValue(val);
-                    FireDataReceived_DebugEvent(val, e);
-                }
+                        SaveValue(val);
+                        FireDataReceived_DebugEvent(val, e);
+                    }
                     break;
                 case SendPropertyType.VectorXY:
-                {
-                    var val = PropDecoder.DecodeVectorXY(Entry.Prop, stream);
-                    if (VectorRecived != null) VectorRecived(this, new PropertyUpdateEventArgs<Vector>(val, e, this));
+                    {
+                        var val = PropDecoder.DecodeVectorXY(Entry.Prop, stream);
+                        if (VectorRecived != null) VectorRecived(this, new PropertyUpdateEventArgs<Vector>(val, e, this));
 
-                    SaveValue(val);
-                    FireDataReceived_DebugEvent(val, e);
-                }
+                        SaveValue(val);
+                        FireDataReceived_DebugEvent(val, e);
+                    }
                     break;
                 default:
                     throw new NotImplementedException("Could not read property. Abort! ABORT! (is it a long?)");

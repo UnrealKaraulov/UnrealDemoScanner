@@ -83,7 +83,7 @@ namespace DemoScanner.ExtensionMethods.MoreLinq
                 throw new ArgumentNullException("otherSequences",
                     "One or more sequences passed to Interleave was null.");
 
-            return InterleaveImpl(new[] {sequence}.Concat(otherSequences), imbalanceStrategy);
+            return InterleaveImpl(new[] { sequence }.Concat(otherSequences), imbalanceStrategy);
         }
 
         private static IEnumerable<T> InterleaveImpl<T>(IEnumerable<IEnumerable<T>> sequences,
@@ -145,7 +145,7 @@ namespace DemoScanner.ExtensionMethods.MoreLinq
             finally
             {
                 Debug.Assert(iteratorList != null || iterators != null);
-                foreach (var iter in iteratorList ?? (IList<IEnumerator<T>>) iterators) iter.Dispose();
+                foreach (var iter in iteratorList ?? (IList<IEnumerator<T>>)iterators) iter.Dispose();
             }
         }
 

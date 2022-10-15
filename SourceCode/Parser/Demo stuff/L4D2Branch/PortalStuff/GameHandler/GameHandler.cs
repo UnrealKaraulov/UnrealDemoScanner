@@ -1,8 +1,8 @@
+using DemoScanner.DemoStuff.L4D2Branch.PortalStuff.Result;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using DemoScanner.DemoStuff.L4D2Branch.PortalStuff.Result;
 
 namespace DemoScanner.DemoStuff.L4D2Branch.PortalStuff.GameHandler
 {

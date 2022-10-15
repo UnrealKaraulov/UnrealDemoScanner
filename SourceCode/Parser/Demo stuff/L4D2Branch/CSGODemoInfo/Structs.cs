@@ -1,6 +1,6 @@
-﻿using System;
+﻿using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
+using System;
 using System.IO;
-using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
 
 namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo
 {
@@ -92,12 +92,12 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo
 
         public static Vector operator +(Vector a, Vector b)
         {
-            return new Vector {X = a.X + b.X, Y = a.Y + b.Y, Z = a.Z + b.Z};
+            return new Vector { X = a.X + b.X, Y = a.Y + b.Y, Z = a.Z + b.Z };
         }
 
         public static Vector operator -(Vector a, Vector b)
         {
-            return new Vector {X = a.X - b.X, Y = a.Y - b.Y, Z = a.Z - b.Z};
+            return new Vector { X = a.X - b.X, Y = a.Y - b.Y, Z = a.Z - b.Z };
         }
 
         public override string ToString()
@@ -170,7 +170,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo
         {
             return new CommandInfo
             {
-                u = new Split[2] {Split.Parse(reader), Split.Parse(reader)}
+                u = new Split[2] { Split.Parse(reader), Split.Parse(reader) }
             };
         }
     }

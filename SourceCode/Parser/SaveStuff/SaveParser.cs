@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
-using DemoScanner.ExtensionMethods;
 
 
 /*  NOTES
@@ -415,7 +413,8 @@ namespace DemoScanner.SaveStuff
             /// <summary>
             ///     Ids of the entities
             /// </summary>
-            [Description("These ids get the FENTTABLE_REMOVED flag")] [Category("Details")]
+            [Description("These ids get the FENTTABLE_REMOVED flag")]
+            [Category("Details")]
             public int[] EntityIds;
         }
 

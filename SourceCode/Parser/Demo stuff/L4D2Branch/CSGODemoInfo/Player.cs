@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP;
+﻿using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP;
+using System.Collections.Generic;
 
 namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo
 {

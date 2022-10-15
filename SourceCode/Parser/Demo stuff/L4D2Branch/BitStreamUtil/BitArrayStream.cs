@@ -27,7 +27,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil
 
         public void Initialize(Stream stream)
         {
-            using (var memstream = new MemoryStream(checked((int) stream.Length)))
+            using (var memstream = new MemoryStream(checked((int)stream.Length)))
             {
                 stream.CopyTo(memstream);
                 array = new BitArray(memstream.GetBuffer());
@@ -59,12 +59,12 @@ namespace DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil
 
         public byte ReadByte()
         {
-            return (byte) ReadInt(8);
+            return (byte)ReadInt(8);
         }
 
         public byte ReadByte(int numBits)
         {
-            return (byte) ReadInt(numBits);
+            return (byte)ReadInt(numBits);
         }
 
         public byte[] ReadBytes(int length)
@@ -79,7 +79,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil
         public int ReadSignedInt(int numBits)
         {
             // Read the int normally and then shift it back and forth to extend the sign bit.
-            return ((int) ReadInt(numBits) << (32 - numBits)) >> (32 - numBits);
+            return ((int)ReadInt(numBits) << (32 - numBits)) >> (32 - numBits);
         }
 
         public float ReadFloat()

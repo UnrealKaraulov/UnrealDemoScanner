@@ -354,8 +354,8 @@ namespace DemoScanner.DemoStuff.L4D2Branch
         public bool HasMap(string mapName, bool ignoreCase = false)
         {
             return ignoreCase
-                ? (bool) Maps?.Select(map => map.ToLower()).Contains(mapName.ToLower())
-                : (bool) Maps?.Contains(mapName);
+                ? (bool)Maps?.Select(map => map.ToLower()).Contains(mapName.ToLower())
+                : (bool)Maps?.Contains(mapName);
         }
     }
 }

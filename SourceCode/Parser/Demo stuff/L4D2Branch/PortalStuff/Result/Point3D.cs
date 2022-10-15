@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Linq;
-
-namespace DemoScanner
+﻿namespace DemoScanner
 {
     public struct Point3D
     {

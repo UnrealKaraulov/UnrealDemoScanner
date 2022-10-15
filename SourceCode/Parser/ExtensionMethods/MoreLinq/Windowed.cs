@@ -69,7 +69,7 @@ namespace DemoScanner.ExtensionMethods.MoreLinq
                     // NOTE: If we used a circular queue rather than a list, 
                     //       we could make this quite a bit more efficient.
                     //       Sadly the BCL does not offer such a collection.
-                    window = new List<TSource>(window.Skip(1)) {iter.Current};
+                    window = new List<TSource>(window.Skip(1)) { iter.Current };
                     yield return window;
                 }
             }

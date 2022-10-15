@@ -39,7 +39,7 @@ namespace DemoScanner.ExtensionMethods.MoreLinq
         /// </remarks>
         public static IEnumerable<TSource> Trace<TSource>(this IEnumerable<TSource> source)
         {
-            return Trace(source, (string) null);
+            return Trace(source, (string)null);
         }
 
         /// <summary>
@@ -65,7 +65,7 @@ namespace DemoScanner.ExtensionMethods.MoreLinq
 
             return TraceImpl(source,
                 string.IsNullOrEmpty(format)
-                    ? (Func<TSource, string>) (x => x == null ? string.Empty : x.ToString())
+                    ? (Func<TSource, string>)(x => x == null ? string.Empty : x.ToString())
                     : x => string.Format(format, x));
         }
 

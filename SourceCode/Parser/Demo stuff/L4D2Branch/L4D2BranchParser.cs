@@ -1,9 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
+﻿using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
 using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo;
 using DemoScanner.DemoStuff.L4D2Branch.PortalStuff.Result;
+using System;
+using System.Collections.Generic;
+using System.IO;
 
 namespace DemoScanner.DemoStuff.L4D2Branch
 {
@@ -26,7 +26,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch
         public int SignonLength { get; private set; } // Length of signondata in bytes
 
         public int Tickrate
-            => (int) Math.Round(PlaybackTicks / PlaybackTime);
+            => (int)Math.Round(PlaybackTicks / PlaybackTime);
 
         public float TicksPerSecond
             => PlaybackTime / PlaybackTicks;

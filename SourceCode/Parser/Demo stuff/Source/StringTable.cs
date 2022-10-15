@@ -1,10 +1,6 @@
 ﻿using System;
 using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
-using DemoScanner.DemoStuff.Source;
 
 namespace DemoScanner.DemoStuff.Source
 {
@@ -164,5 +160,5 @@ namespace DemoScanner.DemoStuff.Source
                 }
             }
         }
-        }
     }
+}

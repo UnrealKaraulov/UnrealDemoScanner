@@ -1,10 +1,10 @@
-﻿using System;
+﻿using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP;
+using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DT;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP;
-using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DT;
 
 #if SLOW_PROTOBUF
 using ProtoBuf;
@@ -38,7 +38,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo
 
         public static string ReadCString(this BinaryReader reader, int length, Encoding encoding)
         {
-            return encoding.GetString(reader.ReadBytes(length)).Split(new[] {'\0'}, 2)[0];
+            return encoding.GetString(reader.ReadBytes(length)).Split(new[] { '\0' }, 2)[0];
         }
 
         public static int ReadVarInt32(this BinaryReader reader)

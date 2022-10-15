@@ -1,8 +1,8 @@
-﻿using System;
+﻿using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.FastNetmessages;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.FastNetmessages;
 
 namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
 {
@@ -40,9 +40,9 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
 
                 var rs = new RoundStartedEventArgs
                 {
-                    TimeLimit = (int) data["timelimit"],
-                    FragLimit = (int) data["fraglimit"],
-                    Objective = (string) data["objective"]
+                    TimeLimit = (int)data["timelimit"],
+                    FragLimit = (int)data["fraglimit"],
+                    Objective = (string)data["objective"]
                 };
 
                 parser.RaiseRoundStart(rs);
@@ -60,7 +60,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
 
                 var t = Team.Spectate;
 
-                var winner = (int) data["winner"];
+                var winner = (int)data["winner"];
 
                 if (winner == parser.tID)
                     t = Team.Terrorist;
@@ -68,9 +68,9 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
 
                 var roundEnd = new RoundEndedEventArgs
                 {
-                    Reason = (RoundEndReason) data["reason"],
+                    Reason = (RoundEndReason)data["reason"],
                     Winner = t,
-                    Message = (string) data["message"]
+                    Message = (string)data["message"]
                 };
 
                 parser.RaiseRoundEnd(roundEnd);
@@ -84,10 +84,10 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
 
                 var roundMVPArgs = new RoundMVPEventArgs
                 {
-                    Player = parser.Players.ContainsKey((int) data["userid"])
-                        ? parser.Players[(int) data["userid"]]
+                    Player = parser.Players.ContainsKey((int)data["userid"])
+                        ? parser.Players[(int)data["userid"]]
                         : null,
-                    Reason = (RoundMVPReason) data["reason"]
+                    Reason = (RoundMVPReason)data["reason"]
                 };
 
                 parser.RaiseRoundMVP(roundMVPArgs);
@@ -99,8 +99,8 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
 
                 var botTakeOverArgs = new BotTakeOverEventArgs
                 {
-                    Taker = parser.Players.ContainsKey((int) data["userid"])
-                        ? parser.Players[(int) data["userid"]]
+                    Taker = parser.Players.ContainsKey((int)data["userid"])
+                        ? parser.Players[(int)data["userid"]]
                         : null
                 };
 
@@ -123,10 +123,10 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
 
                     var fire = new WeaponFiredEventArgs
                     {
-                        Shooter = parser.Players.ContainsKey((int) data["userid"])
-                            ? parser.Players[(int) data["userid"]]
+                        Shooter = parser.Players.ContainsKey((int)data["userid"])
+                            ? parser.Players[(int)data["userid"]]
                             : null,
-                        Weapon = new Equipment((string) data["weapon"])
+                        Weapon = new Equipment((string)data["weapon"])
                     };
 
                     if (fire.Shooter != null && fire.Weapon.Class != EquipmentClass.Grenade)
@@ -139,17 +139,17 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
 
                     var kill = new PlayerKilledEventArgs
                     {
-                        Victim = parser.Players.ContainsKey((int) data["userid"])
-                            ? parser.Players[(int) data["userid"]]
+                        Victim = parser.Players.ContainsKey((int)data["userid"])
+                            ? parser.Players[(int)data["userid"]]
                             : null,
-                        Killer = parser.Players.ContainsKey((int) data["attacker"])
-                            ? parser.Players[(int) data["attacker"]]
+                        Killer = parser.Players.ContainsKey((int)data["attacker"])
+                            ? parser.Players[(int)data["attacker"]]
                             : null,
-                        Assister = parser.Players.ContainsKey((int) data["assister"])
-                            ? parser.Players[(int) data["assister"]]
+                        Assister = parser.Players.ContainsKey((int)data["assister"])
+                            ? parser.Players[(int)data["assister"]]
                             : null,
-                        Headshot = (bool) data["headshot"],
-                        Weapon = new Equipment((string) data["weapon"], (string) data["weapon_itemid"])
+                        Headshot = (bool)data["headshot"],
+                        Weapon = new Equipment((string)data["weapon"], (string)data["weapon_itemid"])
                     };
 
                     if (kill.Killer != null && kill.Weapon.Class != EquipmentClass.Grenade && kill.Killer.Weapons.Any())
@@ -162,7 +162,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
                     }
 
 
-                    kill.PenetratedObjects = (int) data["penetrated"];
+                    kill.PenetratedObjects = (int)data["penetrated"];
 
                     parser.RaisePlayerKilled(kill);
                     break;
@@ -171,19 +171,19 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
 
                     var hurt = new PlayerHurtEventArgs
                     {
-                        Player = parser.Players.ContainsKey((int) data["userid"])
-                            ? parser.Players[(int) data["userid"]]
+                        Player = parser.Players.ContainsKey((int)data["userid"])
+                            ? parser.Players[(int)data["userid"]]
                             : null,
-                        Attacker = parser.Players.ContainsKey((int) data["attacker"])
-                            ? parser.Players[(int) data["attacker"]]
+                        Attacker = parser.Players.ContainsKey((int)data["attacker"])
+                            ? parser.Players[(int)data["attacker"]]
                             : null,
-                        Health = (int) data["health"],
-                        Armor = (int) data["armor"],
-                        HealthDamage = (int) data["dmg_health"],
-                        ArmorDamage = (int) data["dmg_armor"],
-                        Hitgroup = (Hitgroup) (int) data["hitgroup"],
+                        Health = (int)data["health"],
+                        Armor = (int)data["armor"],
+                        HealthDamage = (int)data["dmg_health"],
+                        ArmorDamage = (int)data["dmg_armor"],
+                        Hitgroup = (Hitgroup)(int)data["hitgroup"],
 
-                        Weapon = new Equipment((string) data["weapon"], "")
+                        Weapon = new Equipment((string)data["weapon"], "")
                     };
 
                     if (hurt.Attacker != null && hurt.Weapon.Class != EquipmentClass.Grenade &&
@@ -197,8 +197,8 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
 
                 case "player_blind":
                     data = MapData(eventDescriptor, rawEvent);
-                    if (parser.Players.ContainsKey((int) data["userid"]))
-                        blindPlayers.Add(parser.Players[(int) data["userid"]]);
+                    if (parser.Players.ContainsKey((int)data["userid"]))
+                        blindPlayers.Add(parser.Players[(int)data["userid"]]);
 
                     break;
                 case "flashbang_detonate":
@@ -237,16 +237,16 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
 
                     var player = new PlayerInfo
                     {
-                        UserID = (int) data["userid"],
-                        Name = (string) data["name"],
-                        GUID = (string) data["networkid"]
+                        UserID = (int)data["userid"],
+                        Name = (string)data["name"],
+                        GUID = (string)data["networkid"]
                     };
                     player.XUID = player.GUID == "BOT" ? 0 : GetCommunityID(player.GUID);
 
 
                     //player.IsFakePlayer = (bool)data["bot"];
 
-                    var index = (int) data["index"];
+                    var index = (int)data["index"];
 
                     parser.RawPlayers[index] = player;
 
@@ -257,13 +257,13 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
 
                     var disconnect = new PlayerDisconnectEventArgs
                     {
-                        Player = parser.Players.ContainsKey((int) data["userid"])
-                            ? parser.Players[(int) data["userid"]]
+                        Player = parser.Players.ContainsKey((int)data["userid"])
+                            ? parser.Players[(int)data["userid"]]
                             : null
                     };
                     parser.RaisePlayerDisconnect(disconnect);
 
-                    var toDelete = (int) data["userid"];
+                    var toDelete = (int)data["userid"];
                     for (var i = 0; i < parser.RawPlayers.Length; i++)
                         if (parser.RawPlayers[i] != null && parser.RawPlayers[i].UserID == toDelete)
                         {
@@ -281,7 +281,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
 
                     var t = Team.Spectate;
 
-                    var team = (int) data["team"];
+                    var team = (int)data["team"];
 
                     if (team == parser.tID)
                         t = Team.Terrorist;
@@ -290,18 +290,18 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
                     playerTeamEvent.NewTeam = t;
 
                     t = Team.Spectate;
-                    team = (int) data["oldteam"];
+                    team = (int)data["oldteam"];
                     if (team == parser.tID)
                         t = Team.Terrorist;
                     else if (team == parser.ctID) t = Team.CounterTerrorist;
 
                     playerTeamEvent.OldTeam = t;
 
-                    playerTeamEvent.Swapped = parser.Players.ContainsKey((int) data["userid"])
-                        ? parser.Players[(int) data["userid"]]
+                    playerTeamEvent.Swapped = parser.Players.ContainsKey((int)data["userid"])
+                        ? parser.Players[(int)data["userid"]]
                         : null;
-                    playerTeamEvent.IsBot = (bool) data["isbot"];
-                    playerTeamEvent.Silent = (bool) data["silent"];
+                    playerTeamEvent.IsBot = (bool)data["isbot"];
+                    playerTeamEvent.Silent = (bool)data["silent"];
 
                     parser.RaisePlayerTeam(playerTeamEvent);
                     break;
@@ -314,12 +314,12 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
 
                     var bombEventArgs = new BombEventArgs
                     {
-                        Player = parser.Players.ContainsKey((int) data["userid"])
-                            ? parser.Players[(int) data["userid"]]
+                        Player = parser.Players.ContainsKey((int)data["userid"])
+                            ? parser.Players[(int)data["userid"]]
                             : null
                     };
 
-                    var site = (int) data["site"];
+                    var site = (int)data["site"];
 
                     if (site == parser.bombsiteAIndex)
                     {
@@ -376,10 +376,10 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
                     data = MapData(eventDescriptor, rawEvent);
                     var e = new BombDefuseEventArgs
                     {
-                        Player = parser.Players.ContainsKey((int) data["userid"])
-                            ? parser.Players[(int) data["userid"]]
+                        Player = parser.Players.ContainsKey((int)data["userid"])
+                            ? parser.Players[(int)data["userid"]]
                             : null,
-                        HasKit = (bool) data["haskit"]
+                        HasKit = (bool)data["haskit"]
                     };
                     parser.RaiseBombBeginDefuse(e);
                     break;
@@ -387,8 +387,8 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
                     data = MapData(eventDescriptor, rawEvent);
                     var e2 = new BombDefuseEventArgs
                     {
-                        Player = parser.Players.ContainsKey((int) data["userid"])
-                            ? parser.Players[(int) data["userid"]]
+                        Player = parser.Players.ContainsKey((int)data["userid"])
+                            ? parser.Players[(int)data["userid"]]
                             : null
                     };
                     e2.HasKit = e2.Player.HasDefuseKit;
@@ -402,14 +402,14 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.Handler
         {
             var nade = new T();
 
-            if (data.ContainsKey("userid") && parser.Players.ContainsKey((int) data["userid"]))
-                nade.ThrownBy = parser.Players[(int) data["userid"]];
+            if (data.ContainsKey("userid") && parser.Players.ContainsKey((int)data["userid"]))
+                nade.ThrownBy = parser.Players[(int)data["userid"]];
 
             var vec = new Vector
             {
-                X = (float) data["x"],
-                Y = (float) data["y"],
-                Z = (float) data["z"]
+                X = (float)data["x"],
+                Y = (float)data["y"],
+                Z = (float)data["z"]
             };
             nade.Position = vec;
 

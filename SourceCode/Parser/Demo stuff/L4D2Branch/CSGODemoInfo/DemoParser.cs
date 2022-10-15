@@ -1,12 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
+﻿using DemoScanner.DemoStuff.L4D2Branch.BitStreamUtil;
 using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP;
 using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DP.FastNetmessages;
 using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.DT;
 using DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo.ST;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 
 namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo
 {
@@ -408,7 +408,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo
         ///     Gets the parsing progess. 0 = beginning, ~1 = finished (it can actually be > 1, so be careful!)
         /// </summary>
         /// <value>The parsing progess.</value>
-        public float ParsingProgess => CurrentTick / (float) Header.PlaybackFrames;
+        public float ParsingProgess => CurrentTick / (float)Header.PlaybackFrames;
 
         /// <summary>
         ///     The current tick the parser has seen. So if it's a 16-tick demo,
@@ -540,9 +540,9 @@ namespace DemoScanner.DemoStuff.L4D2Branch.CSGODemoInfo
         /// <returns><c>true</c>, if tick was parsed, <c>false</c> otherwise.</returns>
         private bool ParseTick()
         {
-            var command = (DemoCommand) BitStream.ReadByte();
+            var command = (DemoCommand)BitStream.ReadByte();
 
-            IngameTick = (int) BitStream.ReadInt(32); // tick number
+            IngameTick = (int)BitStream.ReadInt(32); // tick number
             BitStream.ReadByte(); // player slot
 
             CurrentTick++; // = TickNum;

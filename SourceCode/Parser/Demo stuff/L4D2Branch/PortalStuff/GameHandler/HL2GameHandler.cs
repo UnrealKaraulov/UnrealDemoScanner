@@ -1,7 +1,7 @@
+using DemoScanner.DemoStuff.L4D2Branch.PortalStuff.Result;
 using System;
 using System.IO;
 using System.Text;
-using DemoScanner.DemoStuff.L4D2Branch.PortalStuff.Result;
 
 namespace DemoScanner.DemoStuff.L4D2Branch.PortalStuff.GameHandler
 {
@@ -40,7 +40,7 @@ namespace DemoScanner.DemoStuff.L4D2Branch.PortalStuff.GameHandler
                 CurrentTick = tick;
             }
 
-            Enum.IsDefined(typeof(HL2DemoCommands), (HL2DemoCommands) command);
+            Enum.IsDefined(typeof(HL2DemoCommands), (HL2DemoCommands)command);
             if (command == 1) return ProcessSignOn(br);
             if (command == 2) return ProcessPacket(br).Read;
             if (command == 3) return 0;

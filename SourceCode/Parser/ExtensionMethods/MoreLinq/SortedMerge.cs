@@ -80,11 +80,11 @@ namespace DemoScanner.ExtensionMethods.MoreLinq
             // this is a function that will return True if (b) should precede (a)
             var precedenceFunc =
                 direction == OrderByDirection.Ascending
-                    ? (Func<TSource, TSource, bool>) ((a, b) => comparer.Compare(b, a) < 0)
+                    ? (Func<TSource, TSource, bool>)((a, b) => comparer.Compare(b, a) < 0)
                     : (a, b) => comparer.Compare(b, a) > 0;
 
             // return the sorted merge result
-            return SortedMergeImpl(precedenceFunc, new[] {source}.Concat(otherSequences));
+            return SortedMergeImpl(precedenceFunc, new[] { source }.Concat(otherSequences));
         }
 
         /// <summary>
