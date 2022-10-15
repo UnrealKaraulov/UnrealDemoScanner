@@ -2984,7 +2984,7 @@ namespace DemoScanner.DG
                                                 MaxBytesPerSecond = CurrentMsgBytes;
                                             }
 
-                                            if (CurrentMsgBytes > 12500)
+                                            if (CurrentMsgBytes * 8 > 100000)
                                             {
                                                 MsgOverflowSecondsCount++;
                                             }
@@ -7794,7 +7794,9 @@ namespace DemoScanner.DG
                         }
                     }
 
-                    Console.WriteLine("Max input bytes per second : " + MaxBytesPerSecond + ". Count:" + MsgOverflowSecondsCount);
+                    Console.WriteLine("Max input bytes per second : " + MaxBytesPerSecond);
+
+                    Console.WriteLine("Max channel overflows ( > 100000bits rate) : " + MsgOverflowSecondsCount);
 
                     Console.WriteLine("Max HUD messages per seconds : " + MaxHudMsgPerSecond);
                     Console.WriteLine("Max PRINT messages per seconds : " + MaxPrintCmdMsgPerSecond);
