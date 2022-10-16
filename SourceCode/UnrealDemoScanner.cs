@@ -3021,7 +3021,7 @@ namespace DemoScanner.DG
                                 }
 
 
-                                AngleDirection tmpAngleDirY = GetAngleDirection(PREV_CDFRAME_ViewAngles.Y, CDFRAME_ViewAngles.Y);
+                                AngleDirection tmpAngleDirY = GetAngleDirection(fullnormalizeangle(PREV_CDFRAME_ViewAngles.Y), fullnormalizeangle(CDFRAME_ViewAngles.Y));
 
 
                                 if (tmpAngleDirY == AngleDirection.AngleDirectionLeft)
@@ -8018,6 +8018,12 @@ namespace DemoScanner.DG
             return MyFmod(angle, 360.0);
         }
 
+        private static float fullnormalizeangle(float angle)
+        {
+            float retval = Convert.ToSingle(MyFmod(angle, 360.0));
+            return Math.Sign(retval) < 0 ? retval + 360.0f : retval;
+        }
+
         public static float AngleBetween(double angle1, double angle2)
         {
             if (Math.Abs(angle1 - angle2) <= EPSILON)
@@ -8032,6 +8038,25 @@ namespace DemoScanner.DG
                 anglediff = 360.0 - anglediff;
             }
             float retval = abs(Convert.ToSingle(anglediff));
+            if (retval <= EPSILON)
+                return 0.0f;
+            return retval;
+        }
+
+        public static float AngleBetweenSigned(double angle1, double angle2)
+        {
+            if (Math.Abs(angle1 - angle2) <= EPSILON)
+                return 0.0f;
+
+            double newangle1 = normalizeangle(angle1);
+            double newangle2 = normalizeangle(angle2);
+
+            double anglediff = normalizeangle(newangle1 - newangle2);
+            if (360.0 - anglediff < anglediff)
+            {
+                anglediff = 360.0 - anglediff;
+            }
+            float retval = Convert.ToSingle(anglediff);
             if (retval <= EPSILON)
                 return 0.0f;
             return retval;
@@ -8420,8 +8445,20 @@ namespace DemoScanner.DG
                 abs(CurrentTime - LastLookDisabled) < 0.4f);
         }
 
-
         public static AngleDirection GetAngleDirection(float val1, float val2)
+        {
+            AngleDirection retval = AngleDirection.AngleDirectionNO;
+            
+            
+            if (abs(val1 - val2) > EPSILON)
+            {
+                retval = AngleBetweenSigned(val1, val2) > AngleBetweenSigned(val2, val1) ? AngleDirection.AngleDirectionLeft : AngleDirection.AngleDirectionRight;
+            }
+
+            return retval;
+        }
+
+        public static AngleDirection GetAngleDirectionOLDHARDCODE(float val1, float val2)
         {
             uint uval1 = (uint)(val1 / 60);
             uint uval2 = (uint)(val2 / 60);
