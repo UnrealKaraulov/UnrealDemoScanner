@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.67.4_ALPHA";
+        public const string PROGRAMVERSION = "1.67.5_ALPHA";
 
         public enum AngleDirection
         {
@@ -641,10 +641,6 @@ namespace DemoScanner.DG
         public static float[] TimeShift4Times = new float[3] { 0.0f, 0.0f, 0.0f };
         public static int LastFrameDiff;
         public static bool AimType6FalseDetect;
-        public static int CurJmpWarns;
-        public static int CurJumpCount;
-        public static int JmpWarn;
-        public static int RealJumpEmulatorHackWarns;
         public static float MaxSpeed = 0.0f;
         public static float StartLengthSearchTime = 0.0f;
         public static float SecondFrameTime;
@@ -653,8 +649,6 @@ namespace DemoScanner.DG
         public static float NewAttackTime;
         public static float NewAttackTimeAim9;
         public static float LastGameMaximizeTime;
-        public static List<int> JumpHistory = new List<int>();
-        public static int JumpEmulatorWarnPart1;
         public static int WeaponAnimWarn;
         public static WeaponIdType LastWeaponAnim = WeaponIdType.WEAPON_NONE;
         public static float ReloadTime;
@@ -1824,15 +1818,6 @@ namespace DemoScanner.DG
 
                 if (IsUserAlive())
                 {
-                    if (CurrentFrameId - LastCmdFrameId == 2)
-                    {
-                        JmpWarn++;
-                    }
-                    else
-                    {
-                        JmpWarn--;
-                    }
-
                     JumpCount++;
 
                     if (abs(LastJumpTime - CurrentTime) < EPSILON && abs(LastJumpTime) > EPSILON)
@@ -1848,7 +1833,6 @@ namespace DemoScanner.DG
 
                 LastJumpTime = CurrentTime;
 
-                JumpHistory.Add(CurrentFrameId - LastJumpFrame);
                 LastJumpFrame = CurrentFrameId;
 
                 JumpHackCount2 = -1;
@@ -4849,11 +4833,6 @@ namespace DemoScanner.DG
                                     SearchFakeJump = false;
                                 }
 
-                                if (!RealAlive)
-                                {
-                                    JumpEmulatorWarnPart1 = 0;
-                                }
-
                                 if (!PreviousFrameOnGround && CurrentFrameOnGround)
                                 {
                                     if (NeedDetectBHOPHack && RealAlive)
@@ -4884,96 +4863,10 @@ namespace DemoScanner.DG
 
                                         LastJumpNoGroundTime = CurrentTime;
                                     }
+
                                     if (DEBUG_ENABLED)
                                     {
                                         CheckConsoleCommand("over ground", true);
-                                    }
-
-                                    if (CurrentFrameId - LastJumpFrame <= 3)
-                                    {
-                                        if (abs(CurrentTime - LastRealJumpTime) > 2.25f)
-                                        {
-                                            if (JumpEmulatorWarnPart1 > 0)
-                                            {
-                                                JumpEmulatorWarnPart1--;
-                                            }
-
-                                            if (JumpEmulatorWarnPart1 > 0)
-                                            {
-                                                JumpEmulatorWarnPart1--;
-                                            }
-                                        }
-                                        //Console.WriteLine("Jump uuump : " + (CurrentFrameId - LastJumpFrame) + ". Time between: " + (CurrentTime - LastRealJumpTime));
-                                        if (JumpHistory.Count > 0)
-                                        {
-                                            JumpHistory.Reverse();
-                                            //Console.Write("Jump history : ");
-                                            //foreach (var jmpframeid in JumpHistory)
-                                            //{
-                                            //    Console.Write(" " + jmpframeid);
-                                            //}
-                                            //Console.WriteLine();
-                                            bool needaddjumpemulatorwarn = true;
-                                            foreach (int jmpframeid in JumpHistory)
-                                            {
-                                                if (jmpframeid < 8 || jmpframeid > 100)
-                                                {
-                                                    if (JumpEmulatorWarnPart1 > 0)
-                                                    {
-                                                        JumpEmulatorWarnPart1--;
-                                                    }
-
-                                                    if (JumpEmulatorWarnPart1 > 0)
-                                                    {
-                                                        JumpEmulatorWarnPart1--;
-                                                    }
-
-                                                    needaddjumpemulatorwarn = false;
-                                                    break;
-                                                }
-                                            }
-
-                                            if (JumpHistory.Count == 1)
-                                            {
-                                                BHOPJumpHistoryCount1Warn++;
-                                                if (BHOPJumpHistoryCount1Warn > 3)
-                                                {
-                                                    needaddjumpemulatorwarn = false;
-                                                }
-                                            }
-                                            else
-                                            {
-                                                BHOPJumpHistoryCount1Warn = 0;
-                                            }
-
-                                            if (needaddjumpemulatorwarn)
-                                            {
-                                                JumpEmulatorWarnPart1++;
-                                                if (JumpEmulatorWarnPart1 > 8)
-                                                {
-                                                    DemoScanner_AddWarn("[HPP BHOP] at (" + CurrentTime + ") : " + CurrentTimeString, false);
-                                                    JumpEmulatorWarnPart1 = 0;
-                                                }
-                                                //Console.WriteLine("ADD WARN #2");
-                                                //Console.WriteLine("Waarn: " + DemoScanner.JumpEmulatorWarnPart1);
-                                            }
-
-                                        }
-                                        else
-                                        {
-                                            JumpEmulatorWarnPart1++;
-                                            if (JumpEmulatorWarnPart1 > 8)
-                                            {
-                                                DemoScanner_AddWarn("[HPP BHOP] at (" + CurrentTime + ") : " + CurrentTimeString, false);
-                                                JumpEmulatorWarnPart1 = 0;
-                                            }
-                                            //Console.WriteLine("ADD WARN #1");
-                                            //Console.WriteLine("Waarn: " + DemoScanner.JumpEmulatorWarnPart1);
-                                        }
-                                    }
-                                    else
-                                    {
-                                        JumpEmulatorWarnPart1 = 0;
                                     }
 
                                     if (NeedDetectBHOPHack && RealAlive)
@@ -4987,40 +4880,6 @@ namespace DemoScanner.DG
                                     }
 
                                     LastRealJumpTime = CurrentTime;
-
-                                    JumpHistory.Clear();
-                                }
-
-                                if (PreviousFrameOnGround && !CurrentFrameOnGround && (IsJump || abs(CurrentTime - LastJumpTime) < 0.2f))
-                                {
-                                    if (JmpWarn - CurJmpWarns >= 1 && CurJmpWarns > 0)
-                                    {
-                                        RealJumpEmulatorHackWarns++;
-                                    }
-                                    else
-                                    {
-                                        RealJumpEmulatorHackWarns--;
-                                    }
-
-                                    if (JumpCount - CurJumpCount < 5)
-                                    {
-                                        RealJumpEmulatorHackWarns--;
-                                    }
-
-                                    if (RealJumpEmulatorHackWarns >= 3)
-                                    {
-                                        RealJumpEmulatorHackWarns = 0;
-                                        DemoScanner_AddWarn("[OLD HPP JUMP EMULATOR] at (" + CurrentTime + ") : " + CurrentTimeString, false);
-                                    }
-                                    else if (RealJumpEmulatorHackWarns < 0)
-                                    {
-                                        RealJumpEmulatorHackWarns = 0;
-                                    }
-
-
-                                    CurJmpWarns = JmpWarn;
-                                    //Console.WriteLine("REAL UNJUMP ( " + (JumpCount - DemoScanner.CurJumpCount) + " ) at (" + CurrentTime + ") : " + CurrentTimeString);
-                                    CurJumpCount = JumpCount;
                                 }
 
                                 //if (NeedDetectBHOPHack)
