@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.67.3_ALPHA";
+        public const string PROGRAMVERSION = "1.67.4_ALPHA";
 
         public enum AngleDirection
         {
@@ -100,8 +100,8 @@ namespace DemoScanner.DG
         public static bool DUMP_ALL_FRAMES;
         public static bool PREVIEW_FRAMES;
 
-        public const float MIN_SENS_WARN_DETECTED = 0.0004f; //SENS < 0.02 (0.018)
-        public const float MIN_SENS_WARN_WARNING = 0.004f; //SENS < 0.2 (0.18)
+        public const float MIN_SENS_DETECTED = 0.0004f; //SENS < 0.02 (0.018)
+        public const float MIN_SENS_WARNING = 0.004f; //SENS < 0.2 (0.18)
         public const float MIN_PLAYABLE_SENS = 0.004f;
 
 
@@ -3096,8 +3096,8 @@ namespace DemoScanner.DG
                                     AngleLength += tmpXangle;
                                     AngleLength += tmpYangle;
 
-                                    float flAngleRealDetect = MIN_SENS_WARN_DETECTED;
-                                    float flAngleWarnDetect = MIN_SENS_WARN_WARNING;
+                                    float flAngleRealDetect = MIN_SENS_DETECTED;
+                                    float flAngleWarnDetect = MIN_SENS_WARNING;
 
 
                                     if (PlayerSensitivityHistory.Count > SENS_COUNT_FOR_AIM)
@@ -3122,7 +3122,7 @@ namespace DemoScanner.DG
 
                                         CheckedSensCount++;
 
-                                        if (CheckedSensCount == SENS_COUNT_FOR_AIM)
+                                        if (CheckedSensCount >= SENS_COUNT_FOR_AIM)
                                         {
                                             CheckedSensCount = 0;
                                             bool foundUsageSens = false;
@@ -7003,15 +7003,31 @@ namespace DemoScanner.DG
 
             if (UnknownMessages > 0)
             {
-                TextComments.WriteLine("Warning. Unknown messages detected. Detect count:" + UnknownMessages);
-                Console.WriteLine("Warning. Unknown messages detected. Detect count:" + UnknownMessages);
+                if (IsRussia)
+                {
+                    TextComments.WriteLine("Внимание. Обнаружено несколько неопознанных пакетов данных:" + UnknownMessages);
+                    Console.WriteLine("Внимание. Обнаружено несколько неопознанных пакетов данных:" + UnknownMessages);
+                }
+                else
+                {
+                    TextComments.WriteLine("Warning. Unknown messages detected. Detect count:" + UnknownMessages);
+                    Console.WriteLine("Warning. Unknown messages detected. Detect count:" + UnknownMessages);
+                }
             }
 
 
             if (unknownCMDLIST.Count > 0)
             {
-                Console.WriteLine("Bind/alias from blacklist detected:");
-                TextComments.WriteLine("Bind/alias from blacklist detected:");
+                if (IsRussia)
+                {
+                    Console.WriteLine("Обнаружены неопознанные чат команды:");
+                    TextComments.WriteLine("Обнаружены неопознанные чат команды:");
+                }
+                else
+                {
+                    Console.WriteLine("Bind/alias from blacklist detected:");
+                    TextComments.WriteLine("Bind/alias from blacklist detected:");
+                }
                 foreach (string chet in unknownCMDLIST)
                 {
                     TextComments.WriteLine(chet);
@@ -7072,6 +7088,11 @@ namespace DemoScanner.DG
                 Console.WriteLine("Demo playing time: " + time1.ToString("T") + " ~ " + time2.ToString("T") + " seconds.");
             }
 
+            if (PlayerSensUsageList.Count > 1)
+            {
+                PlayerSensUsageList.OrderBy(x => x.usagecount);
+
+            }
             /*if (ENABLE_LEARN_CLEAN_DEMO)
                 if (BHOPcount < 4 && BadAttackCount < 4 && TotalAimBotDetected < 4 && FakeLagAim < 4 && KreedzHacksCount < 4) MachineLearnAnglesCLEAN.WriteAnglesDB();
 
@@ -7310,9 +7331,9 @@ namespace DemoScanner.DG
                         " * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ");
                     Console.WriteLine(
                         " * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ");
-                    Console.WriteLine(" * DETECTED - требуется всего несколько за демо что бы с точностью сказать");
-                    Console.WriteLine(" *            что игрок пользовался запрещенными программами.  ");
-                    Console.WriteLine(" * WARN - несколько срабатвыаний за демо не говорит об наличии читов");
+                    Console.WriteLine(" * [ОБНАРУЖЕНО] - требуется всего несколько за демо что бы с точностью сказать");
+                    Console.WriteLine(" *               что игрок пользовался запрещенными программами.  ");
+                    Console.WriteLine(" * [ПРЕДУПРЕЖДЕНИЕ] - даже несколько срабатвыаний за демо не говорит об наличии читов");
                     Console.WriteLine(" *        но указывает на необходимость проверить игрока вручную.");
                     Console.WriteLine(" * ");
                     Console.WriteLine(" *                НО ВНИМАНИЕ!");
@@ -7637,16 +7658,26 @@ namespace DemoScanner.DG
                         .AddRow(6, JumpCount6, "SKIP");
 
                     table.Write(Format.Alternative);
-
-                    Console.WriteLine("Reload type 1:" + Reloads);
-                    Console.WriteLine("Reload type 2:" + Reloads2);
-                    Console.WriteLine("Shots fired:" + attackscounter4);
-                    Console.WriteLine("Bad Shots fired:" + attackscounter5);
-                    Console.WriteLine("Attack in air:" + AirShots);
-                    Console.WriteLine("Teleport count:" + PlayerTeleportus);
-                    Console.WriteLine("Fly time: " + Convert.ToInt32(100.0 / (TotalFramesOnFly + TotalFramesOnGround) * TotalFramesOnFly) + "%");
-                    Console.WriteLine("Attack in fly: " + Convert.ToInt32(100.0 / (TotalFramesOnFly + TotalFramesOnGround) * TotalAttackFramesOnFly) + "%");
-
+                    if (IsRussia)
+                    {
+                        Console.WriteLine("Reload type 1:" + Reloads);
+                        Console.WriteLine("Reload type 2:" + Reloads2);
+                        Console.WriteLine("Shots fired:" + attackscounter4);
+                        Console.WriteLine("Bad Shots fired:" + attackscounter5);
+                        Console.WriteLine("Attack in air:" + AirShots);
+                        Console.WriteLine("Teleport count:" + PlayerTeleportus);
+                        Console.WriteLine("Fly time: " + Convert.ToInt32(100.0 / (TotalFramesOnFly + TotalFramesOnGround) * TotalFramesOnFly) + "%");
+                        Console.WriteLine("Attack in fly: " + Convert.ToInt32(100.0 / (TotalFramesOnFly + TotalFramesOnGround) * TotalAttackFramesOnFly) + "%");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Перезарядка (тип 1 / тип 2):" + Reloads + "/" + Reloads2);
+                        Console.WriteLine("Выстрелов (количество/не обработанных):" + attackscounter4 + "/" + attackscounter5);
+                        Console.WriteLine("Выстрелов в воздухе:" + AirShots);
+                        Console.WriteLine("Количество респавнов(или телепортов):" + PlayerTeleportus);
+                        Console.WriteLine("Время в полете: " + Convert.ToInt32(100.0 / (TotalFramesOnFly + TotalFramesOnGround) * TotalFramesOnFly) + "%");
+                        Console.WriteLine("Процент атаки в полете: " + Convert.ToInt32(100.0 / (TotalFramesOnFly + TotalFramesOnGround) * TotalAttackFramesOnFly) + "%");
+                    }
                     table = new ConsoleTable(
                         "УБИЙСТВ /KILLS", "СМЕРТЕЙ/DEATHS");
 
@@ -7709,7 +7740,7 @@ namespace DemoScanner.DG
 
                     if (playerresolution.Count > 0)
                     {
-                        table = new ConsoleTable("Screen resolution");
+                        table = new ConsoleTable("Display (Разрешение экрана)");
                         foreach (WindowResolution s in playerresolution)
                         {
                             table.AddRow(s.x + "x" + s.y);
@@ -7720,17 +7751,17 @@ namespace DemoScanner.DG
 
                     if (CurrentFrameIdAll > 0)
                     {
-                        Console.WriteLine("Frames: " + CurrentFrameIdAll);
+                        Console.WriteLine("Frames(всего кадров): " + CurrentFrameIdAll);
                     }
 
-                    if (LostStopAttackButton > 2)
+                    if (LostStopAttackButton > 5)
                     {
                         DemoScanner_AddInfo("Lost -attack commands: " + LostStopAttackButton + ".");
                     }
 
                     if (NeedIgnoreAttackFlagCount > 0)
                     {
-                        DemoScanner_AddInfo("Lost attack flag: " + NeedIgnoreAttackFlagCount + ".");
+                        DemoScanner_AddInfo("Lost +attack commands: " + NeedIgnoreAttackFlagCount + ".");
                     }
 
                     if (ModifiedDemoFrames > 0)
@@ -7807,6 +7838,12 @@ namespace DemoScanner.DG
                     Console.WriteLine("Frameskip count:" + LossPackets2);
 
                     Console.WriteLine("Choke count : " + ChokePackets);
+
+                    if (PlayerSensUsageList.Count > 1)
+                        Console.WriteLine("Player 'sensitivity' cvar: " + (PlayerSensUsageList[0].sens / 0.022).ToString("F2") 
+                            + "(or " + (PlayerSensUsageList[1].sens / 0.022).ToString("F2") + ")");
+                    else if (PlayerSensUsageList.Count == 1)
+                        Console.WriteLine("Player 'sensitivity' cvar: " + (PlayerSensUsageList[0].sens / 0.022).ToString("F2"));
 
                     ForceFlushScanResults();
                 }
