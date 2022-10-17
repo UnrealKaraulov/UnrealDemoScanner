@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.67.5_ALPHA";
+        public const string PROGRAMVERSION = "1.67.6_ALPHA";
 
         public enum AngleDirection
         {
@@ -3771,7 +3771,8 @@ namespace DemoScanner.DG
                                     subnode.Text += "}\n";
                                 }
 
-                                //FlyDirection = 0;
+                                if (sframe.Sample.ToLower().IndexOf("ladder") > -1)
+                                    FlyDirection = 0;
                                 //Console.WriteLine("FlyDirection 0:" + FlyDirection);
                                 //Console.WriteLine("Sound:" + CurrentTimeString);
                                 break;
@@ -3844,10 +3845,10 @@ namespace DemoScanner.DG
                                     }
                                 }
 
-                                if (PREVIEW_FRAMES)
+                                if (PREVIEW_FRAMES && IsUserAlive())
                                 {
                                     PreviewFramesWriter.Write(CurrentTime);
-                                    PreviewFramesWriter.Write(IsUserAlive());
+                                    PreviewFramesWriter.Write(CDFRAME_ViewAngles.Y);
                                 }
 
 
@@ -4960,6 +4961,22 @@ namespace DemoScanner.DG
                                 AddLerpAndMs(nf.UCmd.LerpMsec, nf.UCmd.Msec);
 
                                 CurrentFrameLerp = nf.UCmd.LerpMsec;
+
+                                if (IsUserAlive() && abs(CurrentTime) > EPSILON)
+                                {
+                                    if (CurrentFrameLerp < 8)
+                                    {
+                                        if (abs(CurrentTime - LastCmdHack) > 5.0)
+                                        {
+                                            DemoScanner_AddWarn(
+                                                "[CMD HACK TYPE 6] at (" +
+                                                CurrentTime + ") " + CurrentTimeString, !IsAngleEditByEngine());
+                                        }
+                                        //Console.WriteLine("BAD BAD " + nf.UCmd.Msec + " / " + nf.RParms.Frametime + " = " + ((float)nf.UCmd.Msec / nf.RParms.Frametime).ToString());
+                                        LastCmdHack = CurrentTime;
+                                    }
+                                }
+
 
                                 if (!FakeLagsValus.Contains(CurrentFrameLerp))
                                 {
