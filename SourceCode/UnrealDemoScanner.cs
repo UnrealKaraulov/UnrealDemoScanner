@@ -753,7 +753,7 @@ namespace DemoScanner.DG
 
         public static int PluginEvents = -1;
         public static int BadEvents;
-        public static int CurrentEvents;
+        public static uint CurrentEvents;
         public static bool IsRussia;
         public static bool FirstMap = true;
         public static float LastAttackPressed;
@@ -1318,6 +1318,7 @@ namespace DemoScanner.DG
             }
             else if (sLower.IndexOf("-attack2") > -1)
             {
+                InitAimMissingSearch = -1;
                 LastAttackCmdTime = CurrentTime;
                 IsAttack2 = false;
             }
@@ -1503,6 +1504,7 @@ namespace DemoScanner.DG
                 }
                 else if (sLower.IndexOf("-attack") > -1)
                 {
+                    InitAimMissingSearch = -1;
                     if (IsUserAlive())
                     {
                         LerpBeforeStopAttack = CurrentFrameLerp;
@@ -3630,8 +3632,9 @@ namespace DemoScanner.DG
                                 {
                                     subnode.Text += "{\n";
                                 }
-
+                                
                                 GoldSource.EventFrame eframe = (GoldSource.EventFrame)frame.Value;
+
                                 if (DUMP_ALL_FRAMES)
                                 {
                                     subnode.Text += @"Flags = " + eframe.Flags + "\n";
@@ -5102,14 +5105,13 @@ namespace DemoScanner.DG
                                     ThirdPersonHackDetectionTimeout = -1;
                                 }
 
-
                                 if (abs(CurrentTime2) > EPSILON)
                                 {
                                     if (Math.Sign(LastFpsCheckTime2) < 0)
                                     {
                                         LastFpsCheckTime2 = CurrentTime2;
                                     }
-                                    if (CurrentTime2 - LastFpsCheckTime2 >=
+                                    if (abs(CurrentTime2 - LastFpsCheckTime2) >=
                                         1.0f)
                                     {
                                         LastFpsCheckTime2 = CurrentTime2;
@@ -8516,8 +8518,9 @@ namespace DemoScanner.DG
                                 FakeLagAim++;
                             }
                         }
-                        else if (cmdList[1] == "EVENT" && !DisableJump5AndAim16)
+                        else if (cmdList[1] == "EVENTS" && !DisableJump5AndAim16)
                         {
+                            int events = int.Parse(cmdList[2]);
                             if (DUMP_ALL_FRAMES)
                             {
                                 OutDumpString += "\n{ EVENT PLUGIN }\n";
@@ -8528,14 +8531,15 @@ namespace DemoScanner.DG
                                 CurrentEvents = 0;
                                 PluginEvents = 0;
                             }
-                            else
+                            else if (CurrentEvents > 0 )
                             {
-                                if (abs(PluginEvents - CurrentEvents) > 3)
+                                if (abs(PluginEvents - CurrentEvents) > 4
+                                    && abs(PluginEvents - CurrentEvents) + events > 4)
                                 {
                                     if (CurrentEvents != 0)
                                     {
-                                        DemoScanner_AddWarn("[EXPERIMENTAL][UNKNOWN HACK<" + CurrentEvents + "><" + PluginEvents + ">] at (" + CurrentTime +
-                                                            "):" + CurrentTimeString, !NotFirstEventShift, true, false, true);
+                                        DemoScanner_AddWarn("[EXPERIMENTAL][CMD HACK TYPE 7] at (" + CurrentTime +
+                                                            "):" + CurrentTimeString, false, true, false, true);
                                     }
                                     else
                                     {
@@ -8546,9 +8550,43 @@ namespace DemoScanner.DG
                                     PluginEvents = 0;
                                     NotFirstEventShift = false;
                                 }
-                                PluginEvents++;
+                                PluginEvents += events;
+                            }
+                        }
+                        else if (cmdList[1] == "EVENT" && !DisableJump5AndAim16)
+                        {
+                            int events = 1;
+                            if (DUMP_ALL_FRAMES)
+                            {
+                                OutDumpString += "\n{ EVENT PLUGIN }\n";
                             }
 
+                            if (PluginEvents == -1)
+                            {
+                                CurrentEvents = 0;
+                                PluginEvents = 0;
+                            }
+                            else if (CurrentEvents > 0)
+                            {
+                                if (abs(PluginEvents - CurrentEvents) > 4
+                                    && abs(PluginEvents - CurrentEvents) + events > 4)
+                                {
+                                    if (CurrentEvents != 0)
+                                    {
+                                        DemoScanner_AddWarn("[EXPERIMENTAL][CMD HACK TYPE 8] at (" + CurrentTime +
+                                                            "):" + CurrentTimeString, false, true, false, true);
+                                    }
+                                    else
+                                    {
+                                        BadEvents += 8;
+                                    }
+
+                                    CurrentEvents = 0;
+                                    PluginEvents = 0;
+                                    NotFirstEventShift = false;
+                                }
+                                PluginEvents += events;
+                            }
                         }
                         else if (cmdList[1] == "BAD")
                         {
@@ -9563,25 +9601,23 @@ namespace DemoScanner.DG
             {
                 BitBuffer.Endian = BitBuffer.EndianType.Big;
             }
-
             uint nEvents = BitBuffer.ReadUnsignedBits(5);
             if (DemoScanner.DUMP_ALL_FRAMES)
             {
                 DemoScanner.OutDumpString += "MessageEvents:(" + nEvents + "){\n";
             }
-
             for (int i = 0; i < nEvents; i++)
             {
+                uint nIndex = BitBuffer.ReadUnsignedBits(10);
+
                 if (DemoScanner.DUMP_ALL_FRAMES)
                 {
                     DemoScanner.OutDumpString +=
-                        "index:" + BitBuffer.ReadUnsignedBits(10); // event index
+                        "index:" + nIndex; // event index
                     DemoScanner.OutDumpString += "{\n";
                 }
-                else
-                {
-                    BitBuffer.ReadUnsignedBits(10);
-                }
+
+                //Console.WriteLine("EVENT 2:" + nIndex);
 
                 bool packetIndexBit = BitBuffer.ReadBoolean();
 
