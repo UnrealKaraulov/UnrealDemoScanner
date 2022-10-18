@@ -1,3 +1,6 @@
+// ATTENTION! 
+// NEED INSTALL THIS PLUGIN AT START OF PLUGINS.INI FILE!!! 
+
 #include <amxmodx>
 #include <fakemeta>
 #include <engine>
