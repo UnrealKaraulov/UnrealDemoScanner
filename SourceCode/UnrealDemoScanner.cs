@@ -175,6 +175,8 @@ namespace DemoScanner.DG
         public static float Aim8CurrentFrameViewanglesX;
         public static float Aim8CurrentFrameViewanglesY;
 
+        public static int AutoPistolStrikes;
+
         public static int AutoAttackStrikes;
         public static int AutoAttackStrikesID;
         public static int AutoAttackStrikesLastID;
@@ -363,6 +365,7 @@ namespace DemoScanner.DG
         public static bool CurrentMovementTop = false;
         public static int TopBottomMovements = 0;
 
+        public static int SkipAimType22 = 2;
 
         private static CrossParseResult CurrentDemoFile;
         private static HalfLifeDemoParser halfLifeDemoParser;
@@ -381,6 +384,9 @@ namespace DemoScanner.DG
         public static bool NeedWriteAim;
 
         public static object sync = new object();
+
+        public static bool SearchAutoReload = false;
+        public static int AutoReloadStrikes = 0;
 
         public static bool NewAttack;
         public static bool NewAttack2;
@@ -443,6 +449,12 @@ namespace DemoScanner.DG
         public static int ShotFound = -1;
         public static int AttackFloodTimes = 0;
         public static float ChangeWeaponTime;
+
+        public static float ReloadKeyPressTime;
+        public static float ReloadKeyUnPressTime;
+        public static float ReloadHackTime;
+
+
         public static WeaponIdType LastWatchWeapon = WeaponIdType.WEAPON_NONE;
         public static int ReallyAim2;
         public static float LastKreedzHackTime;
@@ -458,9 +470,13 @@ namespace DemoScanner.DG
         public static int CheatKey;
         public static int Reloads;
         public static int Reloads2;
+        public static int Reloads3;
         public static bool WeaponAvaiabled;
         public static int WeaponAvaiabledFrameId;
         public static float WeaponAvaiabledFrameTime;
+        public static float LastPrimaryAttackTime = 0.0f;
+        public static float LastPrevPrimaryAttackTime = 0.0f;
+        public static List<float> PrimaryAttackHistory = new List<float>();
         public static bool UsingAnotherMethodWeaponDetection = false;
 
         public static float LastCmdHack;
@@ -586,6 +602,7 @@ namespace DemoScanner.DG
         public static int ViewEntity = -1;
         public static int ViewModel = -1;
         public static uint LastPlayerEntity;
+        public static uint LastEntity;
         public static int PlayerTeleportus;
         public static bool NeedRescanDemoForce;
         public static bool FirstBypassKill = true;
@@ -626,6 +643,8 @@ namespace DemoScanner.DG
         public static float LastStrafeOptimizerWarnTime;
         public static bool CurrentFrameForward;
         public static bool PreviousFrameForward;
+        public static GoldSource.UCMD_BUTTONS CurrentFrameButtons;
+        public static GoldSource.UCMD_BUTTONS PreviousFrameButtons;
         public static bool SearchOneFrameDuck;
         public static float NeedSearchUserAliveTime;
         public static float LastJumpHackFalseDetectionTime;
@@ -1159,6 +1178,11 @@ namespace DemoScanner.DG
                 CheckConsoleCheat(s);
             }
 
+            if (DUMP_ALL_FRAMES && isstuff)
+            {
+                DemoScanner.OutDumpString += "{CMD:\"" + s2 + " " + (isstuff ? "STUFFCMD\"" : "\"") + "}\n";
+            }
+
             if (FrameCrash > 4)
             {
                 FirstDuck = false;
@@ -1256,9 +1280,19 @@ namespace DemoScanner.DG
             if (sLower.IndexOf("+reload") > -1)
             {
                 FrameCrash = 0;
+                ReloadKeyPressTime = CurrentTime;
+                ReloadHackTime = 0.0f; 
+                DemoScanner.AutoPistolStrikes = 0;
+                DemoScanner.LastPrimaryAttackTime = 0.0f;
+                DemoScanner.LastPrevPrimaryAttackTime = 0.0f;
             }
             else if (sLower.IndexOf("-reload") > -1)
             {
+                ReloadKeyUnPressTime = CurrentTime;
+                ReloadHackTime = 0.0f; 
+                DemoScanner.AutoPistolStrikes = 0;
+                DemoScanner.LastPrimaryAttackTime = 0.0f;
+                DemoScanner.LastPrevPrimaryAttackTime = 0.0f;
             }
 
             if (sLower.IndexOf("+klook") > -1)
@@ -1306,11 +1340,17 @@ namespace DemoScanner.DG
                 NeedSearchAim2 = false;
                 Aim2AttackDetected = false;
                 ShotFound = -1;
-                ChangeWeaponTime = CurrentTime;
+                ChangeWeaponTime = CurrentTime; 
+                DemoScanner.AutoPistolStrikes = 0;
+                DemoScanner.LastPrimaryAttackTime = 0.0f;
+                DemoScanner.LastPrevPrimaryAttackTime = 0.0f;
             }
 
             if (sLower.IndexOf("+attack2") > -1)
             {
+                DemoScanner.AutoPistolStrikes = 0; 
+                DemoScanner.LastPrimaryAttackTime = 0.0f;
+                DemoScanner.LastPrevPrimaryAttackTime = 0.0f;
                 LastAttackCmdTime = CurrentTime;
                 IsAttack2 = true;
                 if (!IsUserAlive())
@@ -1318,6 +1358,9 @@ namespace DemoScanner.DG
             }
             else if (sLower.IndexOf("-attack2") > -1)
             {
+                DemoScanner.AutoPistolStrikes = 0;
+                DemoScanner.LastPrimaryAttackTime = 0.0f;
+                DemoScanner.LastPrevPrimaryAttackTime = 0.0f;
                 InitAimMissingSearch = -1;
                 LastAttackCmdTime = CurrentTime;
                 IsAttack2 = false;
@@ -1327,6 +1370,7 @@ namespace DemoScanner.DG
             {
                 if (sLower.IndexOf("+attack") > -1)
                 {
+                    SearchAutoReload = false;
                     AttackFloodTimes++;
 
                     if (AttackFloodTimes > 4)
@@ -1504,6 +1548,9 @@ namespace DemoScanner.DG
                 }
                 else if (sLower.IndexOf("-attack") > -1)
                 {
+                    LastPrimaryAttackTime = 0.0f;
+                    LastPrevPrimaryAttackTime = 0.0f;
+                    SearchAutoReload = true;
                     InitAimMissingSearch = -1;
                     if (IsUserAlive())
                     {
@@ -2245,7 +2292,6 @@ namespace DemoScanner.DG
                 IsRussia = !File.Exists(CurrentDir + @"\lang.en");
             }
 
-
             try
             {
                 outFrames = new List<string>();
@@ -2277,6 +2323,11 @@ namespace DemoScanner.DG
                 Console.WriteLine("Error fatal");
                 return;
             }
+
+            DemoScanner.PrimaryAttackHistory.Add(0.0f);
+            DemoScanner.PrimaryAttackHistory.Add(0.0f);
+            DemoScanner.PrimaryAttackHistory.Add(0.0f);
+            DemoScanner.PrimaryAttackHistory.Add(0.0f);
 
             Console.WriteLine("[TRIGGER BOT]");
             Console.WriteLine("[AIM]");
@@ -3632,7 +3683,7 @@ namespace DemoScanner.DG
                                 {
                                     subnode.Text += "{\n";
                                 }
-                                
+
                                 GoldSource.EventFrame eframe = (GoldSource.EventFrame)frame.Value;
 
                                 if (DUMP_ALL_FRAMES)
@@ -3960,6 +4011,9 @@ namespace DemoScanner.DG
                                 PreviousFrameTime = CurrentFrameTime;
                                 CurrentFrameTime = nf.RParms.Frametime;
 
+                                CurrentFrameLerp = nf.UCmd.LerpMsec;
+                                CurrentFramePunchangleZ = nf.RParms.Punchangle.Z;
+
                                 if (abs(CurrentTime) > EPSILON)
                                 {
                                     if (FrametimeMin > CurrentFrameTime && CurrentFrameTime > 0.0f)
@@ -4013,7 +4067,9 @@ namespace DemoScanner.DG
                                     SkipNextAttack = 1;
                                 }
 
-                                if ((nf.UCmd.Buttons & GoldSource.UCMD_BUTTONS.IN_ATTACK2) > 0)
+                                CurrentFrameButtons = nf.UCmd.Buttons;
+
+                                if (CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_ATTACK2))
                                 {
                                     CurrentFrameAttacked2 = true;
                                     LastAttackPressed = CurrentTime;
@@ -4023,7 +4079,7 @@ namespace DemoScanner.DG
                                     CurrentFrameAttacked2 = false;
                                 }
 
-                                if ((nf.UCmd.Buttons & GoldSource.UCMD_BUTTONS.IN_ATTACK) > 0)
+                                if (CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_ATTACK))
                                 {
                                     NewAttackForTrigger += 1;
                                     FrameAttackStrike++;
@@ -4071,7 +4127,7 @@ namespace DemoScanner.DG
                                     NeedIgnoreAttackFlagCount++;
                                 }
 
-                                CurrentFrameForward = (nf.UCmd.Buttons & GoldSource.UCMD_BUTTONS.IN_FORWARD) > 0;
+                                CurrentFrameForward = CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_FORWARD);
 
                                 if (RealAlive && !InForward && !InBack && !PreviousFrameForward &&
                                     CurrentFrameForward && abs(CurrentTime - LastMoveForward) > 1.0f && abs(CurrentTime - LastMoveBack) > 1.0f
@@ -4088,6 +4144,78 @@ namespace DemoScanner.DG
 
                                 NewAttack = false;
                                 NewAttack2 = false;
+
+                                if (CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_RELOAD) &&
+                                    !PreviousFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_RELOAD))
+                                {
+                                    Reloads3++;
+                                    CheckConsoleCommand("Reload key set", true);
+                                    if (IsUserAlive())
+                                    {
+                                        if (abs(CurrentTime - ReloadKeyPressTime) > 0.5)
+                                        {
+                                            ReloadHackTime = CurrentTime;
+                                        }
+                                        else if (PreviousFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_ATTACK) &&
+                                    !CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_ATTACK))
+                                        {
+                                            // SILENT AUTORELOAD FOR NEXT UPDATES
+                                        }
+                                    }
+                                }
+                                if (CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_ATTACK) &&
+                                    !PreviousFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_ATTACK))
+                                {
+                                    if (IsUserAlive() && !IsChangeWeapon() && abs(LastPrimaryAttackTime) > EPSILON && abs(LastPrevPrimaryAttackTime) > EPSILON 
+                                        && abs(CurrentTime - LastPrevPrimaryAttackTime) <= abs(PrimaryAttackHistory[3]))
+                                    {
+                                        if (abs(IsAttackLastTime - LastAttackCmdTime) < EPSILON &&
+                                            abs(IsAttackLastTime - IsNoAttackLastTime) > EPSILON &&
+                                            PrimaryAttackHistory[3] > PrimaryAttackHistory[2] && PrimaryAttackHistory[1] > PrimaryAttackHistory[2] &&
+                                            (abs(abs(CurrentTime - LastPrevPrimaryAttackTime) - abs(PrimaryAttackHistory[2]))) < 0.06f)
+                                        {
+                                            //Console.WriteLine(CurrentTime + "/" + LastPrevPrimaryAttackTime + "/" + LastAttackCmdTime
+                                            //    + "/" + IsAttackLastTime + "/" + IsNoAttackLastTime + "/" + (PrimaryAttackHistory[3] > PrimaryAttackHistory[2] && PrimaryAttackHistory[1] > PrimaryAttackHistory[2]).ToString()
+                                            //    + "/" + ((abs(abs(CurrentTime - LastPrevPrimaryAttackTime) - abs(PrimaryAttackHistory[2]))) < 0.06f).ToString());
+
+                                            if ( abs(IsAttackLastTime - LastPrevPrimaryAttackTime) < EPSILON)
+                                            AutoPistolStrikes++;
+                                            if (AutoPistolStrikes == 3)
+                                            {
+                                                DemoScanner_AddWarn(
+                                                             "[AIM TYPE 2.2 " + CurrentWeapon + "] at (" + CurrentTime +
+                                                             ") " + CurrentTimeString, SkipAimType22-- <= 0 && !IsPlayerLossConnection() && !IsChangeWeapon() && !IsAngleEditByEngine());
+                                                AutoPistolStrikes = 0;
+                                            }
+                                        }
+                                        else 
+                                        {
+                                            AutoPistolStrikes = 0;
+                                        }
+                                        LastPrimaryAttackTime = 0.0f;
+                                        LastPrevPrimaryAttackTime = 0.0f;
+                                    }
+                                    else
+                                    {
+                                        AutoPistolStrikes = 0;
+                                    }
+                                }
+
+                                if (!IsUserAlive())
+                                {
+                                    ReloadHackTime = 0.0f;
+                                    AutoPistolStrikes = 0;
+                                    LastPrimaryAttackTime = 0.0f;
+                                    LastPrevPrimaryAttackTime = 0.0f;
+                                }
+
+                                if (abs(ReloadHackTime) > EPSILON && abs(CurrentTime - ReloadHackTime) > 1.0)
+                                {
+                                    DemoScanner_AddWarn(
+                                          "[AUTORELOAD TYPE 1 " + CurrentWeapon + "] at (" + ReloadHackTime +
+                                          ") " + CurrentTimeString, !IsChangeWeapon() && !IsAngleEditByEngine());
+                                    ReloadHackTime = 0.0f;
+                                }
 
                                 if (IsUserAlive())
                                 {
@@ -4414,8 +4542,8 @@ namespace DemoScanner.DG
 
                                 if (SearchMoveHack1)
                                 {
-                                    if ((nf.UCmd.Buttons & GoldSource.UCMD_BUTTONS.IN_MOVELEFT) > 0
-                                           || (nf.UCmd.Buttons & GoldSource.UCMD_BUTTONS.IN_MOVERIGHT) > 0)
+                                    if (CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_MOVELEFT)
+                                           || CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_MOVERIGHT))
                                     {
                                         //Console.WriteLine("MovementPressed " +
                                         //    (DemoScanner.MoveLeft ? "MOVELEFT PRESSED |" : "NO MOVELEFT |") + " " +
@@ -4447,8 +4575,8 @@ namespace DemoScanner.DG
 
                                 if (RealAlive)
                                 {
-                                    if ((nf.UCmd.Buttons & GoldSource.UCMD_BUTTONS.IN_MOVELEFT) > 0
-                                        || (nf.UCmd.Buttons & GoldSource.UCMD_BUTTONS.IN_MOVERIGHT) > 0)
+                                    if (CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_MOVELEFT)
+                                        || CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_MOVERIGHT))
                                     {
                                         //Console.WriteLine("MovementPressed " +
                                         //    (DemoScanner.MoveLeft ? "MOVELEFT PRESSED |" : "NO MOVELEFT |") + " " +
@@ -4512,7 +4640,7 @@ namespace DemoScanner.DG
                                                     GoldSource.NetMsgFrame tmpnetmsgframe1 = (GoldSource.NetMsgFrame)tmpframe.Value;
                                                     if (tmpnetmsgframe1 != nf)
                                                     {
-                                                        if ((tmpnetmsgframe1.UCmd.Buttons & GoldSource.UCMD_BUTTONS.IN_ATTACK) > 0)
+                                                        if (tmpnetmsgframe1.UCmd.Buttons.HasFlag(GoldSource.UCMD_BUTTONS.IN_ATTACK))
                                                         {
                                                             tmpframeattacked = -1;
                                                             break;
@@ -4551,7 +4679,7 @@ namespace DemoScanner.DG
                                     }
                                 }
 
-                                CurrentFrameJumped = (nf.UCmd.Buttons & GoldSource.UCMD_BUTTONS.IN_JUMP) > 0;
+                                CurrentFrameJumped = CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_JUMP);
 
                                 if (CurrentFrameJumped)
                                 {
@@ -4626,7 +4754,7 @@ namespace DemoScanner.DG
                                 //    DemoScanner.SearchAim6 = false;
                                 //}
 
-                                CurrentFrameDuck = (nf.UCmd.Buttons & GoldSource.UCMD_BUTTONS.IN_DUCK) > 0;
+                                CurrentFrameDuck = CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_DUCK);
 
                                 if (!FirstDuck && CurrentFrameDuck && PreviousFrameDuck)
                                 {
@@ -4901,7 +5029,9 @@ namespace DemoScanner.DG
                                 //    CurrentFramePunchangleZ > 2.0f)
                                 //    NeedDetectBHOPHack = true;
 
-                                BadPunchAngle = abs(nf.RParms.Punchangle.Z) > EPSILON/* ||
+                                AddLerpAndMs(nf.UCmd.LerpMsec, nf.UCmd.Msec);
+
+                                BadPunchAngle = abs(CurrentFramePunchangleZ) > EPSILON/* ||
                                      abs(nf.RParms.Punchangle.Y) > EPSILON ||
                                      abs(nf.RParms.Punchangle.X) > EPSILON*/;
 
@@ -4961,10 +5091,6 @@ namespace DemoScanner.DG
                                     Aim7PunchangleY = 0.0f;
                                 }
 
-                                AddLerpAndMs(nf.UCmd.LerpMsec, nf.UCmd.Msec);
-
-                                CurrentFrameLerp = nf.UCmd.LerpMsec;
-
                                 if (IsUserAlive() && abs(CurrentTime) > EPSILON)
                                 {
                                     if (CurrentFrameLerp < 8)
@@ -4986,15 +5112,7 @@ namespace DemoScanner.DG
                                     FakeLagsValus.Add(CurrentFrameLerp);
                                 }
 
-                                CurrentFramePunchangleZ = nf.RParms.Punchangle.Z;
 
-
-
-                                /*
-                                 * 1. Игрок не на земле
-                                 * 2. Игрок на земле 1 кадр
-                                 * 3. Игрок не на земле
-                                // * */
 
 
 
@@ -5272,7 +5390,7 @@ namespace DemoScanner.DG
                                         //    ;// Console.WriteLine("LASTATTACK");
                                         //else
                                         //{
-                                        //    Console.WriteLine("NONE(" + nf.UCmd.Buttons + ")");
+                                        //    Console.WriteLine("NONE(" + CurrentFrameButtons + ")");
                                         //}
                                         if (AngleBetween(CDFRAME_ViewAngles.Y, nf.RParms.Viewangles.Y) > EPSILON
                                             && AngleBetween(PREV_CDFRAME_ViewAngles.Y, nf.RParms.Viewangles.Y) > EPSILON)
@@ -5314,7 +5432,7 @@ namespace DemoScanner.DG
                                     //    //    ;// Console.WriteLine("LASTATTACK");
                                     //    //else
                                     //    //{
-                                    //    //    Console.WriteLine("NONE(" + nf.UCmd.Buttons + ")");
+                                    //    //    Console.WriteLine("NONE(" + CurrentFrameButtons + ")");
                                     //    //}
                                     //}
                                     if (nf.RParms.ClViewangles.Y != PREV_CDFRAME_ViewAngles.Y
@@ -6068,18 +6186,6 @@ namespace DemoScanner.DG
                                     }
                                 }
 
-                                /*
-                                 * 1. Игрок жмет +attack
-                                 * 2. Если во втором кадре нет IN_ATTACK значит аим
-                                 * 3. Но если IN_ATTACK нет вообще, до -attack, значит выбор слота
-                                 */
-
-
-                                /*
-                                 * 1. Игрок жмет +attack
-                                 * 2. Поиск IN_ATTACK
-                                 * 3. ЕСЛИ IN_ATTACK пропала до -attack аим2
-                                 */
                                 if (ShotFound > 0 && !IsReload && IsAttack &&
                                     RealAlive && SelectSlot <= 0)
                                 {
@@ -6111,7 +6217,7 @@ namespace DemoScanner.DG
                                                       ENABLE_LEARN_HACK_DEMO_FORCE_SAVE = true;
                                                   }*/
                                                 DemoScanner_AddWarn(
-                                                    "[AIM TYPE 2 " + CurrentWeapon + "] at (" + CurrentTime +
+                                                    "[AIM TYPE 2.1 " + CurrentWeapon + "] at (" + CurrentTime +
                                                     "):" + CurrentTimeString, false);
                                             }
                                             else
@@ -6122,8 +6228,8 @@ namespace DemoScanner.DG
                                                      ENABLE_LEARN_HACK_DEMO_FORCE_SAVE = true;
                                                  }*/
                                                 DemoScanner_AddWarn(
-                                                    "[AIM TYPE 2 " + CurrentWeapon + "] at (" + CurrentTime +
-                                                    "):" + CurrentTimeString, !IsPlayerLossConnection() && !IsChangeWeapon() && !IsForceCenterView() && !IsAngleEditByEngine());
+                                                    "[AIM TYPE 2.1 " + CurrentWeapon + "] at (" + CurrentTime +
+                                                    "):" + CurrentTimeString, !IsPlayerLossConnection() && !IsChangeWeapon()/* && !IsForceCenterView() */&& !IsAngleEditByEngine());
                                                 if (!IsPlayerLossConnection() && !IsChangeWeapon() && !IsAngleEditByEngine())
                                                 {
                                                     TotalAimBotDetected++;
@@ -6342,7 +6448,7 @@ namespace DemoScanner.DG
 
                                         if (DEBUG_ENABLED)
                                         {
-                                            Console.WriteLine("Check attack:" + AttackCheck + " " + SkipNextAttack + " " + nf.UCmd.Buttons + " " + CurrentTime);
+                                            Console.WriteLine("Check attack:" + AttackCheck + " " + SkipNextAttack + " " + CurrentFrameButtons + " " + CurrentTime);
                                         }
 
                                         if (AttackCheck > 0)
@@ -6390,7 +6496,7 @@ namespace DemoScanner.DG
                                         //    //    Console.WriteLine("user invalid blya...");
                                         //    //if (IsReload)
                                         //    //    Console.WriteLine("in reload...");
-                                        //    //if ((nf.UCmd.Buttons & 1) > 0)
+                                        //    //if ((CurrentFrameButtons & 1) > 0)
                                         //    //    Console.WriteLine("not attack...");
                                         //    //Console.WriteLine("Weapon:" + CurrentWeapon.ToString());
                                         //    //Console.WriteLine("Don't check attack!");
@@ -6501,8 +6607,8 @@ namespace DemoScanner.DG
 
                                 if (NeedSearchCMDHACK4 && abs(CurrentTime) > 0 && (FirstAttack || FirstJump) && !NewDirectory)
                                 {
-                                    if (LastIncomingSequence > 0 && nf.IncomingSequence - LastIncomingSequence > LastLossPacketCount + 1
-                                        && nf.IncomingSequence - LastIncomingSequence > 5 && nf.OutgoingSequence - LastOutgoingSequence > 4 && CurrentFrameDuplicated == 0)
+                                    if (LastIncomingSequence > 0 && Math.Abs(nf.IncomingSequence - LastIncomingSequence) > LastLossPacketCount + 1
+                                        && Math.Abs(nf.IncomingSequence - LastIncomingSequence) > 5 && Math.Abs(nf.OutgoingSequence - LastOutgoingSequence) > 4 && CurrentFrameDuplicated == 0)
                                     {
                                         if (FrameErrors > 0 && IsUserAlive())
                                         {
@@ -6519,33 +6625,45 @@ namespace DemoScanner.DG
                                         FrameErrors++;
                                     }
 
-                                    if (LastIncomingSequence > 0 && Math.Abs(nf.IncomingSequence - LastIncomingSequence) > maxLastIncomingSequence)
-                                    {
-                                        maxLastIncomingSequence = Math.Abs(nf.IncomingSequence - LastIncomingSequence);
-                                    }
-                                    // Console.WriteLine(nf.IncomingSequence + " / " + DemoScanner.LastIncomingSequence + " = " + DemoScanner.maxLastIncomingSequence + " - > " + CurrentTime);
-                                    LastIncomingSequence = nf.IncomingSequence;
-
-
-                                    if (LastIncomingAcknowledged > 0 && Math.Abs(nf.IncomingAcknowledged - LastIncomingAcknowledged) > LastIncomingAcknowledged)
-                                    {
-                                        maxLastIncomingAcknowledged = Math.Abs(nf.IncomingAcknowledged - LastIncomingAcknowledged);
-                                    }
-
-                                    LastIncomingAcknowledged = nf.IncomingAcknowledged;
-
-
-                                    if (LastOutgoingSequence > 0 && Math.Abs(nf.OutgoingSequence - LastOutgoingSequence) > maxLastOutgoingSequence)
-                                    {
-                                        maxLastOutgoingSequence = Math.Abs(nf.OutgoingSequence - LastOutgoingSequence);
-                                    }
-
-                                    LastOutgoingSequence = nf.OutgoingSequence;
                                 }
-                                else
+                                if (IsUserAlive())
                                 {
-                                    FrameErrors = LastOutgoingSequence = LastIncomingAcknowledged = LastIncomingSequence = 0;
+                                    if (LastIncomingSequence > 0 && nf.IncomingSequence < LastIncomingSequence)
+                                    {
+                                        if (abs(CurrentTime - LastCmdHack) > 3.0)
+                                        {
+                                            DemoScanner_AddWarn(
+                                                "[CMD HACK TYPE 9] at (" +
+                                                CurrentTime + ") " + CurrentTimeString, false);
+                                        }
+                                        // Console.WriteLine("BAD BAD " + nf.UCmd.Msec + " / " + nf.RParms.Frametime + " = " + ((float)nf.UCmd.Msec / nf.RParms.Frametime).ToString() + " / " + (nf.IncomingSequence - LastIncomingSequence) + " / " + (nf.OutgoingSequence - LastOutgoingSequence));
+                                        LastCmdHack = CurrentTime;
+                                    }
                                 }
+
+                                if (LastIncomingSequence > 0 && Math.Abs(nf.IncomingSequence - LastIncomingSequence) > maxLastIncomingSequence)
+                                {
+                                    maxLastIncomingSequence = Math.Abs(nf.IncomingSequence - LastIncomingSequence);
+                                }
+
+                                LastIncomingSequence = nf.IncomingSequence;
+
+
+                                if (LastIncomingAcknowledged > 0 && Math.Abs(nf.IncomingAcknowledged - LastIncomingAcknowledged) > LastIncomingAcknowledged)
+                                {
+                                    maxLastIncomingAcknowledged = Math.Abs(nf.IncomingAcknowledged - LastIncomingAcknowledged);
+                                }
+
+                                LastIncomingAcknowledged = nf.IncomingAcknowledged;
+
+
+                                if (LastOutgoingSequence > 0 && Math.Abs(nf.OutgoingSequence - LastOutgoingSequence) > maxLastOutgoingSequence)
+                                {
+                                    maxLastOutgoingSequence = Math.Abs(nf.OutgoingSequence - LastOutgoingSequence);
+                                }
+
+                                LastOutgoingSequence = nf.OutgoingSequence;
+
 
                                 DuckHack3Search--;
                                 if (DUMP_ALL_FRAMES)
@@ -6557,6 +6675,8 @@ namespace DemoScanner.DG
 
                                     subnode.Text += "}\n";
                                 }
+
+                                PreviousFrameButtons = CurrentFrameButtons;
                                 PreviousFrameAlive = CurrentFrameAlive;
                                 PreviousFrameAttacked = CurrentFrameAttacked;
                                 PreviousFrameAttacked2 = CurrentFrameAttacked2;
@@ -7718,7 +7838,7 @@ namespace DemoScanner.DG
                     Console.WriteLine("Choke count : " + ChokePackets);
 
                     if (PlayerSensUsageList.Count > 1)
-                        Console.WriteLine("Player 'sensitivity' cvar: " + (PlayerSensUsageList[0].sens / 0.022).ToString("F2") 
+                        Console.WriteLine("Player 'sensitivity' cvar: " + (PlayerSensUsageList[0].sens / 0.022).ToString("F2")
                             + "(or " + (PlayerSensUsageList[1].sens / 0.022).ToString("F2") + ")");
                     else if (PlayerSensUsageList.Count == 1)
                         Console.WriteLine("Player 'sensitivity' cvar: " + (PlayerSensUsageList[0].sens / 0.022).ToString("F2"));
@@ -8326,8 +8446,8 @@ namespace DemoScanner.DG
         public static AngleDirection GetAngleDirection(float val1, float val2)
         {
             AngleDirection retval = AngleDirection.AngleDirectionNO;
-            
-            
+
+
             if (abs(val1 - val2) > EPSILON)
             {
                 retval = AngleBetweenSigned(val1, val2) > AngleBetweenSigned(val2, val1) ? AngleDirection.AngleDirectionLeft : AngleDirection.AngleDirectionRight;
@@ -8531,7 +8651,7 @@ namespace DemoScanner.DG
                                 CurrentEvents = 0;
                                 PluginEvents = 0;
                             }
-                            else if (CurrentEvents > 0 )
+                            else if (CurrentEvents > 0)
                             {
                                 if (abs(PluginEvents - CurrentEvents) > 4
                                     && abs(PluginEvents - CurrentEvents) + events > 4)
@@ -9111,6 +9231,7 @@ namespace DemoScanner.DG
             AddUserMessageHandler("HideWeapon", HideWeapon);
             AddUserMessageHandler("WeapPickup", WeapPickup);
             AddUserMessageHandler("WeaponList", WeaponList);
+            AddUserMessageHandler("HLTV", HLTVMSG);
 
         }
 
@@ -9340,8 +9461,12 @@ namespace DemoScanner.DG
                 ErrorCount++;
                 ConsoleColor tmpcolor = Console.ForegroundColor;
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.Write("(E=" + ex.Message + ")");
+                Console.WriteLine("(E=" + ex.Message + ") at " + DemoScanner.CurrentTime);
                 Console.ForegroundColor = tmpcolor;
+                if (DemoScanner.DUMP_ALL_FRAMES)
+                {
+                    DemoScanner.OutDumpString += "(E=\" + ex.Message + \")\"";
+                }
                 if (ErrorCount > 5)
                 {
                     if (DemoScanner.DUMP_ALL_FRAMES)
@@ -10069,12 +10194,13 @@ namespace DemoScanner.DG
                 BitBuffer.Endian = BitBuffer.EndianType.Big;
             }
 
-            uint nEntries = BitBuffer.ReadUnsignedBits(16);
-
             HalfLifeDeltaStructure newDeltaStructure = new HalfLifeDeltaStructure(structureName);
             AddDeltaStructure(newDeltaStructure);
 
             HalfLifeDeltaStructure deltaDescription = GetDeltaStructure("delta_description_t");
+
+
+            uint nEntries = BitBuffer.ReadUnsignedBits(16);
 
             for (ushort i = 0; i < nEntries; i++)
             {
@@ -10282,7 +10408,7 @@ namespace DemoScanner.DG
                     {
                         if (DemoScanner.DUMP_ALL_FRAMES)
                         {
-                            DemoScanner.OutDumpString += "PID3:" + entityIndex + "\n";
+                            DemoScanner.OutDumpString += "PL_ENT:" + entityIndex + "\n";
                         }
 
                         DemoScanner.LastPlayerEntity = entityIndex;
@@ -10290,6 +10416,11 @@ namespace DemoScanner.DG
                     }
                     else
                     {
+                        if (DemoScanner.DUMP_ALL_FRAMES)
+                        {
+                            DemoScanner.OutDumpString += "ENT:" + entityIndex + "\n";
+                        }
+                        DemoScanner.LastEntity = entityIndex;
                         entityTypeString = "entity_state_t";
                     }
                 }
@@ -10727,6 +10858,11 @@ namespace DemoScanner.DG
                 }
                 else if (custom)
                 {
+                    if (DemoScanner.DUMP_ALL_FRAMES)
+                    {
+                        DemoScanner.OutDumpString += "ENT:" + entityNumber + "\n";
+                    }
+                    DemoScanner.LastEntity = entityNumber;
                     entityType = "custom_entity_state_t";
                 }
 
@@ -10795,7 +10931,7 @@ namespace DemoScanner.DG
                     {
                         if (DemoScanner.DUMP_ALL_FRAMES)
                         {
-                            DemoScanner.OutDumpString += "PID2:" + entityNumber + "\n";
+                            DemoScanner.OutDumpString += "PL_ENT:" + entityNumber + "\n";
                         }
 
                         DemoScanner.LastPlayerEntity = entityNumber;
@@ -10803,6 +10939,11 @@ namespace DemoScanner.DG
                     }
                     else if (custom)
                     {
+                        if (DemoScanner.DUMP_ALL_FRAMES)
+                        {
+                            DemoScanner.OutDumpString += "ENT:" + entityNumber + "\n";
+                        }
+                        DemoScanner.LastEntity = entityNumber;
                         entityType = "custom_entity_state_t";
                     }
 
@@ -11148,6 +11289,7 @@ namespace DemoScanner.DG
 
         private void MessageCutSceneCenterPrint()
         {
+            DemoScanner.CurrentMsgPrintCount++;
             BitBuffer.ReadString(); // CenterPrint(str)
         }
 
@@ -11159,9 +11301,10 @@ namespace DemoScanner.DG
 
         private void MessageSetAngle()
         {
-            ushort AnglePitch = BitBuffer.ReadUInt16();
-            ushort AngleYaw = BitBuffer.ReadUInt16();
-            ushort AngleRoll = BitBuffer.ReadUInt16();
+            float AnglePitch = BitBuffer.ReadUInt16() * (360.0f / 65536);
+            float AngleYaw = BitBuffer.ReadUInt16() * (360.0f / 65536);
+            float AngleRoll = BitBuffer.ReadUInt16() * (360.0f / 65536);
+
             if (DemoScanner.DUMP_ALL_FRAMES)
             {
                 DemoScanner.OutDumpString += "Pitch/Yaw/Roll:" + AnglePitch + "/" + AngleYaw + "/" + AngleRoll + ".\n";
@@ -11246,6 +11389,9 @@ namespace DemoScanner.DG
                 {
                     Console.WriteLine("Select weapon method 1 (" + DemoScanner.UsingAnotherMethodWeaponDetection + "):" + weaponid + ":" + DemoScanner.CurrentTimeString);
                 }
+                DemoScanner.AutoPistolStrikes = 0;
+                DemoScanner.LastPrimaryAttackTime = 0.0f;
+                DemoScanner.LastPrevPrimaryAttackTime = 0.0f;
 
                 DemoScanner.NeedSearchAim2 = false;
                 DemoScanner.Aim2AttackDetected = false;
@@ -11308,7 +11454,6 @@ namespace DemoScanner.DG
             DemoScanner.LastDamageTime = DemoScanner.CurrentTime;
             //Console.WriteLine("Damage at " + DemoScanner.CurrentTimeString);
         }
-
         private void HideWeapon()
         {
             byte flags = BitBuffer.ReadByte();
@@ -11323,6 +11468,11 @@ namespace DemoScanner.DG
             {
                 DemoScanner.HideWeapon = false;
             }
+        }
+        private void HLTVMSG()
+        {
+            byte dest = BitBuffer.ReadByte();
+            byte health_and_flags = BitBuffer.ReadByte();
         }
 
         private void WeaponList()
@@ -11628,8 +11778,11 @@ namespace DemoScanner.DG
 
         private void MessageScreenFade()
         {
-            float duration = UnFixedUnsigned16(BitBuffer.ReadUInt16());
-            float holdTime = UnFixedUnsigned16(BitBuffer.ReadUInt16());
+            ushort duration_enc = BitBuffer.ReadUInt16();
+            ushort holdTime_enc = BitBuffer.ReadUInt16();
+
+            float duration = UnFixedUnsigned16(duration_enc);
+            float holdTime = UnFixedUnsigned16(holdTime_enc);
 
             ushort fadeFlags = BitBuffer.ReadUInt16();
 
@@ -12649,8 +12802,32 @@ namespace DemoScanner.DG
                                                 Console.WriteLine("Alive 5 at " + DemoScanner.CurrentTimeString);
                                             }
                                         }
+
                                         float reloadstatus =
                                             value != null ? (float)value : 1.0f;
+
+
+                                        DemoScanner.LastPrevPrimaryAttackTime = DemoScanner.LastPrimaryAttackTime;
+                                        DemoScanner.LastPrimaryAttackTime = DemoScanner.CurrentTime;
+
+                                        if (DemoScanner.CurrentTime - DemoScanner.LastPrimaryAttackTime > 0.25
+                                            && abs(DemoScanner.LastPrimaryAttackTime) > EPSILON)
+                                        {
+                                            DemoScanner.AutoPistolStrikes = 0;
+                                            DemoScanner.LastPrimaryAttackTime = 0.0f;
+                                            DemoScanner.LastPrevPrimaryAttackTime = 0.0f;
+                                        }
+                                        else
+                                        {
+                                            DemoScanner.PrimaryAttackHistory.Add(reloadstatus);
+                                        }
+
+                                        while (DemoScanner.PrimaryAttackHistory.Count > 4)
+                                        {
+                                            DemoScanner.PrimaryAttackHistory.RemoveAt(0);
+                                        }
+
+
                                         if (reloadstatus <= 0.016 ||
                                             (DemoScanner.CurrentWeapon ==
                                             DemoScanner.WeaponIdType.WEAPON_DEAGLE &&
@@ -12907,6 +13084,10 @@ namespace DemoScanner.DG
                                                 DemoScanner.CurrentTime + 1.0f;
                                             DemoScanner.NeedCheckAttack = false;
                                             DemoScanner.CurrentWeapon = weaponid;
+
+                                            DemoScanner.AutoPistolStrikes = 0;
+                                            DemoScanner.LastPrimaryAttackTime = 0.0f;
+                                            DemoScanner.LastPrevPrimaryAttackTime = 0.0f;
 
                                             if (!DemoScanner.UserAlive)
                                             {
