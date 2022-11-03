@@ -5,19 +5,23 @@ Unreal Demo Scanner for CS 1.6
 1. Run UnrealDemoScanner.exe (LATEST VERSION!)
 2. Drag&Drop .dem file in Console window or enter path manually 
 3. Wait for analyze
+
+###### Как просканировать демку:
+1. Запустить UnrealDemoScanner.exe (ПОСЛЕДНЕЙ ВЕРСИЕЙ!)
+2. Перенести демо файл в консоль или ввести путь вручную
+3. Нажать Enter
+4. Ждать завершения анализа
+5. По завершению анализа можно выбрать дополнительные команды для анализа демки
+
 ###### Results:
-**If demo has multiple [DETECTION] (MORE THAN 5-15 PER DEMO) player with probability of 100% uses illegal programs!**
+**If demo has multiple [DETECTION] (MORE THAN 5-10 PER DEMO) player with probability of 100% uses illegal programs!
 
-**If demo has multiple [WARN] (MORE THAN 15-25 PER DEMO)  player with probability of 90% uses illegal programs!**
+**If demo has multiple [WARN] (MORE THAN 20-30 PER DEMO)  player with probability of 90% uses illegal programs!
 
+###### Результаты сканирования:
+**Если демо содержит множество [ОБНАРУЖЕНО] (Более чем 5-10 за демку) игрок с вероятностью 100% использует запрещенные программы.
 
-
-
-**ClearDemos/ClearDemos2** - for test false detections before adding it to code. This directory contain only clear demos ( without using hacks )
-**CheatDemos/CheatDemos2** - Demos with AIM/BHOP/etc
-
-Main code:
-https://github.com/2020karaulov2020/UnrealDemoScanner/blob/DemoScanner/SourceCode/UnrealDemoScanner.cs 
+**Если демо содержит множество [ПРЕДУПРЕЖДЕНИЕ] (Более чем 20-30 за демку) игрок почти со 100% вероятностью использует запрещенные программы!
 
 
 Command line:
@@ -34,26 +38,20 @@ Command line:
 **Detections description:**
 
 
-AIM TYPE 1 - Attack delay
+AIM TYPE 1 - Attack delay - Задержка атаки
 
-AIM TYPE 2 - Autoattack
+AIM TYPE 2 - Autoattack - Автоатака
 
-AIM TYPE 3 - (Disabled for rewrite)
+AIM TYPE 3 - Резкие рывки прицела(не заверешно)
 
-AIM TYPE 4 - Fake lag
+AIM TYPE 4 - Fake lag - Фейк лаг
 
-AIM TYPE 5 - Smooth angles/etc
+AIM TYPE 5 - Smooth angles/etc - Сглаживание углов - Изменение сенса программное
 
-AIM TYPE 6 - HPP Autoattack
+AIM TYPE 6 - HPP Autoattack - Автоатака из HPP v5
 
-AIM TYPE 7 - HPP Trigger bot
+AIM TYPE 7 - HPP Trigger bot - Триггер бот или жесткий аимбот из HPP
 
-AIM TYPE 8 - Universal AIMBOT detection
+AIM TYPE 8 - Universal AIMBOT detection - Универсальный детект аимботов
 
-TRIGGER BOT - OLD AIM / TRIGGER HACK
-
-
-DEMO PACK YOU CAN DOWNLOAD HERE :
- https://github.com/UnrealKaraulov/UnrealDemoScanner/tree/1935a1c9ba62c998bdf74125866728b0ddf4b58b
- https://drive.google.com/drive/folders/1VodMw7uSYcFXg2Ch4-XOYUMJMPQSroLE?usp=sharing
- https://disk.yandex.by/d/LYgrwo2Ysxj97g
+TRIGGER BOT - OLD AIM / TRIGGER HACK - Старые аим хаки
