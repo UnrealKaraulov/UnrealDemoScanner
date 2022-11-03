@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.67.7_ALPHA";
+        public const string PROGRAMVERSION = "1.67.8_ALPHA";
 
         public enum AngleDirection
         {
@@ -1281,7 +1281,7 @@ namespace DemoScanner.DG
             {
                 FrameCrash = 0;
                 ReloadKeyPressTime = CurrentTime;
-                ReloadHackTime = 0.0f; 
+                ReloadHackTime = 0.0f;
                 DemoScanner.AutoPistolStrikes = 0;
                 DemoScanner.LastPrimaryAttackTime = 0.0f;
                 DemoScanner.LastPrevPrimaryAttackTime = 0.0f;
@@ -1289,7 +1289,7 @@ namespace DemoScanner.DG
             else if (sLower.IndexOf("-reload") > -1)
             {
                 ReloadKeyUnPressTime = CurrentTime;
-                ReloadHackTime = 0.0f; 
+                ReloadHackTime = 0.0f;
                 DemoScanner.AutoPistolStrikes = 0;
                 DemoScanner.LastPrimaryAttackTime = 0.0f;
                 DemoScanner.LastPrevPrimaryAttackTime = 0.0f;
@@ -1340,7 +1340,7 @@ namespace DemoScanner.DG
                 NeedSearchAim2 = false;
                 Aim2AttackDetected = false;
                 ShotFound = -1;
-                ChangeWeaponTime = CurrentTime; 
+                ChangeWeaponTime = CurrentTime;
                 DemoScanner.AutoPistolStrikes = 0;
                 DemoScanner.LastPrimaryAttackTime = 0.0f;
                 DemoScanner.LastPrevPrimaryAttackTime = 0.0f;
@@ -1348,7 +1348,7 @@ namespace DemoScanner.DG
 
             if (sLower.IndexOf("+attack2") > -1)
             {
-                DemoScanner.AutoPistolStrikes = 0; 
+                DemoScanner.AutoPistolStrikes = 0;
                 DemoScanner.LastPrimaryAttackTime = 0.0f;
                 DemoScanner.LastPrevPrimaryAttackTime = 0.0f;
                 LastAttackCmdTime = CurrentTime;
@@ -4166,7 +4166,7 @@ namespace DemoScanner.DG
                                 if (CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_ATTACK) &&
                                     !PreviousFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_ATTACK))
                                 {
-                                    if (IsUserAlive() && !IsChangeWeapon() && abs(LastPrimaryAttackTime) > EPSILON && abs(LastPrevPrimaryAttackTime) > EPSILON 
+                                    if (IsUserAlive() && !IsChangeWeapon() && abs(LastPrimaryAttackTime) > EPSILON && abs(LastPrevPrimaryAttackTime) > EPSILON
                                         && abs(CurrentTime - LastPrevPrimaryAttackTime) <= abs(PrimaryAttackHistory[3]))
                                     {
                                         if (abs(IsAttackLastTime - LastAttackCmdTime) < EPSILON &&
@@ -4178,8 +4178,8 @@ namespace DemoScanner.DG
                                             //    + "/" + IsAttackLastTime + "/" + IsNoAttackLastTime + "/" + (PrimaryAttackHistory[3] > PrimaryAttackHistory[2] && PrimaryAttackHistory[1] > PrimaryAttackHistory[2]).ToString()
                                             //    + "/" + ((abs(abs(CurrentTime - LastPrevPrimaryAttackTime) - abs(PrimaryAttackHistory[2]))) < 0.06f).ToString());
 
-                                            if ( abs(IsAttackLastTime - LastPrevPrimaryAttackTime) < EPSILON)
-                                            AutoPistolStrikes++;
+                                            if (abs(IsAttackLastTime - LastPrevPrimaryAttackTime) < EPSILON)
+                                                AutoPistolStrikes++;
                                             if (AutoPistolStrikes == 3)
                                             {
                                                 DemoScanner_AddWarn(
@@ -4188,7 +4188,7 @@ namespace DemoScanner.DG
                                                 AutoPistolStrikes = 0;
                                             }
                                         }
-                                        else 
+                                        else
                                         {
                                             AutoPistolStrikes = 0;
                                         }
@@ -8949,7 +8949,7 @@ namespace DemoScanner.DG
             AddMessageHandler(id, -1, callback);
         }
 
-        private void AddMessageHandler(byte id, int length, Procedure callback)
+        public void AddMessageHandler(byte id, int length, Procedure callback)
         {
             MessageHandler newHandler = new MessageHandler
             {
@@ -9284,15 +9284,7 @@ namespace DemoScanner.DG
 
             // see if there's a handler waiting to be attached to this message
             Procedure callback = (Procedure)userMessageCallbackTable[name];
-
-            if (callback == null)
-            {
-                AddMessageHandler(id, length);
-            }
-            else
-            {
-                AddMessageHandler(id, callback);
-            }
+            AddMessageHandler(id, length, callback);
         }
 
         public void AddUserMessageHandler(string name, Procedure callback)
@@ -9461,13 +9453,16 @@ namespace DemoScanner.DG
                 ErrorCount++;
                 ConsoleColor tmpcolor = Console.ForegroundColor;
                 Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine("(E=" + ex.Message + ") at " + DemoScanner.CurrentTime);
+                if (DemoScanner.DEBUG_ENABLED)
+                    Console.WriteLine("(E=" + ex.Message + ") (" + ex.Source + ") \n(" + ex.StackTrace + ") at " + DemoScanner.CurrentTime);
+                else
+                    Console.WriteLine("(E=" + ex.Message + ") at " + DemoScanner.CurrentTime);
                 Console.ForegroundColor = tmpcolor;
                 if (DemoScanner.DUMP_ALL_FRAMES)
                 {
-                    DemoScanner.OutDumpString += "(E=\" + ex.Message + \")\"";
+                    DemoScanner.OutDumpString += "(E=" + ex.Message + ") (" + ex.Source + ") \n(" + ex.StackTrace + ")";
                 }
-                if (ErrorCount > 5)
+                if (ErrorCount > 15)
                 {
                     if (DemoScanner.DUMP_ALL_FRAMES)
                     {
@@ -9607,7 +9602,28 @@ namespace DemoScanner.DG
                 // callback takes priority over length
                 if (messageHandler.Callback != null)
                 {
-                    messageHandler.Callback();
+                    if (messageHandler.Length != -1)
+                    {
+                        int curbits = BitBuffer.CurrentBit;
+                        messageHandler.Callback();
+                        BitBuffer.SeekBits(curbits, SeekOrigin.Begin);
+                        Seek(messageHandler.Length);
+                    }
+                    else
+                    {
+                        if (messageId >= 64)
+                        {
+                            int curbits = BitBuffer.CurrentBit;
+                            messageHandler.Callback();
+                            BitBuffer.SeekBits(curbits, SeekOrigin.Begin);
+                            byte length = BitBuffer.ReadByte();
+                            Seek(length);
+                        }
+                        else
+                        {
+                            messageHandler.Callback();
+                        }
+                    }
                 }
                 else if (messageHandler.Length != -1)
                 {
@@ -11478,26 +11494,26 @@ namespace DemoScanner.DG
         private void WeaponList()
         {
             BitBuffer.ReadString();
+            BitBuffer.ReadSByte();
             BitBuffer.ReadByte();
+            BitBuffer.ReadSByte();
             BitBuffer.ReadByte();
-            BitBuffer.ReadByte();
-            BitBuffer.ReadByte();
-            BitBuffer.ReadByte();
-            BitBuffer.ReadByte();
-            BitBuffer.ReadByte();
+            BitBuffer.ReadSByte();
+            BitBuffer.ReadSByte();
+            BitBuffer.ReadSByte();
             BitBuffer.ReadByte();
 
-            /* Console.Write("/WeaponName:" + WeaponName.Remove(0,1) + "\n");
-             Console.Write("/PrimaryAmmoID:" + PrimaryAmmoID + "\n");
-             Console.Write("/PrimaryAmmoMaxAmount:" + PrimaryAmmoMaxAmount + "\n");
-             Console.Write("/SecondaryAmmoID:" + SecondaryAmmoID + "\n");
-             Console.Write("/SecondaryAmmoMaxAmount:" + SecondaryAmmoMaxAmount + "\n");
-             Console.Write("/SlotID:" + SlotID + "\n");
-             Console.Write("/NumberInSlot:" + NumberInSlot + "\n");
-             Console.Write("/WeaponID:" + WeaponID + "\n");
-             Console.Write("/Flags:" + Flags + "\n");
+            /*Console.Write("/WeaponName:" + BitBuffer.ReadString().Remove(0, 1) + "\n");
+            Console.Write("/PrimaryAmmoID:" + BitBuffer.ReadSByte() + "\n");
+            Console.Write("/PrimaryAmmoMaxAmount:" + BitBuffer.ReadByte() + "\n");
+            Console.Write("/SecondaryAmmoID:" + BitBuffer.ReadSByte() + "\n");
+            Console.Write("/SecondaryAmmoMaxAmount:" + BitBuffer.ReadByte() + "\n");
+            Console.Write("/SlotID:" + BitBuffer.ReadSByte() + "\n");
+            Console.Write("/NumberInSlot:" + BitBuffer.ReadSByte() + "\n");
+            Console.Write("/WeaponID:" + BitBuffer.ReadSByte() + "\n");
+            Console.Write("/Flags:" + BitBuffer.ReadByte() + "\n");
 
-             Console.WriteLine();*/
+            Console.WriteLine();*/
         }
 
         private void WeapPickup()
