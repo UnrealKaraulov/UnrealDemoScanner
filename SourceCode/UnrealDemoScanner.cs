@@ -25,7 +25,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.67.9_BETA";
+        public const string PROGRAMVERSION = "1.67.10_BETA";
 
         public enum AngleDirection
         {
@@ -1637,7 +1637,7 @@ namespace DemoScanner.DG
             else if (sLower.IndexOf("-duck") > -1)
             {
                 if (DuckHack3Search == 1 && IsUserAlive() && abs(CurrentTime - LastUnDuckTime) > 0.2
-                    && abs(CurrentTime - LastKreedzHackTime) > 1.0)
+                    && abs(CurrentTime - LastKreedzHackTime) > 1.0 && !IsPlayerTeleport())
                 {
                     DemoScanner.DemoScanner_AddWarn(
                                  "[DUCK HACK TYPE 4] at (" + DemoScanner.CurrentTime +
@@ -1654,11 +1654,12 @@ namespace DemoScanner.DG
                 DuckHack3Search = 0;
             }
 
-            if (DetectStrafeOptimizerStrikes > 5)
+            if (DetectStrafeOptimizerStrikes > 5 && !IsPlayerTeleport())
             {
                 if (!StrafeOptimizerFalse && StrafeAngleDirectionChanges > 4)
                 {
                     DemoScanner_AddWarn("[STRAFE OPTIMIZER" + /*(DemoScanner.DetectStrafeOptimizerStrikes <= 5 ? " ( WARN ) " : "") +*/ "] at (" + CurrentTime + ") : " + CurrentTimeString);
+                    KreedzHacksCount++;
                 }
 
                 /* if (DemoScanner.DEBUG_ENABLED)
@@ -4784,7 +4785,7 @@ namespace DemoScanner.DG
                                 }
 
                                 if (RealAlive && !IsDuck && !IsDuckPressed && FirstDuck && abs(CurrentTime - LastUnDuckTime) > 2.5f &&
-                                    abs(CurrentTime - LastDuckTime) > 2.5f && abs(CurrentTime - LastAliveTime) > 1.2f)
+                                    abs(CurrentTime - LastDuckTime) > 2.5f && abs(CurrentTime - LastAliveTime) > 1.2f && !IsPlayerTeleport())
                                 {
                                     if (!PreviousFrameDuck && CurrentFrameDuck)
                                     {
@@ -11493,6 +11494,7 @@ namespace DemoScanner.DG
 
         private void WeaponList()
         {
+            BitBuffer.ReadByte();//message length
             BitBuffer.ReadString();
             BitBuffer.ReadSByte();
             BitBuffer.ReadByte();
@@ -11568,9 +11570,8 @@ namespace DemoScanner.DG
         private void TextMsg()
         {
             DemoScanner.CurrentMsgPrintCount++;
-            byte len = BitBuffer.ReadByte();
-            int endbyte = BitBuffer.CurrentByte + len;
-            BitBuffer.ReadByte();
+            byte len = BitBuffer.ReadByte(); // message len for -1 len
+            BitBuffer.ReadByte(); // message type
             string arg1 = BitBuffer.ReadString().Trim();
 
             if (/*arg1 == "#Game_Commencing"
@@ -11597,16 +11598,14 @@ namespace DemoScanner.DG
             //var arg3 = BitBuffer.ReadString();
             //var arg4 = BitBuffer.ReadString();
             //var arg5 = BitBuffer.ReadString();
-            BitBuffer.SkipRemainingBits();
-            BitBuffer.SeekBytes(endbyte, SeekOrigin.Begin);
         }
 
         private void MessageDeath()
         {
-            BitBuffer.ReadByte();
+            BitBuffer.ReadByte(); // length
             byte iKiller = BitBuffer.ReadByte();
             byte iVictim = BitBuffer.ReadByte();
-            BitBuffer.ReadByte();
+            BitBuffer.ReadByte(); // headshot
             string weapon = BitBuffer.ReadString();
 
             if (iVictim > 32 || iKiller > 32)
