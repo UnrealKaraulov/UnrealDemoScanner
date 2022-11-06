@@ -17,21 +17,32 @@ using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Windows.Interop;
 using static DemoScanner.DG.BitWriter;
 using static DemoScanner.DG.Common;
+using static DemoScanner.DG.DemoScanner;
 
 namespace DemoScanner.DG
 {
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.67.10_BETA";
+        public const string PROGRAMVERSION = "1.67.11_BETA";
 
         public enum AngleDirection
         {
             AngleDirectionLeft = -1,
             AngleDirectionRight = 1,
             AngleDirectionNO = 0
+        }
+
+        public enum TEXTMSG_Type
+        {
+            TEXT_PRINTNOTIFY = 1,
+            TEXT_PRINTCONSOLE = 2,
+            TEXT_PRINTTALK = 3,
+            TEXT_PRINTCENTER = 4,
+            TEXT_PRINTRADIO = 5
         }
 
         public const int RESOURCE_DOWNLOAD_THREADS = 20;
@@ -412,8 +423,11 @@ namespace DemoScanner.DG
 
         public static BinaryWriter PreviewFramesWriter;
         public static BinaryWriter ViewDemoHelperComments;
-        public static TextWriter TextComments;
-        public static Stream TextCommentsStream = new MemoryStream();
+        public static List<string> OutTextDetects = new List<string>();
+
+        public static List<string> OutTextMessages = new List<string>();
+
+
         public static int ViewDemoCommentCount;
 
         public static byte[] xcommentdata =
@@ -944,6 +958,22 @@ namespace DemoScanner.DG
             return str;
         }
 
+        public static void DemoScanner_AddTextMessage(string msg, string type, float time, string timestring)
+        {
+            if (msg.Length == 0)
+                return;
+
+            msg = msg.Replace("\n", "^n").Replace("\r", "^n")
+                .Replace("\x01", "^1").Replace("\x02", "^2")
+                .Replace("\x03", "^3").Replace("\x04", "^4");
+
+            if (msg.Length == 0)
+                return;
+
+            OutTextMessages.Add("[" + type + "] : [" + msg + "]" + " at (" + time + ") " + timestring);
+        }
+
+
         public static void DemoScanner_AddInfo(string info, bool is_plugin = false, bool no_prefix = false)
         {
             ConsoleColor tmpcol = Console.ForegroundColor;
@@ -985,7 +1015,6 @@ namespace DemoScanner.DG
             Console.WriteLine(info);
             Console.ForegroundColor = tmpcol;
         }
-
 
         public static void DemoScanner_AddWarn(string warn, bool detected = true, bool log = true, bool skipallchecks = false, bool uds_plugin = false)
         {
@@ -1135,7 +1164,7 @@ namespace DemoScanner.DG
 
                     if (curwarn.Log)
                     {
-                        TextComments.WriteLine(curwarn.Warn);
+                        OutTextDetects.Add(curwarn.Warn);
                         AddViewDemoHelperComment(curwarn.Warn);
                     }
 
@@ -1159,11 +1188,11 @@ namespace DemoScanner.DG
             {
                 if (IsRussia)
                 {
-                    unknownCMDLIST.Add("[ОБНАРУЖЕНА] [НЕИЗВЕСТНАЯ КОМАНДА] : \"" + s + "\" at (" + CurrentTime + ")" + CurrentTimeString);
+                    unknownCMDLIST.Add("[ОБНАРУЖЕНА] [НЕИЗВЕСТНАЯ КОМАНДА] : \"" + s + "\" at (" + CurrentTime + ") " + CurrentTimeString);
                 }
                 else
                 {
-                    unknownCMDLIST.Add("[DETECTED] [UNKNOWN CMD] : \"" + s + "\" at (" + CurrentTime + ")" + CurrentTimeString);
+                    unknownCMDLIST.Add("[DETECTED] [UNKNOWN CMD] : \"" + s + "\" at (" + CurrentTime + ") " + CurrentTimeString);
                 }
             }
         }
@@ -1176,6 +1205,26 @@ namespace DemoScanner.DG
             if (!isstuff)
             {
                 CheckConsoleCheat(s);
+            }
+            if (isstuff)
+            {
+                if (sLower.IndexOf("snapshot") > -1 ||
+                sLower.IndexOf("screenshot") > -1)
+                {
+                    //if (DemoScanner.CurrentTime - DemoScanner.LastStrafeDisabled < 3.5f)
+                    //{
+                    //    DemoScanner.DemoScanner_AddWarn("Player tried to got black screenshot at " + DemoScanner.CurrentTimeString, false, false);
+                    //}
+                    DemoScanner.LastScreenshotTime = DemoScanner.CurrentTime;
+                    if (DemoScanner.IsRussia)
+                    {
+                        DemoScanner.DemoScanner_AddInfo("Администратор сделал скриншот игроку, время " + DemoScanner.CurrentTimeString);
+                    }
+                    else
+                    {
+                        DemoScanner.DemoScanner_AddInfo("Server request player screenshot at " + DemoScanner.CurrentTimeString);
+                    }
+                }
             }
 
             if (DUMP_ALL_FRAMES && isstuff)
@@ -2559,20 +2608,6 @@ namespace DemoScanner.DG
                     Console.ReadKey();
                     return;
                 }
-            }
-
-            try
-            {
-                TextComments = new StreamWriter(TextCommentsStream);
-            }
-            catch
-            {
-                Console.WriteLine(
-                    "File " + CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) +
-                    "log" + " open error : No access to create!");
-                Console.Write("No access to file... Try again!");
-                Console.ReadKey();
-                return;
             }
 
             if (SourceCode.Length != 51)
@@ -5101,8 +5136,11 @@ namespace DemoScanner.DG
                                             DemoScanner_AddWarn(
                                                 "[CMD HACK TYPE 6] at (" +
                                                 CurrentTime + ") " + CurrentTimeString, !IsAngleEditByEngine());
+                                            if (DemoScanner.DEBUG_ENABLED)
+                                            {
+                                                Console.WriteLine("BAD BAD LERP:" + CurrentFrameLerp);
+                                            }
                                         }
-                                        //Console.WriteLine("BAD BAD " + nf.UCmd.Msec + " / " + nf.RParms.Frametime + " = " + ((float)nf.UCmd.Msec / nf.RParms.Frametime).ToString());
                                         LastCmdHack = CurrentTime;
                                     }
                                 }
@@ -5772,7 +5810,7 @@ namespace DemoScanner.DG
                                         {
                                             //var tmpcol = Console.ForegroundColor;
                                             //Console.ForegroundColor = ConsoleColor.Gray;
-                                            //DemoScanner.TextComments.WriteLine("Detected [AIM TYPE 3] at (" + CurrentTime + "):" + DemoScanner.CurrentTimeString + " (???)");
+                                            //DemoScanner.TextComments.Add("Detected [AIM TYPE 3] at (" + CurrentTime + "):" + DemoScanner.CurrentTimeString + " (???)");
                                             //AddViewDemoHelperComment("Detected [AIM TYPE 3]. Weapon:" + CurrentWeapon.ToString() + " (???)", 0.5f);
                                             //Console.WriteLine("Detected [AIM TYPE 3] at (" + CurrentTime + "):" + DemoScanner.CurrentTimeString + " (???)");
                                             //Console.ForegroundColor = tmpcol;
@@ -6868,7 +6906,7 @@ namespace DemoScanner.DG
 
             //if (AttackErrors > 0)
             //{
-            //    TextComments.WriteLine("Detected [UNKNOWN CONFIG] для атаки. Detect count:" + AttackErrors);
+            //    TextComments.Add("Detected [UNKNOWN CONFIG] для атаки. Detect count:" + AttackErrors);
             //    Console.WriteLine("Detected [UNKNOWN CONFIG] для атаки. Detect count:" + AttackErrors);
             //    Console.WriteLine("Last using at " + LastAttackHack + " second game time.");
             //}
@@ -6878,12 +6916,12 @@ namespace DemoScanner.DG
             {
                 if (IsRussia)
                 {
-                    TextComments.WriteLine("Обнаружен бинд прыжка на колесо мыши. Количество прыжков:" + MouseJumps);
+                    OutTextDetects.Add("Обнаружен бинд прыжка на колесо мыши. Количество прыжков:" + MouseJumps);
                     Console.WriteLine("Обнаружен бинд прыжка на колесо мыши. Количество прыжков:" + MouseJumps);
                 }
                 else
                 {
-                    TextComments.WriteLine("Detected [MOUSE JUMP] bind. Detect count:" + MouseJumps);
+                    OutTextDetects.Add("Detected [MOUSE JUMP] bind. Detect count:" + MouseJumps);
                     Console.WriteLine("Detected [MOUSE JUMP] bind. Detect count:" + MouseJumps);
                 }
             }
@@ -6892,7 +6930,7 @@ namespace DemoScanner.DG
             {
                 if (IsRussia)
                 {
-                    TextComments.WriteLine("Обнаружен алиас \"+jump;wait;-jump; like alias\". Количество:" + JumpWithAlias);
+                    OutTextDetects.Add("Обнаружен алиас \"+jump;wait;-jump; like alias\". Количество:" + JumpWithAlias);
                     Console.WriteLine("Обнаружен алиас \"+jump;wait;-jump; like alias\". Количество:" + JumpWithAlias);
                     if (MouseJumps > JumpWithAlias && MouseJumps > 0)
                     {
@@ -6905,7 +6943,7 @@ namespace DemoScanner.DG
                 }
                 else
                 {
-                    TextComments.WriteLine("Detected \"+jump;wait;-jump; like alias\". Detect count:" + JumpWithAlias);
+                    OutTextDetects.Add("Detected \"+jump;wait;-jump; like alias\". Detect count:" + JumpWithAlias);
                     Console.WriteLine("Detected \"+jump;wait;-jump; like alias\". Detect count:" + JumpWithAlias);
 
                     if (MouseJumps > JumpWithAlias && MouseJumps > 0)
@@ -6923,12 +6961,12 @@ namespace DemoScanner.DG
             {
                 if (IsRussia)
                 {
-                    TextComments.WriteLine("[BHOP] Количество предупреждений:" + BHOPcount / 2);
+                    OutTextDetects.Add("[BHOP] Количество предупреждений:" + BHOPcount / 2);
                     Console.WriteLine("[BHOP] Количество предупреждений:" + BHOPcount / 2);
                 }
                 else
                 {
-                    TextComments.WriteLine("[BHOP] Warn count:" + BHOPcount / 2);
+                    OutTextDetects.Add("[BHOP] Warn count:" + BHOPcount / 2);
                     Console.WriteLine("[BHOP] Warn count:" + BHOPcount / 2);
                 }
             }
@@ -6937,12 +6975,12 @@ namespace DemoScanner.DG
             {
                 if (IsRussia)
                 {
-                    TextComments.WriteLine("[Триппер бот] Количество предупреждений:" + TriggerAimAttackCount);
+                    OutTextDetects.Add("[Триппер бот] Количество предупреждений:" + TriggerAimAttackCount);
                     Console.WriteLine("[Триппер бот] Количество предупреждений:" + TriggerAimAttackCount);
                 }
                 else
                 {
-                    TextComments.WriteLine(
+                    OutTextDetects.Add(
                         "[TRIGGERBOT] Warn count:" + TriggerAimAttackCount);
                     Console.WriteLine("[TRIGGERBOT] Warn count:" + TriggerAimAttackCount);
                 }
@@ -6952,12 +6990,12 @@ namespace DemoScanner.DG
             {
                 if (IsRussia)
                 {
-                    TextComments.WriteLine("[AIM] Количество предупреждений:" + TotalAimBotDetected);
+                    OutTextDetects.Add("[AIM] Количество предупреждений:" + TotalAimBotDetected);
                     Console.WriteLine("[AIM] Количество предупреждений:" + TotalAimBotDetected);
                 }
                 else
                 {
-                    TextComments.WriteLine("[AIM] Warn count:" + TotalAimBotDetected);
+                    OutTextDetects.Add("[AIM] Warn count:" + TotalAimBotDetected);
                     Console.WriteLine("[AIM] Warn count:" + TotalAimBotDetected);
                 }
             }
@@ -6968,12 +7006,12 @@ namespace DemoScanner.DG
             {
                 if (IsRussia)
                 {
-                    TextComments.WriteLine("[ФЕЙК ЛАГ] Количество предупреждений:" + FakeLagAim);
+                    OutTextDetects.Add("[ФЕЙК ЛАГ] Количество предупреждений:" + FakeLagAim);
                     Console.WriteLine("[ФЕЙК ЛАГ] Количество предупреждений:" + FakeLagAim);
                 }
                 else
                 {
-                    TextComments.WriteLine("[FAKELAG] Warn count:" + FakeLagAim);
+                    OutTextDetects.Add("[FAKELAG] Warn count:" + FakeLagAim);
                     Console.WriteLine("[FAKELAG] Warn count:" + FakeLagAim);
                 }
             }
@@ -6982,7 +7020,7 @@ namespace DemoScanner.DG
             {
                 if (IsRussia)
                 {
-                    TextComments.WriteLine(
+                    OutTextDetects.Add(
                         "[STRAFE/GROUND/FASTRUN ХАК] Количество предупреждений:" +
                         KreedzHacksCount /*+ ". Found " + JumpCount + " +jump commands"*/);
                     Console.WriteLine(
@@ -6991,7 +7029,7 @@ namespace DemoScanner.DG
                 }
                 else
                 {
-                    TextComments.WriteLine(
+                    OutTextDetects.Add(
                         "[STRAFE/GROUND/FASTRUN HACK] Warn count:" +
                         KreedzHacksCount /*+ ". Found " + JumpCount + " +jump commands"*/);
                     Console.WriteLine(
@@ -7004,12 +7042,12 @@ namespace DemoScanner.DG
             {
                 if (IsRussia)
                 {
-                    TextComments.WriteLine("Внимание. Обнаружено несколько неопознанных пакетов данных:" + UnknownMessages);
+                    OutTextDetects.Add("Внимание. Обнаружено несколько неопознанных пакетов данных:" + UnknownMessages);
                     Console.WriteLine("Внимание. Обнаружено несколько неопознанных пакетов данных:" + UnknownMessages);
                 }
                 else
                 {
-                    TextComments.WriteLine("Warning. Unknown messages detected. Detect count:" + UnknownMessages);
+                    OutTextDetects.Add("Warning. Unknown messages detected. Detect count:" + UnknownMessages);
                     Console.WriteLine("Warning. Unknown messages detected. Detect count:" + UnknownMessages);
                 }
             }
@@ -7020,16 +7058,16 @@ namespace DemoScanner.DG
                 if (IsRussia)
                 {
                     Console.WriteLine("Обнаружены неопознанные чат команды:");
-                    TextComments.WriteLine("Обнаружены неопознанные чат команды:");
+                    OutTextDetects.Add("Обнаружены неопознанные чат команды:");
                 }
                 else
                 {
                     Console.WriteLine("Bind/alias from blacklist detected:");
-                    TextComments.WriteLine("Bind/alias from blacklist detected:");
+                    OutTextDetects.Add("Bind/alias from blacklist detected:");
                 }
                 foreach (string chet in unknownCMDLIST)
                 {
-                    TextComments.WriteLine(chet);
+                    OutTextDetects.Add(chet);
                     Console.WriteLine(chet);
                 }
             }
@@ -7038,12 +7076,12 @@ namespace DemoScanner.DG
             //{
             //    if (IsRussia)
             //    {
-            //        TextComments.WriteLine("[TIME HACK] Обнаружен обход сканера. Метод: остановка времени.");
+            //        TextComments.Add("[TIME HACK] Обнаружен обход сканера. Метод: остановка времени.");
             //        Console.WriteLine("[TIME HACK] Обнаружен обход сканера. Метод: остановка времени.");
             //    }
             //    else
             //    {
-            //        TextComments.WriteLine("[TIME HACK] Scanner bypass with method TIME detected!");
+            //        TextComments.Add("[TIME HACK] Scanner bypass with method TIME detected!");
             //        Console.WriteLine("[TIME HACK] Scanner bypass with method TIME detected!");
             //    }
             //}
@@ -7137,8 +7175,8 @@ namespace DemoScanner.DG
                         "Игроки", "Голоса", "История мыши", "Команды");
                     table.AddRow("1", "2", "3", "4", "5", "6", "7");
                     table.Write(Format.Alternative);
-                    table = new ConsoleTable("Помощь", "Скачать", "Выход");
-                    table.AddRow("8", "9", "0/Enter");
+                    table = new ConsoleTable("Помощь", "Скачать", "Все сообщения", "Выход");
+                    table.AddRow("8", "9", "10", "0/Enter");
                     table.Write(Format.Alternative);
                 }
                 else
@@ -7147,8 +7185,8 @@ namespace DemoScanner.DG
                   "Player info", "Wav Player", "Sens History", "Commands");
                     table.AddRow("1", "2", "3", "4", "5", "6", "7");
                     table.Write(Format.Alternative);
-                    table = new ConsoleTable("Help", "Download", "Exit");
-                    table.AddRow("8", "9", "0/Enter");
+                    table = new ConsoleTable("Help", "Download", "All msg","Exit");
+                    table.AddRow("8", "9", "10", "0/Enter");
                     table.Write(Format.Alternative);
                 }
 
@@ -7609,33 +7647,55 @@ namespace DemoScanner.DG
                     }
                 }
 
-                if (command == "2")
+                if (command == "10")
                 {
-                    if (TextCommentsStream.Length > 0)
+                    if (OutTextMessages.Count > 0)
                     {
                         try
                         {
-                            BinaryReader binaryReader = new BinaryReader(TextCommentsStream);
-                            TextCommentsStream.Seek(0, SeekOrigin.Begin);
-                            byte[] comments =
-                                binaryReader.ReadBytes((int)binaryReader.BaseStream
-                                    .Length);
-                            File.WriteAllBytes(
-                                CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) +
-                                "txt", comments);
+                            string textdatapath = CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 4) +
+                                "_msglist.txt";
+                            if (File.Exists(textdatapath))
+                                File.Delete(textdatapath);
+                            File.WriteAllLines(textdatapath
+                               , OutTextMessages.ToArray());
                             Console.WriteLine("Text comments saved");
-                            Process.Start(
-                                CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) +
-                                "txt");
+                            Process.Start(textdatapath);
                         }
                         catch
                         {
-                            Console.WriteLine("Can't write comments!");
+                            Console.WriteLine("Can't write messages!");
                         }
                     }
                     else
                     {
-                        Console.WriteLine("No text comments found.");
+                        Console.WriteLine("No text messages found.");
+                    }
+                }
+
+                if (command == "2")
+                {
+                    if (OutTextDetects.Count > 0)
+                    {
+                        try
+                        {
+                            string textdatapath = CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) +
+                                "txt";
+                            if (File.Exists(textdatapath))
+                                File.Delete(textdatapath);
+                            File.WriteAllLines(textdatapath
+                               , OutTextDetects.ToArray());
+                            Console.WriteLine("Text comments saved");
+                            Process.Start(textdatapath);
+                        }
+                        catch
+                        {
+                            Console.WriteLine("Can't write text detects!");
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine("No text detects found.");
                     }
                 }
 
@@ -9727,13 +9787,13 @@ namespace DemoScanner.DG
 
         private void MessageDisconnect()
         {
+            DemoScanner.CurrentMsgPrintCount++;
+            string msg = BitBuffer.ReadString();
+
+            DemoScanner.DemoScanner_AddTextMessage(msg, "DISCONNECT", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
             if (DemoScanner.DUMP_ALL_FRAMES)
             {
-                DemoScanner.OutDumpString += "MessageDisconnect:" + BitBuffer.ReadString();
-            }
-            else
-            {
-                BitBuffer.ReadString();
+                DemoScanner.OutDumpString += "MessageDisconnect:" + msg;
             }
         }
 
@@ -9890,6 +9950,8 @@ namespace DemoScanner.DG
             {
                 DemoScanner.OutDumpString += "MessagePrint:" + message;
             }
+
+            DemoScanner.DemoScanner_AddTextMessage(message, "PRINT", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
         }
 
         private void MessageStuffText()
@@ -9906,25 +9968,7 @@ namespace DemoScanner.DG
 
             DemoScanner.LastStuffCmdCommand = stuffstr;
 
-
-
-            if (DemoScanner.LastStuffCmdCommand.IndexOf("snapshot") > -1 ||
-                DemoScanner.LastStuffCmdCommand.IndexOf("screenshot") > -1)
-            {
-                //if (DemoScanner.CurrentTime - DemoScanner.LastStrafeDisabled < 3.5f)
-                //{
-                //    DemoScanner.DemoScanner_AddWarn("Player tried to got black screenshot at " + DemoScanner.CurrentTimeString, false, false);
-                //}
-                DemoScanner.LastScreenshotTime = DemoScanner.CurrentTime;
-                if (DemoScanner.IsRussia)
-                {
-                    DemoScanner.DemoScanner_AddInfo("Администратор сделал скриншот игроку, время " + DemoScanner.CurrentTimeString);
-                }
-                else
-                {
-                    DemoScanner.DemoScanner_AddInfo("Server request player screenshot at " + DemoScanner.CurrentTimeString);
-                }
-            }
+            DemoScanner.DemoScanner_AddTextMessage(stuffstr, "CLIENT_CMD", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
         }
 
         [StructLayout(LayoutKind.Explicit)]
@@ -10084,7 +10128,9 @@ namespace DemoScanner.DG
         private void MessageLightStyle()
         {
             Seek(1);
-            BitBuffer.ReadString();
+            CurrentMsgPrintCount++;
+            string light = BitBuffer.ReadString();
+            DemoScanner.DemoScanner_AddTextMessage(light, "LIGHT", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
         }
 
         public void MessageUpdateUserInfo()
@@ -10600,8 +10646,11 @@ namespace DemoScanner.DG
                         Seek(2);
                     }
 
-                    BitBuffer
-                        .ReadString(); // capped to 512 bytes (including null terminator)
+
+                    string hudmsg = BitBuffer.ReadString();
+
+                    DemoScanner.DemoScanner_AddTextMessage(hudmsg, "TE_HUD", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
+
                     break;
 
                 case 30: // TE_LINE
@@ -10768,7 +10817,7 @@ namespace DemoScanner.DG
                 DemoScanner.OutDumpString += "MessageCenterPrint:" + msgprint;
             }
 
-            if (msgprint == "%s")
+            if (msgprint.IndexOf("%s") == 0)
             {
                 string msgprint2 = BitBuffer.ReadString();
                 if (DemoScanner.DUMP_ALL_FRAMES)
@@ -10780,7 +10829,10 @@ namespace DemoScanner.DG
                 {
                     Console.Write("..bad msgcenterprint?.." + msgprint + ">>>>>" + msgprint2);
                 }
+
+                msgprint += "|" + msgprint2;
             }
+            DemoScanner.DemoScanner_AddTextMessage(msgprint, "PRINT_CENTER", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
         }
 
         private void MessageInterMission()
@@ -11139,7 +11191,9 @@ namespace DemoScanner.DG
         {
             DemoScanner.CurrentMsgPrintCount++;
             // string: filename
-            BitBuffer.ReadString();
+            string fail_msg = BitBuffer.ReadString();
+
+            DemoScanner.DemoScanner_AddTextMessage(fail_msg, "FILE_FAILED", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
         }
 
         private void MessageHltv()
@@ -11173,7 +11227,8 @@ namespace DemoScanner.DG
             }
             else if (subCommand == 2)
             {
-                BitBuffer.ReadString();
+                string hltv_msg = BitBuffer.ReadString();
+                DemoScanner.DemoScanner_AddTextMessage(hltv_msg, "HLTV", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
             }
             else if (subCommand > 0)
             {
@@ -11188,9 +11243,37 @@ namespace DemoScanner.DG
 
         private void MessageDirector()
         {
-            byte len = BitBuffer.ReadByte();
-            ByteArrayToString(BitBuffer.ReadBytes(len));
-            DemoScanner.CurrentMsgHudCount++;
+            byte len = BitBuffer.ReadByte(); // DIRECTOR CMD LEN
+            byte msgtype = BitBuffer.ReadByte(); // DIRECTOR TYPE
+            if (msgtype == 10) // DIRECTOR STUFF CMD
+            {
+                string stuffstr = BitBuffer.ReadString();
+                DemoScanner.CurrentMsgStuffCmdCount++;
+                DemoScanner.CheckConsoleCommand(stuffstr, true);
+                DemoScanner.LastStuffCmdCommand = stuffstr;
+
+
+                DemoScanner.DemoScanner_AddTextMessage(stuffstr, "DIRECTOR_CMD", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
+            }
+            else if (msgtype == 6) // DIRECTOR HUD
+            {
+                BitBuffer.ReadByte(); // effects
+                BitBuffer.ReadUInt32(); // color
+                BitBuffer.ReadSingle(); // x
+                BitBuffer.ReadSingle(); // y
+                BitBuffer.ReadSingle(); // fadein
+                BitBuffer.ReadSingle(); // fadeout
+                BitBuffer.ReadSingle(); // holdtime
+                BitBuffer.ReadSingle(); // fxtime
+
+                string dhudstr = BitBuffer.ReadString();
+
+                DemoScanner.DemoScanner_AddTextMessage(dhudstr, "DIRECTOR_HUD", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
+
+                DemoScanner.CurrentMsgHudCount++;
+            }
+            else
+                ByteArrayToString(BitBuffer.ReadBytes(len - 1));
         }
 
         private void MessageVoiceInit()
@@ -11217,6 +11300,9 @@ namespace DemoScanner.DG
                     DemoScanner.VoiceQuality = BitBuffer.ReadByte();
                 }
             }
+
+
+            DemoScanner.DemoScanner_AddTextMessage(tmpcodecname, "INIT_CODEC", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
         }
 
 
@@ -11255,6 +11341,9 @@ namespace DemoScanner.DG
 
             // NOTE: had this backwards before, shouldn't matter
             string extra = BitBuffer.ReadString();
+
+
+            DemoScanner.DemoScanner_AddTextMessage(extra, "SEARCH_EXTRA", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
             DemoScanner.FileDirectories.Add(extra);
             Seek(1);
         }
@@ -11265,6 +11354,7 @@ namespace DemoScanner.DG
             string tmpDownLocation = BitBuffer.ReadString();
             if (tmpDownLocation.ToLower().StartsWith("http"))
             {
+                DemoScanner.DemoScanner_AddTextMessage(tmpDownLocation, "DOWNLOAD_URL", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
                 DemoScanner.DownloadLocation = tmpDownLocation;
             }
             else
@@ -11282,18 +11372,22 @@ namespace DemoScanner.DG
 
         private void MessageSendCvarValue()
         {
-            BitBuffer.ReadString(); // The cvar.
+            string cvarname = BitBuffer.ReadString(); // The cvar.
+            DemoScanner.DemoScanner_AddTextMessage(cvarname, "CVAR_REQUEST", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
         }
 
         private void MessageRestore()
         {
-            BitBuffer.ReadString(); // CL_Restore(str)
+            string restore = BitBuffer.ReadString(); // CL_Restore(str)
+            DemoScanner.DemoScanner_AddTextMessage(restore, "CL_RESTORE", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
         }
 
         private void MessageReplaceDecal()
         {
-            BitBuffer.ReadByte();   // decal
-            BitBuffer.ReadString(); // DecalSetName(decal,name)
+            int decalid = BitBuffer.ReadByte();   // decal
+            string decalname = BitBuffer.ReadString(); // DecalSetName(decal,name)
+
+            DemoScanner.DemoScanner_AddTextMessage("ID:" + decalid + " = " + decalname, "SET_DECAL", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
         }
 
         private void MessageTFC_Exec()
@@ -11307,13 +11401,16 @@ namespace DemoScanner.DG
         private void MessageCutSceneCenterPrint()
         {
             DemoScanner.CurrentMsgPrintCount++;
-            BitBuffer.ReadString(); // CenterPrint(str)
+            string msg = BitBuffer.ReadString(); // CenterPrint(str)
+
+            DemoScanner.DemoScanner_AddTextMessage(msg, "CENTER_SCENE", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
         }
 
         private void MessageSendCvarValue2()
         {
             Seek(4); // unsigned int
-            BitBuffer.ReadString(); // The cvar.
+            string cvarname = BitBuffer.ReadString(); // The cvar.
+            DemoScanner.DemoScanner_AddTextMessage(cvarname, "CVAR_REQUEST_V2", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
         }
 
         private void MessageSetAngle()
@@ -11571,9 +11668,23 @@ namespace DemoScanner.DG
         {
             DemoScanner.CurrentMsgPrintCount++;
             byte len = BitBuffer.ReadByte(); // message len for -1 len
-            BitBuffer.ReadByte(); // message type
-            string arg1 = BitBuffer.ReadString().Trim();
+            TEXTMSG_Type target = (TEXTMSG_Type)BitBuffer.ReadByte(); // message type
 
+            if (target == TEXTMSG_Type.TEXT_PRINTRADIO)
+                BitBuffer.ReadString(); // Client Index ?
+
+            string arg1 = BitBuffer.ReadStringMaxLen(256);
+            string arg2 = arg1.IndexOf("%s") == 0 || (arg1.IndexOf("#") == 0 && target != TEXTMSG_Type.TEXT_PRINTCENTER) ? BitBuffer.ReadStringMaxLen(256) : "";
+            /*string arg3 = BitBuffer.ReadStringMaxLen(256).Replace("\n", "^n").Replace("\r", "^n")
+                .Replace("\x01", "^1").Replace("\x02", "^2")
+                .Replace("\x03", "^3").Replace("\x04", "^4");
+            string arg4 = BitBuffer.ReadStringMaxLen(256).Replace("\n", "^n").Replace("\r", "^n")
+                .Replace("\x01", "^1").Replace("\x02", "^2")
+                .Replace("\x03", "^3").Replace("\x04", "^4");
+            string arg5 = BitBuffer.ReadStringMaxLen(256).Replace("\n", "^n").Replace("\r", "^n")
+                .Replace("\x01", "^1").Replace("\x02", "^2")
+                .Replace("\x03", "^3").Replace("\x04", "^4");*/
+            //Console.WriteLine("[" + target.ToString() + "]\"" + arg1 + "|" + arg2 /*+ "|" + arg3 + "|" + arg4 + "|" + arg5 + "|" */+ "\"");
             if (/*arg1 == "#Game_Commencing"
                 || */arg1 == "#Game_will_restart_in"
                 || arg1 == "#CTs_Win"
@@ -11594,10 +11705,11 @@ namespace DemoScanner.DG
             {
                 DemoScanner.RoundEndTime = DemoScanner.CurrentTime;
             }
-            //var arg2 = BitBuffer.ReadString();
-            //var arg3 = BitBuffer.ReadString();
-            //var arg4 = BitBuffer.ReadString();
-            //var arg5 = BitBuffer.ReadString();
+
+            if (arg2.Length > 0)
+                arg1 = arg1 + "|" + arg2;
+
+            DemoScanner.DemoScanner_AddTextMessage(arg1, target.ToString(), DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
         }
 
         private void MessageDeath()
@@ -12141,7 +12253,27 @@ namespace DemoScanner.DG
                 bytes.Add(b);
             }
 
-            return bytes.Count == 0 ? "" : Encoding.UTF8.GetString(bytes.ToArray());
+            return bytes.Count == 0 ? string.Empty : Encoding.UTF8.GetString(bytes.ToArray());
+        }
+
+
+        public string ReadStringMaxLen(int maxlen)
+        {
+            List<byte> bytes = new List<byte>();
+
+            while (true && maxlen-- > 0)
+            {
+                byte b = ReadByte();
+
+                if (b == 0x00)
+                {
+                    break;
+                }
+
+                bytes.Add(b);
+            }
+
+            return bytes.Count == 0 ? string.Empty : Encoding.UTF8.GetString(bytes.ToArray());
         }
 
         public float[] ReadVectorCoord()
@@ -13380,7 +13512,7 @@ namespace DemoScanner.DG
                                         //    {
                                         //        // DemoScanner.ShotFound = true;
 
-                                        //        DemoScanner.TextComments.WriteLine("Detected [TRIGGER BOT] at (" + DemoScanner.CurrentTime + ") " + DemoScanner.CurrentTimeString);
+                                        //        DemoScanner.TextComments.Add("Detected [TRIGGER BOT] at (" + DemoScanner.CurrentTime + ") " + DemoScanner.CurrentTimeString);
                                         //        DemoScanner.AddViewDemoHelperComment("Detected [TRIGGER BOT]. Weapon:" + DemoScanner.CurrentWeapon.ToString(), 0.5f);
                                         //        Console.WriteLine("Detected [TRIGGER BOT] at (" + DemoScanner.CurrentTime + ") " + DemoScanner.CurrentTimeString);
                                         //        DemoScanner.BadAttackCount++;
