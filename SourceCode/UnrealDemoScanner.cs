@@ -130,6 +130,8 @@ namespace DemoScanner.DG
         */
         public static List<string> outFrames;
 
+        public static float CurrentFrameTimeBetween;
+
         public static float CurrentTime;
         public static float CurrentTime2;
         public static float CurrentTime3;
@@ -575,6 +577,8 @@ namespace DemoScanner.DG
         public static int SVC_TIMEMSGID;
         public static uint LossPackets;
         public static uint LossPackets2;
+        public static uint ServerLagCount;
+
         public static int ChokePackets;
         public static float LastLossPacket;
         public static float LastLossTime;
@@ -2820,8 +2824,12 @@ namespace DemoScanner.DG
                     }
                     GoldSource.FramesHren frame = CurrentDemoFile.GsDemoInfo.DirectoryEntries[index]
                     .Frames[frameindex];
+
                     PreviousTime2 = CurrentTime2;
-                    CurrentTime2 = frame.Key.Time + 0.1f;
+                    CurrentTime2 = frame.Key.Time;
+
+                    CurrentFrameTimeBetween += abs(CurrentTime2 - PreviousTime2);
+
                     CurrentFrameIdWeapon++;
                     CurrentFrameIdAll++;
 
@@ -3954,6 +3962,12 @@ namespace DemoScanner.DG
                                     LossPackets2++;
                                 }
 
+                                /*if (abs(CurrentTime) > EPSILON && abs(CurrentTime - PreviousTime) > 0.01 && CurrentFrameTimeBetween > abs(CurrentTime - PreviousTime) + 0.2)
+                                {
+                                    ServerLagCount++;
+                                }*/
+
+                                CurrentFrameTimeBetween = 0.0f;
                                 try
                                 {
                                     CurrentTimeString = "MODIFIED";
@@ -6695,6 +6709,16 @@ namespace DemoScanner.DG
 
                                 LastIncomingAcknowledged = nf.IncomingAcknowledged;
 
+                                if (Math.Abs(CurrentTime) > EPSILON && nf.OutgoingSequence > 0 && LastOutgoingSequence > 0
+                               && nf.OutgoingSequence - LastOutgoingSequence > 2)
+                                {
+                                    if(DemoScanner.DEBUG_ENABLED)
+                                    {
+                                        Console.WriteLine("Server lag (DROP FPS) at (" + CurrentTime + ") " + CurrentTimeString);
+                                    }
+                                    DemoScanner.DemoScanner_AddTextMessage("Drop server fps", "SERVER_INFO", CurrentTime, CurrentTimeString);
+                                    ServerLagCount++;
+                                }
 
                                 if (LastOutgoingSequence > 0 && Math.Abs(nf.OutgoingSequence - LastOutgoingSequence) > maxLastOutgoingSequence)
                                 {
@@ -7185,7 +7209,7 @@ namespace DemoScanner.DG
                   "Player info", "Wav Player", "Sens History", "Commands");
                     table.AddRow("1", "2", "3", "4", "5", "6", "7");
                     table.Write(Format.Alternative);
-                    table = new ConsoleTable("Help", "Download", "All msg","Exit");
+                    table = new ConsoleTable("Help", "Download", "All msg", "Exit");
                     table.AddRow("8", "9", "10", "0/Enter");
                     table.Write(Format.Alternative);
                 }
@@ -7891,6 +7915,8 @@ namespace DemoScanner.DG
                     Console.WriteLine("Max HUD messages per seconds : " + MaxHudMsgPerSecond);
                     Console.WriteLine("Max PRINT messages per seconds : " + MaxPrintCmdMsgPerSecond);
                     Console.WriteLine("Max STUFFCMD messages per seconds : " + MaxStuffCmdMsgPerSecond);
+
+                    Console.WriteLine("Server lags found(DROP FPS): " + ServerLagCount);
 
                     Console.WriteLine("Loss count:" + LossPackets);
 
@@ -9594,7 +9620,7 @@ namespace DemoScanner.DG
                 if (DemoScanner.DUMP_ALL_FRAMES)
                 {
                     DemoScanner.OutDumpString +=
-                        "{MSGLEN-" + frameData.Length + ".MSGBYTE:" + BitBuffer.CurrentByte;
+                        "\n{MSGLEN-" + frameData.Length + ".MSGBYTE:" + BitBuffer.CurrentByte;
                 }
 
                 byte messageId = BitBuffer.ReadByte();
@@ -9614,7 +9640,7 @@ namespace DemoScanner.DG
 
                 if (DemoScanner.DUMP_ALL_FRAMES)
                 {
-                    DemoScanner.OutDumpString += ".MSGNAME:" + messageName + "}\n";
+                    DemoScanner.OutDumpString += ".MSGNAME:[" + messageName + "]";
                 }
 
                 MessageHandler messageHandler = FindMessageHandler(messageId);
@@ -9892,7 +9918,28 @@ namespace DemoScanner.DG
 
         public void MessageTime()
         {
-            BitBuffer.ReadSingle();
+            float time = BitBuffer.ReadSingle();
+            if (DemoScanner.DUMP_ALL_FRAMES)
+            {
+                DemoScanner.OutDumpString += "[" + time + "]";
+                try
+                {
+                    TimeSpan t = TimeSpan.FromSeconds(time);
+
+                    CurrentTimeString = string.Format("{0:D2}h:{1:D2}m:{2:D2}s:{3:D3}ms",
+                        t.Hours,
+                        t.Minutes,
+                        t.Seconds,
+                        t.Milliseconds);
+                    DemoScanner.OutDumpString += "[" + CurrentTimeString + "]";
+                }
+                catch
+                {
+
+                }
+            }
+
+
             DemoScanner.SVC_TIMEMSGID = DemoScanner.MessageId;
         }
 
@@ -10128,7 +10175,6 @@ namespace DemoScanner.DG
         private void MessageLightStyle()
         {
             Seek(1);
-            CurrentMsgPrintCount++;
             string light = BitBuffer.ReadString();
             DemoScanner.DemoScanner_AddTextMessage(light, "LIGHT", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
         }
@@ -10471,7 +10517,7 @@ namespace DemoScanner.DG
                     {
                         if (DemoScanner.DUMP_ALL_FRAMES)
                         {
-                            DemoScanner.OutDumpString += "PL_ENT:" + entityIndex + "\n";
+                            DemoScanner.OutDumpString += "\nPL_ENT:" + entityIndex;
                         }
 
                         DemoScanner.LastPlayerEntity = entityIndex;
@@ -10481,7 +10527,7 @@ namespace DemoScanner.DG
                     {
                         if (DemoScanner.DUMP_ALL_FRAMES)
                         {
-                            DemoScanner.OutDumpString += "ENT:" + entityIndex + "\n";
+                            DemoScanner.OutDumpString += "\nENT:" + entityIndex;
                         }
                         DemoScanner.LastEntity = entityIndex;
                         entityTypeString = "entity_state_t";
@@ -10919,7 +10965,7 @@ namespace DemoScanner.DG
                 {
                     if (DemoScanner.DUMP_ALL_FRAMES)
                     {
-                        DemoScanner.OutDumpString += "PID1:" + entityNumber + "\n";
+                        DemoScanner.OutDumpString += "\nPID1:" + entityNumber;
                     }
 
                     DemoScanner.LastPlayerEntity = entityNumber;
@@ -10929,7 +10975,7 @@ namespace DemoScanner.DG
                 {
                     if (DemoScanner.DUMP_ALL_FRAMES)
                     {
-                        DemoScanner.OutDumpString += "ENT:" + entityNumber + "\n";
+                        DemoScanner.OutDumpString += "\nENT:" + entityNumber;
                     }
                     DemoScanner.LastEntity = entityNumber;
                     entityType = "custom_entity_state_t";
@@ -11000,7 +11046,7 @@ namespace DemoScanner.DG
                     {
                         if (DemoScanner.DUMP_ALL_FRAMES)
                         {
-                            DemoScanner.OutDumpString += "PL_ENT:" + entityNumber + "\n";
+                            DemoScanner.OutDumpString += "\nPL_ENT:" + entityNumber;
                         }
 
                         DemoScanner.LastPlayerEntity = entityNumber;
@@ -11010,7 +11056,7 @@ namespace DemoScanner.DG
                     {
                         if (DemoScanner.DUMP_ALL_FRAMES)
                         {
-                            DemoScanner.OutDumpString += "ENT:" + entityNumber + "\n";
+                            DemoScanner.OutDumpString += "\nENT:" + entityNumber;
                         }
                         DemoScanner.LastEntity = entityNumber;
                         entityType = "custom_entity_state_t";
@@ -11442,6 +11488,8 @@ namespace DemoScanner.DG
                 Console.WriteLine("Alive 10 at " + DemoScanner.CurrentTimeString);
             }
 
+            if (!DemoScanner.UserAlive)
+                DemoScanner.DemoScanner_AddTextMessage("Respawn", "USER_INFO", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
             DemoScanner.UserAlive = true;
             DemoScanner.LastAliveTime = DemoScanner.CurrentTime;
             DemoScanner.FirstUserAlive = false;
@@ -11468,6 +11516,9 @@ namespace DemoScanner.DG
                 {
                     DemoScanner.DeathsCoount++;
                 }
+
+                if (DemoScanner.UserAlive)
+                    DemoScanner.DemoScanner_AddTextMessage("Death", "USER_INFO", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
 
                 DemoScanner.FirstUserAlive = false;
                 DemoScanner.UserAlive = false;
@@ -11733,6 +11784,9 @@ namespace DemoScanner.DG
                     DemoScanner.DeathsCoount++;
                 }
 
+                if (DemoScanner.UserAlive)
+                    DemoScanner.DemoScanner_AddTextMessage("Killed", "USER_INFO", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
+
                 DemoScanner.FirstUserAlive = false;
                 DemoScanner.UserAlive = false;
                 DemoScanner.RealAlive = false;
@@ -11802,6 +11856,8 @@ namespace DemoScanner.DG
 
                 if (!DemoScanner.UserAlive && (abs(DemoScanner.CurrentTime - DemoScanner.LastDeathTime) > 5.0f || DemoScanner.FirstUserAlive))
                 {
+                    if (!DemoScanner.UserAlive)
+                        DemoScanner.DemoScanner_AddTextMessage("Respawn[2]", "USER_INFO", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
                     DemoScanner.UserAlive = true;
                     if (DemoScanner.FirstUserAlive)
                     {
@@ -11869,6 +11925,9 @@ namespace DemoScanner.DG
                         DemoScanner.DeathsCoount++;
                     }
 
+                    if (DemoScanner.UserAlive)
+                        DemoScanner.DemoScanner_AddTextMessage("Death[Spectator]", "USER_INFO", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
+
                     DemoScanner.LastDeathTime = DemoScanner.CurrentTime;
                     DemoScanner.FirstUserAlive = false;
                     DemoScanner.UserAlive = false;
@@ -11890,6 +11949,9 @@ namespace DemoScanner.DG
                     {
                         Console.WriteLine("Alive 2 at " + DemoScanner.CurrentTimeString);
                     }
+
+                    if (!DemoScanner.UserAlive)
+                        DemoScanner.DemoScanner_AddTextMessage("Respawn[3]", "USER_INFO", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
 
                     DemoScanner.UserAlive = true;
                     DemoScanner.LastAliveTime = DemoScanner.CurrentTime;
@@ -12851,7 +12913,7 @@ namespace DemoScanner.DG
                             if (DemoScanner.DUMP_ALL_FRAMES)
                             {
                                 DemoScanner.OutDumpString +=
-                                    "ENTRY(" + Name + ")" + entryList[index].Name + " = ";
+                                    "\nENTRY(" + Name + ")" + entryList[index].Name + " = ";
                             }
 
                             object value = ParseEntry(bitBuffer, entryList[index]);
@@ -12903,6 +12965,9 @@ namespace DemoScanner.DG
                                                     Console.WriteLine("Alive 1 at " + DemoScanner.CurrentTimeString);
                                                 }
 
+                                                if (!DemoScanner.UserAlive)
+                                                    DemoScanner.DemoScanner_AddTextMessage("Respawn[4]", "USER_INFO", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
+
                                                 DemoScanner.UserAlive = true;
                                                 DemoScanner.LastAliveTime = DemoScanner.CurrentTime;
                                                 DemoScanner.FirstUserAlive = false;
@@ -12941,6 +13006,9 @@ namespace DemoScanner.DG
                                     {
                                         if (!DemoScanner.UserAlive && abs(DemoScanner.CurrentTime - DemoScanner.LastDeathTime) > 5.0)
                                         {
+
+                                            if (!DemoScanner.UserAlive)
+                                                DemoScanner.DemoScanner_AddTextMessage("Respawn[5]", "USER_INFO", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
                                             //DemoScanner.FirstUserAlive = false;
                                             DemoScanner.UserAlive = true;
                                             DemoScanner.LastAliveTime = DemoScanner.CurrentTime;
@@ -13128,6 +13196,9 @@ namespace DemoScanner.DG
                                             {
                                                 DemoScanner.DeathsCoount++;
                                             }
+
+                                            if (DemoScanner.UserAlive)
+                                                DemoScanner.DemoScanner_AddTextMessage("Killed", "USER_INFO", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
 
                                             DemoScanner.FirstUserAlive = false;
                                             DemoScanner.UserAlive = false;
@@ -13532,11 +13603,6 @@ namespace DemoScanner.DG
                             if (delta != null)
                             {
                                 delta.SetEntryValue(index, value);
-                            }
-
-                            if (DemoScanner.DUMP_ALL_FRAMES)
-                            {
-                                DemoScanner.OutDumpString += "\n";
                             }
                         }
                     }
