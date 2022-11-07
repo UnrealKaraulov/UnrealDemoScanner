@@ -894,6 +894,10 @@ namespace DemoScanner.DemoStuff.GoldSource
                         hlsooeDemo.ParsingErrors.Add("Unexpected end of file at the header!");
                     // return hlsooeDemo;
                     var mw = Encoding.ASCII.GetString(br.ReadBytes(8)).Trim('\0').Replace("\0", string.Empty);
+
+                    if (DemoScanner.DG.DemoScanner.DEBUG_ENABLED)
+                        Console.WriteLine("DEMO HEADER: \"" + mw + "\" = " + (mw == "HLDEMO").ToString());
+
                     if (mw == "HLDEMO")
                     {
                         hlsooeDemo.Header.DemoProtocol = br.ReadInt32();
@@ -907,6 +911,14 @@ namespace DemoScanner.DemoStuff.GoldSource
 
                         //IDString Parsed... now we read the directory entries
                         br.BaseStream.Seek(hlsooeDemo.Header.DirectoryOffset, SeekOrigin.Begin);
+
+                        if (DemoScanner.DG.DemoScanner.DEBUG_ENABLED)
+                        {
+                            Console.WriteLine("DEMO PROTOCOL: " + hlsooeDemo.Header.DemoProtocol + " / " + hlsooeDemo.Header.NetProtocol);
+                            Console.WriteLine("DEMO MAP, DIR, DIR OFFSET: \"" + hlsooeDemo.Header.MapName + "\" , \""
+                               + hlsooeDemo.Header.GameDir + "\" , " + hlsooeDemo.Header.DirectoryOffset.ToString("x2"));
+                        }
+
                         if (UnexpectedEof(br, 4))
                             hlsooeDemo.ParsingErrors.Add("Unexpected end of file after the header!");
                         //return hlsooeDemo;
@@ -1198,6 +1210,11 @@ namespace DemoScanner.DemoStuff.GoldSource
                     //var s1 = new System.Diagnostics.Stopwatch();
                     //s1.Start();
                     var mw = Encoding.ASCII.GetString(br.ReadBytes(8)).Trim('\0').Replace("\0", string.Empty);
+
+
+                    if (DemoScanner.DG.DemoScanner.DEBUG_ENABLED)
+                        Console.WriteLine("DEMO HEADER: \"" + mw + "\" = " + (mw == "HLDEMO").ToString());
+
                     if (mw == "HLDEMO")
                     {
                         if (UnexpectedEof(br, 4 + 4 + 260 + 260 + 4))
@@ -1217,21 +1234,48 @@ namespace DemoScanner.DemoStuff.GoldSource
                             .Replace("\0", string.Empty);
                         gDemo.Header.MapCrc = br.ReadUInt32();
                         gDemo.Header.DirectoryOffset = br.ReadInt32();
-                        //IDString Parsed... now we read the directory entries
-                        if (UnexpectedEof(br, gDemo.Header.DirectoryOffset - br.BaseStream.Position))
+
+                        if (DemoScanner.DG.DemoScanner.DEBUG_ENABLED)
                         {
-                            gDemo.ParsingErrors.Add("Unexpected end of file when seeking to directory offset!");
-
+                            Console.WriteLine("DEMO PROTOCOL: " + gDemo.Header.DemoProtocol + " / " + gDemo.Header.NetProtocol);
+                            Console.WriteLine("DEMO MAP, DIR, CRC, DIR OFFSET: \"" + gDemo.Header.MapName + "\" , \""
+                               + gDemo.Header.GameDir + "\" , " + (int)gDemo.Header.MapCrc + " , " + gDemo.Header.DirectoryOffset.ToString("x2"));
                         }
-                        //   return gDemo;
-                        if (gDemo.Header.DirectoryOffset > 0) br.BaseStream.Seek(gDemo.Header.DirectoryOffset, SeekOrigin.Begin);
 
-                        if (UnexpectedEof(br, 4))
+                        long fileMark = br.BaseStream.Position;
+                        int entryCount = 0;
+
+                        try
                         {
-                            gDemo.ParsingErrors.Add("Unexpected end of file when reading entry count!");
-
-                            throw new Exception("E2");
+                            br.BaseStream.Seek(gDemo.Header.DirectoryOffset, SeekOrigin.Begin);
                         }
+                        catch
+                        {
+                            gDemo.ParsingErrors.Add("Error while seeking to directory offset");
+                            gDemo.Header.DirectoryOffset = 0;
+                        }
+
+                        if (!UnexpectedEof(br, 4))
+                        {
+                            entryCount = br.ReadInt32();
+                            if (entryCount > 0 && entryCount <= 1024)
+                            {
+
+                            }
+                            else
+                            {
+                                br.BaseStream.Seek(fileMark, SeekOrigin.Begin);
+                                entryCount = 0;
+                                gDemo.Header.DirectoryOffset = 0;
+                            }
+                        }
+                        else
+                        {
+                            entryCount = 0;
+                            br.BaseStream.Seek(fileMark, SeekOrigin.Begin);
+                            gDemo.Header.DirectoryOffset = 0;
+                        }
+
                         //  return gDemo;
 
                         //if (entryCount < 1 || entryCount > 5)
@@ -1247,35 +1291,13 @@ namespace DemoScanner.DemoStuff.GoldSource
                         //    Console.WriteLine("Warning!Hacked demo! ");
                         //}
 
-                        if (gDemo.Header.DirectoryOffset == 0)
+                        if (entryCount > 0 && entryCount <= 1024)
                         {
-                            //Console.WriteLine("Warning! Bad entries count! Using 'bruteforce' read method!");
-                            var tempvar = new GoldSource.DemoDirectoryEntry
-                            {
-                                Type = 0,
-                                Description =
-                                       "Playback",
-                                Flags = 0,
-                                CdTrack = 0,
-                                TrackTime = 444.0f,
-                                FrameCount = 44444444,
-                                Offset = 0,
-                                FileLength = 0,
-                                Frames = new List<GoldSource.FramesHren>()
-                            };
-                            gDemo.DirectoryEntries.Add(tempvar);
-                        }
-                        else
-                        {
-                            var entryCount = br.ReadInt32();
-
                             for (var i = 0; i < entryCount; i++)
                             {
                                 if (UnexpectedEof(br, 4 + 64 + 4 + 4 + 4 + 4 + 4 + 4))
                                 {
-                                    gDemo.ParsingErrors.Add("Unexpected end of file when reading the directory entries!");
-
-                                    //  throw new Exception("E3");
+                                    gDemo.ParsingErrors.Add("Unexpected end of file when reading the directory entries! (" + i + ") of " + entryCount);
                                 }
                                 //return gDemo;
                                 var tempvar = new GoldSource.DemoDirectoryEntry
@@ -1293,6 +1315,25 @@ namespace DemoScanner.DemoStuff.GoldSource
                                 };
                                 gDemo.DirectoryEntries.Add(tempvar);
                             }
+                        }
+                        else
+                        {
+                            //Console.WriteLine("Warning! Bad entries count! Using 'bruteforce' read method!");
+                            var tempvar = new GoldSource.DemoDirectoryEntry
+                            {
+                                Type = 0,
+                                Description =
+                                       "Playback",
+                                Flags = 0,
+                                CdTrack = 0,
+                                TrackTime = 0.0f,
+                                FrameCount = 0,
+                                Offset = 0,
+                                FileLength = 0,
+                                Frames = new List<GoldSource.FramesHren>()
+                            };
+                            gDemo.DirectoryEntries.Add(tempvar);
+                            br.BaseStream.Seek(fileMark, SeekOrigin.Begin);
                         }
                         //s1.Stop();
                         //var s2 = new System.Diagnostics.Stopwatch();
@@ -1319,6 +1360,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                 while (!nextSectionRead)
                                 {
                                     ind++;
+
                                     if (UnexpectedEof(br, 1 + 4 + 4))
                                     {
                                         if (entry.Offset != 0)
@@ -1341,7 +1383,6 @@ namespace DemoScanner.DemoStuff.GoldSource
                                     //        }
                                     //    }
                                     //}
-
 
                                     var currentDemoFrame = new GoldSource.DemoFrame
                                     {
@@ -1715,7 +1756,6 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             nf.Msg = ByteArrayToString(nf.MsgBytes);
                                             entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame, nf));
                                             break;
-
                                     }
                                 }
                             }

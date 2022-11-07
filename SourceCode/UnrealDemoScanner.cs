@@ -27,7 +27,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.67.11_BETA";
+        public const string PROGRAMVERSION = "1.67.12_BETA";
 
         public enum AngleDirection
         {
@@ -90,6 +90,8 @@ namespace DemoScanner.DG
             public int threadid;
             public int state;
         }
+
+        public static bool SkipNextErrors;
 
         public static MyThreadState[] myThreadStates = new MyThreadState[RESOURCE_DOWNLOAD_THREADS + 1];
 
@@ -2578,6 +2580,7 @@ namespace DemoScanner.DG
                 PreviewFramesWriter.BaseStream.Seek(0, SeekOrigin.Begin);
 
             }
+
             CurrentDemoFile = CrossDemoParser.Parse(CurrentDemoFilePath);
 
             if (File.Exists(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) +
@@ -2733,6 +2736,19 @@ namespace DemoScanner.DG
                 for (int frameindex = 0; frameindex < CurrentDemoFile.GsDemoInfo.DirectoryEntries[index]
                          .Frames.Count; frameindex++)
                 {
+                    if (SkipNextErrors)
+                    {
+                        SkipNextErrors = false;
+                        if (DemoScanner.IsRussia)
+                        {
+                            Console.WriteLine("Сканирование неожиданно прервано.");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Demo analyze stopped because found unexpected file end.");
+                        }
+                        break;
+                    }
                     GoldSource.FramesHren frame = CurrentDemoFile.GsDemoInfo.DirectoryEntries[index]
                         .Frames[frameindex];
                     try
@@ -2800,7 +2816,7 @@ namespace DemoScanner.DG
                 TreeNode entrynode =
                     new TreeNode("Directory entry [" + (index + 1) + "] - " +
                                  CurrentDemoFile.GsDemoInfo.DirectoryEntries[index]
-                                     .FrameCount);
+                                    .Frames.Count);
                 TimeShift4Times = new float[3] { 0.0f, 0.0f, 0.0f };
                 for (int frameindex = 0; frameindex < CurrentDemoFile.GsDemoInfo.DirectoryEntries[index]
                     .Frames.Count; frameindex++)
@@ -2838,7 +2854,6 @@ namespace DemoScanner.DG
                               frame.Key.Type.ToString().ToUpper();
                     TreeNode node = new TreeNode();
                     TreeNode subnode = new TreeNode();
-
 
                     switch (frame.Key.Type)
                     {
@@ -4012,7 +4027,34 @@ namespace DemoScanner.DG
                                 if (abs(CurrentTime) > EPSILON)
                                     CurrentMsgBytes += nf.MsgBytes.Length;
 
+                                if (SkipNextErrors)
+                                {
+                                    if (DemoScanner.IsRussia)
+                                    {
+                                        Console.WriteLine("Сканирование неожиданно прервано.");
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("Demo analyze stopped because found unexpected file end.");
+                                    }
+                                    break;
+                                }
+
                                 ParseGameData(nf.MsgBytes);
+
+                                if (SkipNextErrors)
+                                {
+                                    if (DemoScanner.IsRussia)
+                                    {
+                                        Console.WriteLine("Сканирование неожиданно прервано.");
+                                    }
+                                    else
+                                    {
+                                        Console.WriteLine("Demo analyze stopped because found unexpected file end.");
+                                    }
+                                    break;
+                                }
+
                                 if (nf.MsgBytes.Length < 8 && abs(CurrentTime) > EPSILON)
                                 {
                                     EmptyFrames++;
@@ -6709,14 +6751,14 @@ namespace DemoScanner.DG
 
                                 LastIncomingAcknowledged = nf.IncomingAcknowledged;
 
-                                if (Math.Abs(CurrentTime) > EPSILON && nf.OutgoingSequence > 0 && LastOutgoingSequence > 0
+                                if (abs(LastChokePacket-CurrentTime) > 0.5 && abs(CurrentTime) > EPSILON && nf.OutgoingSequence > 0 && LastOutgoingSequence > 0
                                && nf.OutgoingSequence - LastOutgoingSequence > 2)
                                 {
                                     if(DemoScanner.DEBUG_ENABLED)
                                     {
                                         Console.WriteLine("Server lag (DROP FPS) at (" + CurrentTime + ") " + CurrentTimeString);
                                     }
-                                    DemoScanner.DemoScanner_AddTextMessage("Drop server fps", "SERVER_INFO", CurrentTime, CurrentTimeString);
+                                    DemoScanner.DemoScanner_AddTextMessage("Drop fps", "PLAYER_INFO", CurrentTime, CurrentTimeString);
                                     ServerLagCount++;
                                 }
 
@@ -7922,7 +7964,7 @@ namespace DemoScanner.DG
 
                     Console.WriteLine("Frameskip count:" + LossPackets2);
 
-                    Console.WriteLine("Choke count : " + ChokePackets);
+                    Console.WriteLine("Choke count(small sv_minrate) : " + ChokePackets);
 
                     if (PlayerSensUsageList.Count > 1)
                         Console.WriteLine("Player 'sensitivity' cvar: " + (PlayerSensUsageList[0].sens / 0.022).ToString("F2")
@@ -9190,7 +9232,6 @@ namespace DemoScanner.DG
         }
 
         public static int ErrorCount;
-        public static bool SkipNextErrors;
         private readonly Hashtable deltaDecoderTable;
 
         private readonly Hashtable
@@ -9549,51 +9590,13 @@ namespace DemoScanner.DG
                 {
                     DemoScanner.OutDumpString += "(E=" + ex.Message + ") (" + ex.Source + ") \n(" + ex.StackTrace + ")";
                 }
-                if (ErrorCount > 15)
-                {
-                    if (DemoScanner.DUMP_ALL_FRAMES)
-                    {
-                        DemoScanner.OutDumpString += "FATAL ERROR. STOP MESSAGE PARSING.\n}\n";
-                    }
-
-                    if (!SkipNextErrors && MessageBox.Show(
-                            "Error while demo parsing.\nPossible demo is HLTV or too old\nPlease convert demo using coldemoplayer and try again!\nContinue?? (Skip all errors but got bad result)",
-                            "Something wrong!", MessageBoxButtons.YesNo) !=
-                        DialogResult.Yes)
-                    {
-                        Environment.Exit(-1);
-                    }
-
-                    SkipNextErrors = true;
-                    return;
-                }
 
                 if (DemoScanner.DUMP_ALL_FRAMES)
                 {
-                    DemoScanner.OutDumpString += "ERROR IN PARSE MESSAGE.";
+                    DemoScanner.OutDumpString += "FATAL ERROR. STOP MESSAGE PARSING.\n}\n";
                 }
+                DemoScanner.SkipNextErrors = true;
             }
-            //catch
-            //{
-            //    ErrorCount++;
-            //    var tmpcolor = Console.ForegroundColor;
-            //    Console.ForegroundColor = ConsoleColor.Red;
-            //    Console.Write("(E)");
-            //    Console.ForegroundColor = tmpcolor;
-            //    if (ErrorCount > 5)
-            //    {
-            //        if (DemoScanner.DUMP_ALL_FRAMES)
-            //            DemoScanner.OutDumpString += "FATAL ERROR. STOP MESSAGE PARSING.\n}\n";
-            //        if (!SkipNextErrors && MessageBox.Show(
-            //                "Error while demo parsing.\nPossible demo is HLTV or too old\nPlease convert demo using coldemoplayer and try again!\nContinue?? (Skip all errors but got bad result)",
-            //                "Something wrong!", MessageBoxButtons.YesNo) !=
-            //            DialogResult.Yes) Environment.Exit(-1);
-            //        SkipNextErrors = true;
-            //        return;
-            //    }
-
-            //    if (DemoScanner.DUMP_ALL_FRAMES) DemoScanner.OutDumpString += "ERROR IN PARSE MESSAGE.";
-            //}
 
             if (DemoScanner.DUMP_ALL_FRAMES)
             {
