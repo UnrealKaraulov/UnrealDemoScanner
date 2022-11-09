@@ -27,7 +27,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.68.1_STABLE";
+        public const string PROGRAMVERSION = "1.68.2_STABLE";
 
         public enum AngleDirection
         {
@@ -3777,6 +3777,7 @@ namespace DemoScanner.DG
                                 }
 
                                 GoldSource.EventFrame eframe = (GoldSource.EventFrame)frame.Value;
+
 
                                 if (DUMP_ALL_FRAMES)
                                 {
@@ -8844,8 +8845,8 @@ namespace DemoScanner.DG
                             }
                             else if (CurrentEvents > 0)
                             {
-                                if (abs(PluginEvents - CurrentEvents) > 4
-                                    && abs(PluginEvents - CurrentEvents) + events > 4)
+                                if ( CurrentEvents - PluginEvents > 4
+                                    && CurrentEvents - (PluginEvents + events) > 4)
                                 {
                                     if (CurrentEvents != 0)
                                     {
@@ -8871,7 +8872,6 @@ namespace DemoScanner.DG
                             {
                                 OutDumpString += "\n{ EVENT PLUGIN }\n";
                             }
-
                             if (PluginEvents == -1)
                             {
                                 CurrentEvents = 0;
@@ -8879,8 +8879,7 @@ namespace DemoScanner.DG
                             }
                             else if (CurrentEvents > 0)
                             {
-                                if (abs(PluginEvents - CurrentEvents) > 4
-                                    && abs(PluginEvents - CurrentEvents) + events > 4)
+                                if (CurrentEvents - PluginEvents > 4)
                                 {
                                     if (CurrentEvents != 0)
                                     {
