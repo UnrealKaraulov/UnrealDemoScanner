@@ -27,7 +27,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.68.2_STABLE";
+        public const string PROGRAMVERSION = "1.68.3_STABLE";
 
         public enum AngleDirection
         {
@@ -4279,7 +4279,7 @@ namespace DemoScanner.DG
 
                                 CurrentFrameForward = CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_FORWARD);
 
-                                if (RealAlive && !InForward && !InBack && !PreviousFrameForward &&
+                                if (RealAlive && !InStrafe && !InForward && !InBack && !PreviousFrameForward &&
                                     CurrentFrameForward && abs(CurrentTime - LastMoveForward) > 1.0f && abs(CurrentTime - LastMoveBack) > 1.0f
                                     && abs(CurrentTime - LastUnMoveForward) > 1.5f)
                                 {
@@ -8845,7 +8845,7 @@ namespace DemoScanner.DG
                             }
                             else if (CurrentEvents > 0)
                             {
-                                if ( CurrentEvents - PluginEvents > 4
+                                if (CurrentEvents - PluginEvents > 4
                                     && CurrentEvents - (PluginEvents + events) > 4)
                                 {
                                     if (CurrentEvents != 0)
@@ -9350,7 +9350,7 @@ namespace DemoScanner.DG
             AddMessageHandler((byte)MessageId.svc_deltadescription,
                 MessageDeltaDescription);
             AddMessageHandler((byte)MessageId.svc_clientdata, MessageClientData);
-            AddMessageHandler((byte)MessageId.svc_stopsound, 2);
+            AddMessageHandler((byte)MessageId.svc_stopsound, MessageStopSound);
             AddMessageHandler((byte)MessageId.svc_pings, MessagePings);
             AddMessageHandler((byte)MessageId.svc_particle, 11);
             AddMessageHandler((byte)MessageId.svc_spawnstatic, MessageSpawnStatic);
@@ -9359,7 +9359,7 @@ namespace DemoScanner.DG
             AddMessageHandler((byte)MessageId.svc_spawnbaseline, MessageSpawnBaseline);
             AddMessageHandler((byte)MessageId.svc_tempentity, MessageTempEntity);
             AddMessageHandler((byte)MessageId.svc_setpause, MessageSetPause);
-            AddMessageHandler((byte)MessageId.svc_signonnum, 1);
+            AddMessageHandler((byte)MessageId.svc_signonnum, MessageSign);
             AddMessageHandler((byte)MessageId.svc_centerprint, MessageCenterPrint);
             AddMessageHandler((byte)MessageId.svc_spawnstaticsound, 14);
             AddMessageHandler((byte)MessageId.svc_intermission, MessageInterMission);
@@ -9957,7 +9957,12 @@ namespace DemoScanner.DG
 
         private void MessageVersion()
         {
-            Seek(4); // uint: server network protocol number.
+            uint version = BitBuffer.ReadUInt32(); // uint: server network protocol number.
+            if (DemoScanner.DUMP_ALL_FRAMES)
+            {
+                DemoScanner.OutDumpString += "PROTOCOL VERSION[" + version + "]\n";
+            }
+
         }
 
         private void MessageView()
@@ -10452,6 +10457,15 @@ namespace DemoScanner.DG
             }
         }
 
+        public void MessageStopSound()
+        {
+            int ent = BitBuffer.ReadUInt16();
+            if (DemoScanner.DUMP_ALL_FRAMES)
+            {
+                DemoScanner.OutDumpString += "[STOP SOUND ENT " + ent + " ]\n";
+            }
+        }
+
         public void MessagePings()
         {
             if (demo.GsDemoInfo.Header.NetProtocol <= 43)
@@ -10527,7 +10541,14 @@ namespace DemoScanner.DG
 
         private void MessageSpawnStatic()
         {
-            BitBuffer.SeekBytes(18);
+            int modelindex = BitBuffer.ReadUInt16();
+
+            if (DemoScanner.DUMP_ALL_FRAMES)
+            {
+                DemoScanner.OutDumpString += "MessageSpawnStatic:( id " + modelindex + " ){\n";
+            }
+
+            BitBuffer.SeekBytes(16);
             byte renderMode = BitBuffer.ReadByte();
 
             if (renderMode != 0)
@@ -10543,7 +10564,12 @@ namespace DemoScanner.DG
                 BitBuffer.Endian = BitBuffer.EndianType.Big;
             }
 
-            BitBuffer.SeekBits(10); // event index
+            int index = BitBuffer.ReadBits(10); // event index
+
+            if (DemoScanner.DUMP_ALL_FRAMES)
+            {
+                DemoScanner.OutDumpString += "MessageEventReliable:( id " + index + " ){\n";
+            }
 
             GetDeltaStructure("event_t").ReadDelta(BitBuffer, null);
 
@@ -10897,6 +10923,14 @@ namespace DemoScanner.DG
             // BitBuffer.SkipRemainingBits();
         }
 
+        private void MessageSign()
+        {
+            int signid = BitBuffer.ReadByte();
+            if (DemoScanner.DEBUG_ENABLED)
+            {
+                Console.Write("sign num:" + signid + "\n");
+            }
+        }
         private void MessageSetPause()
         {
             bool pause = BitBuffer.ReadByte() > 0;
