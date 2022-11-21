@@ -5322,7 +5322,7 @@ namespace DemoScanner.DG
 
                                 if (RealAlive && CurrentFrameAttacked && abs(CurrentTime - LastDeathTime) > 5.0f && abs(CurrentTime - LastAliveTime) > 2.0f)
                                 {
-                                    if (cdframeFov > 90 && abs(CurrentTime - FovHackTime) > 60.0f)
+                                    if (cdframeFov > 90 && abs(CurrentTime - FovHackTime) > 120.0f)
                                     {
                                         if (!IsAngleEditByEngine() && !IsPlayerLossConnection())
                                         {
