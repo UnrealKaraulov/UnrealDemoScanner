@@ -27,7 +27,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.68.3_STABLE";
+        public const string PROGRAMVERSION = "1.68.4_STABLE";
 
         public enum AngleDirection
         {
@@ -484,6 +484,7 @@ namespace DemoScanner.DG
         public static List<Player> fullPlayerList = new List<Player>();
         public static int maxfalsepositiveaim3 = 6;
         public static int FovHackDetected;
+        public static float FovHackTime;
         public static int ThirdHackDetected;
         public static bool SearchAim6 = false;
         public static List<WindowResolution> playerresolution = new List<WindowResolution>();
@@ -5321,18 +5322,16 @@ namespace DemoScanner.DG
 
                                 if (RealAlive && CurrentFrameAttacked && abs(CurrentTime - LastDeathTime) > 5.0f && abs(CurrentTime - LastAliveTime) > 2.0f)
                                 {
-                                    if (FovHackDetected < 5)
+                                    if (cdframeFov > 90 && abs(CurrentTime - FovHackTime) > 60.0f)
                                     {
-                                        if (cdframeFov > 90)
+                                        if (!IsAngleEditByEngine() && !IsPlayerLossConnection())
                                         {
-                                            if (!IsAngleEditByEngine() && !IsPlayerLossConnection())
-                                            {
-                                                DemoScanner_AddWarn(
-                                                    "[FOV HACK] at (" + CurrentTime +
-                                                    "):" + CurrentTimeString + (abs(cdframeFov - ClientFov) < EPSILON || abs(cdframeFov - FovByFunc) < EPSILON ? "[BY SERVER ???]" : ""));
+                                            DemoScanner_AddWarn(
+                                                "[FOV HACK TYPE 1] [" + cdframeFov + " FOV] at (" + CurrentTime +
+                                                "):" + CurrentTimeString + ((abs(cdframeFov - ClientFov) < EPSILON || abs(cdframeFov - FovByFunc) < EPSILON) ? "[BY SERVER ???]" : ""), !(abs(cdframeFov - ClientFov) < EPSILON || abs(cdframeFov - FovByFunc) < EPSILON));
 
-                                                FovHackDetected += 1;
-                                            }
+                                            FovHackTime = CurrentTime;
+                                            FovHackDetected += 1;
                                         }
                                     }
                                 }
@@ -11802,14 +11801,14 @@ namespace DemoScanner.DG
         {
             byte newfov = BitBuffer.ReadByte();
 
-            if (DemoScanner.FovByFunc != newfov && DemoScanner.DEBUG_ENABLED)
+            if (DemoScanner.FovByFunc != newfov)
             {
                 if (newfov != 0)
                 {
                     DemoScanner.SkipChangeWeapon = 2;
                 }
-
-                Console.WriteLine("Change fov from " + DemoScanner.FovByFunc + " to " + newfov + " at " + DemoScanner.CurrentTimeString);
+                if (DemoScanner.DEBUG_ENABLED)
+                    Console.WriteLine("Change fov from " + DemoScanner.FovByFunc + " to " + newfov + " at " + DemoScanner.CurrentTimeString);
             }
 
             DemoScanner.FovByFunc = newfov;
