@@ -5324,7 +5324,7 @@ namespace DemoScanner.DG
                                 {
                                     if (cdframeFov > 90 && abs(CurrentTime - FovHackTime) > 120.0f)
                                     {
-                                        if (!IsAngleEditByEngine() && !IsPlayerLossConnection())
+                                        if (!IsAngleEditByEngine() && !IsPlayerLossConnection() && FovHackDetected <= 5)
                                         {
                                             DemoScanner_AddWarn(
                                                 "[FOV HACK TYPE 1] [" + cdframeFov + " FOV] at (" + CurrentTime +
