@@ -27,7 +27,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.68.4_STABLE";
+        public const string PROGRAMVERSION = "1.68.5_STABLE";
 
         public enum AngleDirection
         {
@@ -484,10 +484,11 @@ namespace DemoScanner.DG
         public static List<Player> fullPlayerList = new List<Player>();
         public static int maxfalsepositiveaim3 = 6;
         public static int FovHackDetected;
-        public static float FovHackTime;
+        public static float FovHackTime = -9999.0f;
         public static int ThirdHackDetected;
         public static bool SearchAim6 = false;
         public static List<WindowResolution> playerresolution = new List<WindowResolution>();
+        public static float LastResolutionX = 90.0f, LastResolutionY = 90.0f;
         public static int CheatKey;
         public static int Reloads;
         public static int Reloads2;
@@ -2073,6 +2074,32 @@ namespace DemoScanner.DG
         }
 
 
+        public static float CalcFov(float fov_x, float width, float height)
+        {
+            if (width * 3 == 4 * height || width * 4 == height * 5)
+            {
+                double v3 = fov_x, v4 = 0.0;
+                if (fov_x < 1.0)
+                {
+                    v4 = 0.9999999999999999;
+                }
+                else if (v3 <= 179.0)
+                {
+                    v4 = Math.Tan(v3 / 360.0 * Math.PI);
+                }
+                else
+                {
+                    v4 = 0.9999999999999999;
+                }
+                return Convert.ToSingle(Math.Atan(height / (width / v4)) * 360.0 / Math.PI);
+            }
+            else
+            {
+                float new_y = Convert.ToSingle((2.0f * Math.Atan(Math.Tan(fov_x * Math.PI / 180.0f / 2.0f) * 0.75f /*768.0/1024.0*/ )) * 180.0f / Math.PI);
+                return Convert.ToSingle((2.0f * Math.Atan(Math.Tan(new_y * Math.PI / 180.0f / 2.0f) * width / height)) * 180.0f / Math.PI);
+            }
+        }
+
         public static void AddResolution(int x, int y)
         {
             if (x != 0 && y != 0)
@@ -2092,6 +2119,9 @@ namespace DemoScanner.DG
                 };
                 playerresolution.Add(tmpres);
             }
+
+            LastResolutionX = x;
+            LastResolutionY = y;
         }
 
         public static string TrimBad(this string value)
@@ -5322,16 +5352,26 @@ namespace DemoScanner.DG
 
                                 if (RealAlive && CurrentFrameAttacked && abs(CurrentTime - LastDeathTime) > 5.0f && abs(CurrentTime - LastAliveTime) > 2.0f)
                                 {
-                                    if (cdframeFov > 90 && abs(CurrentTime - FovHackTime) > 120.0f)
+                                    if (abs(CurrentTime - FovHackTime) > 60.0f)
                                     {
                                         if (!IsAngleEditByEngine() && !IsPlayerLossConnection() && FovHackDetected <= 5)
                                         {
-                                            DemoScanner_AddWarn(
-                                                "[FOV HACK TYPE 1] [" + cdframeFov + " FOV] at (" + CurrentTime +
-                                                "):" + CurrentTimeString + ((abs(cdframeFov - ClientFov) < EPSILON || abs(cdframeFov - FovByFunc) < EPSILON) ? "[BY SERVER ???]" : ""), !(abs(cdframeFov - ClientFov) < EPSILON || abs(cdframeFov - FovByFunc) < EPSILON));
-
-                                            FovHackTime = CurrentTime;
-                                            FovHackDetected += 1;
+                                            float fov0 = 90.0f;
+                                            float fov1 = CalcFov(ClientFov, LastResolutionX, LastResolutionY);
+                                            float fov2 = CalcFov(FovByFunc, LastResolutionX, LastResolutionY);
+                                            float fov3 = CalcFov(cdframeFov, LastResolutionX, LastResolutionY);
+                                            if (abs(cdframeFov - fov2) > 0.01 && abs(cdframeFov - fov1) > 0.01
+                                                 && abs(cdframeFov - fov0) > 0.01)
+                                            {
+                                                if (!(abs(cdframeFov - ClientFov) < EPSILON || abs(cdframeFov - FovByFunc) < EPSILON))
+                                                {
+                                                    DemoScanner_AddWarn(
+                                                        "[FOV HACK TYPE 1] [" + cdframeFov +/*" == " + fov1 + " or " + fov2 + " or " + fov3 + */" FOV] at (" + CurrentTime +
+                                                        "):" + CurrentTimeString, !(abs(cdframeFov - ClientFov) < EPSILON || abs(cdframeFov - FovByFunc) < EPSILON));
+                                                    FovHackTime = CurrentTime;
+                                                    FovHackDetected += 1;
+                                                }
+                                            }
                                         }
                                     }
                                 }
@@ -6813,7 +6853,7 @@ namespace DemoScanner.DG
                                 LastIncomingAcknowledged = nf.IncomingAcknowledged;
 
                                 if (abs(LastChokePacket - CurrentTime) > 0.5 && abs(CurrentTime) > EPSILON && nf.OutgoingSequence > 0 && LastOutgoingSequence > 0
-                               && nf.OutgoingSequence - LastOutgoingSequence > 2)
+                                && nf.OutgoingSequence - LastOutgoingSequence > 2)
                                 {
                                     if (DemoScanner.DEBUG_ENABLED)
                                     {
@@ -8623,7 +8663,7 @@ namespace DemoScanner.DG
         public static bool IsAngleEditByEngineForLearn()
         {
             return !NO_TELEPORT
-&& (IsPlayerTeleport() ||
+        && (IsPlayerTeleport() ||
                 CurrentTime - LastAngleManipulation < 0.20f ||
                 IsPlayerInDuck() ||
                 IsPlayerUnDuck() ||
@@ -10271,10 +10311,10 @@ namespace DemoScanner.DG
                 return;
             }
             /*
-* Если s пустая значит
-* ищем игрока с id и присваиваем ему новый слот
-* игрок со старым slot удаляем и перемещаем в другое место
-* */
+    * Если s пустая значит
+    * ищем игрока с id и присваиваем ему новый слот
+    * игрок со старым slot удаляем и перемещаем в другое место
+    * */
 
             DemoScanner.Player player = null;
             bool playerfound = false;
