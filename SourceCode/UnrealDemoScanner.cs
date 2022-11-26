@@ -27,7 +27,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.68.5_STABLE";
+        public const string PROGRAMVERSION = "1.68.6";
 
         public enum AngleDirection
         {
@@ -388,8 +388,9 @@ namespace DemoScanner.DG
 
         public static bool NeedCheckAttack;
 
-        public static float ClientFov = 90.0f;
-        public static float cdframeFov = 90.0f;
+        public static float ClientFov2 = 40.0f;
+        public static float ClientFov = 10.0f;
+        public static float cdframeFov = 10.0f;
         public static string DemoName = "";
 
         public static bool DisableJump5AndAim16;
@@ -719,6 +720,7 @@ namespace DemoScanner.DG
         public static float PlayerUnFrozenTime;
         public static int ReturnToGameDetects;
         public static int FovByFunc;
+        public static int FovByFunc2;
         public static bool IsScreenFade;
         public static float LastViewChange;
         public static bool HideWeapon;
@@ -827,6 +829,8 @@ namespace DemoScanner.DG
         public static int SearchJumpHack5;
 
         public static int SearchJumpHack51;
+
+        public static List<int> fovsAllowed = new List<int>();
 
         public static bool NeedSearchCMDHACK4 = false;
         public static bool BadPunchAngle = false;
@@ -3030,7 +3034,9 @@ namespace DemoScanner.DG
                                     subnode.Text += @"Fov = " + cdframe.Fov + "\n";
                                     subnode.Text += "}\n";
                                 }
+
                                 cdframeFov = cdframe.Fov;
+
 
                                 CDFrameYAngleHistory[0] = CDFrameYAngleHistory[1];
                                 CDFrameYAngleHistory[1] = CDFrameYAngleHistory[2];
@@ -5363,7 +5369,8 @@ namespace DemoScanner.DG
                                             if (abs(cdframeFov - fov2) > 0.01 && abs(cdframeFov - fov1) > 0.01
                                                  && abs(cdframeFov - fov0) > 0.01)
                                             {
-                                                if (!(abs(cdframeFov - ClientFov) < EPSILON || abs(cdframeFov - FovByFunc) < EPSILON))
+                                                if (!(abs(cdframeFov - ClientFov) < EPSILON || abs(cdframeFov - ClientFov2) < EPSILON || abs(cdframeFov - FovByFunc) < EPSILON
+                                                    || abs(cdframeFov - FovByFunc2) < EPSILON || abs(cdframeFov - fov0) < EPSILON))
                                                 {
                                                     DemoScanner_AddWarn(
                                                         "[FOV HACK TYPE 1] [" + cdframeFov +/*" == " + fov1 + " or " + fov2 + " or " + fov3 + */" FOV] at (" + CurrentTime +
@@ -11847,11 +11854,15 @@ namespace DemoScanner.DG
                 {
                     DemoScanner.SkipChangeWeapon = 2;
                 }
+
                 if (DemoScanner.DEBUG_ENABLED)
                     Console.WriteLine("Change fov from " + DemoScanner.FovByFunc + " to " + newfov + " at " + DemoScanner.CurrentTimeString);
             }
-
-            DemoScanner.FovByFunc = newfov;
+            if (newfov != DemoScanner.FovByFunc && newfov != DemoScanner.FovByFunc2)
+            {
+                DemoScanner.FovByFunc2 = DemoScanner.FovByFunc;
+                DemoScanner.FovByFunc = newfov;
+            }
         }
 
         private void TextMsg()
@@ -13288,7 +13299,14 @@ namespace DemoScanner.DG
                                     if (entryList[index].Name == "fov")
                                     {
                                         float fov = value != null ? (float)value : 0.0f;
-                                        DemoScanner.ClientFov = fov;
+
+                                        if (fov != DemoScanner.ClientFov && fov != DemoScanner.ClientFov2 &&
+                                            abs(fov - 90.0f) > EPSILON)
+                                        {
+                                            DemoScanner.ClientFov2 = DemoScanner.ClientFov;
+                                            DemoScanner.ClientFov = fov;
+                                        }
+
                                     }
 
                                     if (entryList[index].Name == "fuser2")
