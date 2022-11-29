@@ -27,7 +27,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.68.6";
+        public const string PROGRAMVERSION = "1.68.7";
 
         public enum AngleDirection
         {
@@ -5362,26 +5362,33 @@ namespace DemoScanner.DG
                                     {
                                         if (!IsAngleEditByEngine() && !IsPlayerLossConnection() && FovHackDetected <= 5)
                                         {
-                                            float fov0 = 90.0f;
-                                            float fov1 = CalcFov(ClientFov, LastResolutionX, LastResolutionY);
-                                            float fov2 = CalcFov(FovByFunc, LastResolutionX, LastResolutionY);
-                                            float fov3 = CalcFov(cdframeFov, LastResolutionX, LastResolutionY);
-                                            if (abs(cdframeFov - fov2) > 0.01 && abs(cdframeFov - fov1) > 0.01
-                                                 && abs(cdframeFov - fov0) > 0.01)
+                                            if (abs(cdframeFov - 90.0f) > 0.01)
                                             {
-                                                if (!(abs(cdframeFov - ClientFov) < EPSILON || abs(cdframeFov - ClientFov2) < EPSILON || abs(cdframeFov - FovByFunc) < EPSILON
-                                                    || abs(cdframeFov - FovByFunc2) < EPSILON || abs(cdframeFov - fov0) < EPSILON))
+                                                if (abs(cdframeFov - ClientFov) > 0.01 && abs(cdframeFov - ClientFov2) > 0.01
+                                                        && abs(cdframeFov - FovByFunc) > 0.01 && abs(cdframeFov - FovByFunc2) > 0.01)
                                                 {
-                                                    DemoScanner_AddWarn(
-                                                        "[FOV HACK TYPE 1] [" + cdframeFov +/*" == " + fov1 + " or " + fov2 + " or " + fov3 + */" FOV] at (" + CurrentTime +
-                                                        "):" + CurrentTimeString, !(abs(cdframeFov - ClientFov) < EPSILON || abs(cdframeFov - FovByFunc) < EPSILON));
-                                                    FovHackTime = CurrentTime;
-                                                    FovHackDetected += 1;
+                                                    float fov1 = CalcFov(ClientFov, LastResolutionX, LastResolutionY);
+                                                    float fov2 = CalcFov(FovByFunc, LastResolutionX, LastResolutionY);
+                                                    float fov3 = CalcFov(ClientFov2, LastResolutionX, LastResolutionY);
+                                                    float fov4 = CalcFov(FovByFunc2, LastResolutionX, LastResolutionY);
+
+                                                    if (abs(cdframeFov - fov1) > 0.01 && abs(cdframeFov - fov2) > 0.01
+                                                         && abs(cdframeFov - fov3) > 0.01 && abs(cdframeFov - fov4) > 0.01)
+                                                    {
+                                                        DemoScanner_AddWarn(
+                                                            "[FOV HACK TYPE 1] [" + cdframeFov +/*" == " + fov1 + " or " + fov2 + " or " + fov3 + */" FOV] at (" + CurrentTime +
+                                                            "):" + CurrentTimeString, !(abs(cdframeFov - ClientFov) < EPSILON || abs(cdframeFov - FovByFunc) < EPSILON));
+                                                        FovHackTime = CurrentTime;
+                                                        FovHackDetected += 1;
+                                                    }
                                                 }
                                             }
                                         }
+
+
                                     }
                                 }
+
 
                                 if (NeedDetectThirdPersonHack)
                                 {
@@ -13300,8 +13307,7 @@ namespace DemoScanner.DG
                                     {
                                         float fov = value != null ? (float)value : 0.0f;
 
-                                        if (fov != DemoScanner.ClientFov && fov != DemoScanner.ClientFov2 &&
-                                            abs(fov - 90.0f) > EPSILON)
+                                        if (fov != DemoScanner.ClientFov && fov != DemoScanner.ClientFov2)
                                         {
                                             DemoScanner.ClientFov2 = DemoScanner.ClientFov;
                                             DemoScanner.ClientFov = fov;
