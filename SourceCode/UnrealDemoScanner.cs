@@ -27,7 +27,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.68.7";
+        public const string PROGRAMVERSION = "1.68.8";
 
         public enum AngleDirection
         {
@@ -389,8 +389,9 @@ namespace DemoScanner.DG
         public static bool NeedCheckAttack;
 
         public static float ClientFov2 = 40.0f;
-        public static float ClientFov = 10.0f;
-        public static float cdframeFov = 10.0f;
+        public static float ClientFov = 90.0f;
+        public static float cdframeFov = 90.0f;
+        public static float checkFov = 90.0f;
         public static string DemoName = "";
 
         public static bool DisableJump5AndAim16;
@@ -1073,7 +1074,7 @@ namespace DemoScanner.DG
             for (int i = 0; i < DemoScannerWarnList.Count; i++)
             {
                 WarnStruct curwarn = DemoScannerWarnList[i];
-                if (!curwarn.Visited && (abs(CurrentTime - curwarn.WarnTime) > 0.2f || force))
+                if (!curwarn.Visited && (abs(CurrentTime - curwarn.WarnTime) > 0.2f || force || DEBUG_ENABLED))
                 {
                     curwarn.Visited = true;
 
@@ -3037,6 +3038,39 @@ namespace DemoScanner.DG
 
                                 cdframeFov = cdframe.Fov;
 
+                                if (RealAlive && CurrentFrameAttacked && abs(CurrentTime - LastDeathTime) > 5.0f && abs(CurrentTime - LastAliveTime) > 2.0f)
+                                {
+                                    if (abs(CurrentTime - FovHackTime) > 60.0f)
+                                    {
+                                        if (!IsAngleEditByEngine() && !IsPlayerLossConnection() && FovHackDetected <= 5)
+                                        {
+                                            if (abs(checkFov - 90.0f) > 0.01 && abs(checkFov - 40.0f) > 0.01 && abs(checkFov - 10.0f) > 0.01)
+                                            {
+                                                if (abs(checkFov - ClientFov) > 0.01 && abs(checkFov - ClientFov2) > 0.01
+                                                        && abs(checkFov - FovByFunc) > 0.01 && abs(checkFov - FovByFunc2) > 0.01)
+                                                {
+                                                    float fov1 = CalcFov(ClientFov, LastResolutionX, LastResolutionY);
+                                                    float fov2 = CalcFov(FovByFunc, LastResolutionX, LastResolutionY);
+                                                    float fov3 = CalcFov(ClientFov2, LastResolutionX, LastResolutionY);
+                                                    float fov4 = CalcFov(FovByFunc2, LastResolutionX, LastResolutionY);
+
+                                                    if (abs(checkFov - fov1) > 0.01 && abs(checkFov - fov2) > 0.01
+                                                         && abs(checkFov - fov3) > 0.01 && abs(checkFov - fov4) > 0.01)
+                                                    {
+                                                        DemoScanner_AddWarn(
+                                                            "[FOV HACK TYPE 1] [" + checkFov +/*" == " + fov1 + " or " + fov2 + " or " + fov3 + */" FOV] at (" + CurrentTime +
+                                                            "):" + CurrentTimeString, !(abs(checkFov - ClientFov) < EPSILON || abs(checkFov - FovByFunc) < EPSILON));
+                                                        FovHackTime = CurrentTime;
+                                                        FovHackDetected += 1;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+
+                                checkFov = cdframeFov;
 
                                 CDFrameYAngleHistory[0] = CDFrameYAngleHistory[1];
                                 CDFrameYAngleHistory[1] = CDFrameYAngleHistory[2];
@@ -4719,7 +4753,7 @@ namespace DemoScanner.DG
                                             {
                                                 DemoScanner_AddWarn(
                                                     "[MOVEMENT HACK TYPE 2] at (" +
-                                                    CurrentTime + ") " + CurrentTimeString, !IsAngleEditByEngine() && !IsPlayerLossConnection() && (nf.UCmd.Sidemove < -100 || nf.UCmd.Sidemove > 100));
+                                                    CurrentTime + ") " + nf.UCmd.Sidemove + ":" + CurrentTimeString, IsValidMovement() && !IsPlayerLossConnection() && (nf.UCmd.Sidemove < -100 || nf.UCmd.Sidemove > 100));
                                                 LastMovementHackTime = CurrentTime;
                                                 KreedzHacksCount++;
                                             }
@@ -5356,39 +5390,7 @@ namespace DemoScanner.DG
                                 }
 
 
-                                if (RealAlive && CurrentFrameAttacked && abs(CurrentTime - LastDeathTime) > 5.0f && abs(CurrentTime - LastAliveTime) > 2.0f)
-                                {
-                                    if (abs(CurrentTime - FovHackTime) > 60.0f)
-                                    {
-                                        if (!IsAngleEditByEngine() && !IsPlayerLossConnection() && FovHackDetected <= 5)
-                                        {
-                                            if (abs(cdframeFov - 90.0f) > 0.01)
-                                            {
-                                                if (abs(cdframeFov - ClientFov) > 0.01 && abs(cdframeFov - ClientFov2) > 0.01
-                                                        && abs(cdframeFov - FovByFunc) > 0.01 && abs(cdframeFov - FovByFunc2) > 0.01)
-                                                {
-                                                    float fov1 = CalcFov(ClientFov, LastResolutionX, LastResolutionY);
-                                                    float fov2 = CalcFov(FovByFunc, LastResolutionX, LastResolutionY);
-                                                    float fov3 = CalcFov(ClientFov2, LastResolutionX, LastResolutionY);
-                                                    float fov4 = CalcFov(FovByFunc2, LastResolutionX, LastResolutionY);
-
-                                                    if (abs(cdframeFov - fov1) > 0.01 && abs(cdframeFov - fov2) > 0.01
-                                                         && abs(cdframeFov - fov3) > 0.01 && abs(cdframeFov - fov4) > 0.01)
-                                                    {
-                                                        DemoScanner_AddWarn(
-                                                            "[FOV HACK TYPE 1] [" + cdframeFov +/*" == " + fov1 + " or " + fov2 + " or " + fov3 + */" FOV] at (" + CurrentTime +
-                                                            "):" + CurrentTimeString, !(abs(cdframeFov - ClientFov) < EPSILON || abs(cdframeFov - FovByFunc) < EPSILON));
-                                                        FovHackTime = CurrentTime;
-                                                        FovHackDetected += 1;
-                                                    }
-                                                }
-                                            }
-                                        }
-
-
-                                    }
-                                }
-
+                                
 
                                 if (NeedDetectThirdPersonHack)
                                 {
@@ -6869,11 +6871,6 @@ namespace DemoScanner.DG
                                 if (abs(LastChokePacket - CurrentTime) > 0.5 && abs(CurrentTime) > EPSILON && nf.OutgoingSequence > 0 && LastOutgoingSequence > 0
                                 && nf.OutgoingSequence - LastOutgoingSequence > 2)
                                 {
-                                    if (DemoScanner.DEBUG_ENABLED)
-                                    {
-                                        Console.WriteLine("Server lag (DROP FPS) at (" + CurrentTime + ") " + CurrentTimeString);
-                                    }
-                                    DemoScanner.DemoScanner_AddTextMessage("Drop fps", "PLAYER_INFO", CurrentTime, CurrentTimeString);
                                     ServerLagCount++;
                                 }
 
@@ -8672,6 +8669,19 @@ namespace DemoScanner.DG
                 HideWeapon ||
                abs(CurrentTime - LastLookDisabled) < 0.75f) ||
                abs(CurrentTime - HorAngleTime) < 0.15;
+        }
+
+        public static bool IsValidMovement()
+        {
+            return !(!NO_TELEPORT
+                && (IsPlayerTeleport() ||
+                abs(CurrentTime - LastAngleManipulation) < 0.50f ||
+                IsTakeDamage() ||
+                IsPlayerFrozen() ||
+                IsViewChanged() ||
+                HideWeapon ||
+               abs(CurrentTime - LastLookDisabled) < 0.75f) ||
+               abs(CurrentTime - HorAngleTime) < 0.15);
         }
 
         public static bool IsAngleEditByEngineForLearn()
@@ -11854,7 +11864,10 @@ namespace DemoScanner.DG
         private void SetFOV()
         {
             byte newfov = BitBuffer.ReadByte();
-
+            if (DemoScanner.DUMP_ALL_FRAMES)
+            {
+                DemoScanner.OutDumpString += "newfov " + newfov + "\n";
+            }
             if (DemoScanner.FovByFunc != newfov)
             {
                 if (newfov != 0)
