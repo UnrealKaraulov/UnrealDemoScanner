@@ -8,7 +8,7 @@
 
 #define PLUGIN "Unreal Demo Plugin"
 #define AUTHOR "karaulov"
-#define VERSION "1.53"
+#define VERSION "1.54"
 
 
 new g_iDemoHelperInitStage[33];
@@ -34,6 +34,7 @@ public client_disconnected(id)
 	g_iPbEventCount[id] = 0;
 	g_iFrameNum[id] = 0;
 	g_iDemoHelperInitStage[id] = 0;
+	remove_task(id);
 }
 
 /*Server not processed angles. Always empty.*/
@@ -115,6 +116,7 @@ public UnrealDemoHelpInitialize(id)
 	g_iDemoHelperInitStage[id] = 0;
 	if (is_user_connected(id))
 	{
+		remove_task(id);
 		set_task(1.0,"DemoHelperInitializeTask",id);
 	}
 }
