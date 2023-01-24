@@ -27,7 +27,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.68.8";
+        public const string PROGRAMVERSION = "1.68.9";
 
         public enum AngleDirection
         {
@@ -4049,6 +4049,10 @@ namespace DemoScanner.DG
                                 if (AlternativeTimeCounter == 1)
                                 {
                                     CurrentTime = CurrentTimeSvc;
+                                    if (abs(CurrentTime) > 1.0 && abs(CurrentTimeSvc) < 0.01f)
+                                    {
+                                        BadTimeFound += 20;
+                                    }
                                 }
                                 else if (AlternativeTimeCounter > 1)
                                 {
@@ -4060,6 +4064,10 @@ namespace DemoScanner.DG
                                 }
                                 else
                                 {
+                                    if (abs(CurrentTime) > 1.0 && abs(nf.RParms.Time) < 0.01f)
+                                    {
+                                        BadTimeFound += 20;
+                                    }
                                     CurrentTime = nf.RParms.Time;
                                 }
 
@@ -4079,12 +4087,10 @@ namespace DemoScanner.DG
                                 }
                                 else
                                 {
-                                    if (CurrentTime <= PreviousTime)
+                                    if (CurrentTime < PreviousTime)
                                     {
                                         BadTimeFound++;
                                     }
-                                    else
-                                        BadTimeFound = 0;
                                 }
 
                                 if (PREVIEW_FRAMES && IsUserAlive())
