@@ -27,7 +27,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.68.9";
+        public const string PROGRAMVERSION = "1.68.10";
 
         public enum AngleDirection
         {
@@ -1437,10 +1437,15 @@ namespace DemoScanner.DG
             {
                 if (sLower.IndexOf("+attack") > -1)
                 {
+                    if (abs(CurrentTime) < 0.01 || CurrentTime < LastAttackCmdTime)
+                    {
+                        BadTimeFound += 10;
+                    }
+
                     SearchAutoReload = false;
                     AttackFloodTimes++;
 
-                    if (AttackFloodTimes > 4)
+                    if (AttackFloodTimes >= 4)
                     {
                         if (abs(CurrentTime - LastFloodAttackTime) > 20.0)
                         {
@@ -1946,6 +1951,11 @@ namespace DemoScanner.DG
                     {
                         MouseJumps++;
                     }
+                }
+
+                if (abs(CurrentTime) < 0.01 || CurrentTime < LastJumpTime)
+                {
+                    BadTimeFound += 10;
                 }
 
                 LastJumpTime = CurrentTime;
@@ -4084,6 +4094,18 @@ namespace DemoScanner.DG
                                         DemoScanner_AddInfo(
                                                             "[CHANGE TIME METHOD METHOD:" + AlternativeTimeCounter + " ] at (" + CurrentTime +
                                                             "):" + CurrentTimeString);
+                                }
+                                else if (BadTimeFound > 250 && AlternativeTimeCounter > 2)
+                                {
+                                    BadTimeFound = 0;
+                                    if (IsRussia)
+                                        DemoScanner_AddWarn(
+                                                        "[ОШИБКА ВРЕМЕНИ. ДЕМО ВЗЛОМАНО!:" + AlternativeTimeCounter + " ] на (" + CurrentTime +
+                                                        "):" + CurrentTimeString, true, true, true);
+                                    else
+                                        DemoScanner_AddWarn(
+                                                            "[ОШИБКА ВРЕМЕНИ. ДЕМО ВЗЛОМАНО!:" + AlternativeTimeCounter + " ] at (" + CurrentTime +
+                                                            "):" + CurrentTimeString, true, true, true);
                                 }
                                 else
                                 {
