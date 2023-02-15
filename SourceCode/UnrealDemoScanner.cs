@@ -27,7 +27,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.68.10";
+        public const string PROGRAMVERSION = "1.68.11";
 
         public enum AngleDirection
         {
@@ -4545,10 +4545,10 @@ namespace DemoScanner.DG
                                         attackscounter3++;
                                     }
 
-                                    if (abs(CurrentTime - IsNoAttackLastTime) > 240.0)
-                                    {
-                                        UsingAnotherMethodWeaponDetection = !UsingAnotherMethodWeaponDetection;
-                                    }
+                                    //if (abs(CurrentTime - IsNoAttackLastTime) > 240.0)
+                                    //{
+                                    //    UsingAnotherMethodWeaponDetection = !UsingAnotherMethodWeaponDetection;
+                                    //}
 
                                     if (DEBUG_ENABLED)
                                     {

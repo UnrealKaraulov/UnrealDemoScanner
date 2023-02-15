@@ -2,7 +2,7 @@
 <Project>
   <ProjectOutputs>
     <ProjectOutput>
-      <FullPath>C:\Projects\ToolsProjects\UnrealDemoScanner\Release\ReVoiceDecoder.exe</FullPath>
+      <FullPath>C:\Projects\CS1.6\UnrealDemoScanner\Release\ReVoiceDecoder.exe</FullPath>
     </ProjectOutput>
   </ProjectOutputs>
   <ContentFiles />
