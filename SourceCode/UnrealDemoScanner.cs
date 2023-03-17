@@ -27,7 +27,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.68.11";
+        public const string PROGRAMVERSION = "1.68.12";
 
         public enum AngleDirection
         {
@@ -630,7 +630,7 @@ namespace DemoScanner.DG
         public static uint LastPlayerEntity;
         public static uint LastEntity;
         public static int PlayerTeleportus;
-        public static bool NeedRescanDemoForce;
+        public static bool NeedRescanDemoForce = false;
         public static bool FirstBypassKill = true;
         public static int BypassCount;
         public static float LastMovementHackTime;
@@ -3840,7 +3840,7 @@ namespace DemoScanner.DG
                                 FirstUserAlive = false;
                                 UserAlive = false;
                                 RealAlive = false;
-                                FirstBypassKill = true;
+                                //FirstBypassKill = true;
                                 BypassCount = 0;
                                 FirstDuck = false;
                                 FirstJump = false;
@@ -4086,6 +4086,8 @@ namespace DemoScanner.DG
                                     BadTimeFound = 0;
                                     AlternativeTimeCounter++;
 
+                                    Console.Clear();
+
                                     if (IsRussia)
                                         DemoScanner_AddInfo(
                                                         "[СМЕНА ПОДСЧЕТА ВРЕМЕНИ РЕЖИМ:" + AlternativeTimeCounter + " ] на (" + CurrentTime +
@@ -4094,6 +4096,7 @@ namespace DemoScanner.DG
                                         DemoScanner_AddInfo(
                                                             "[CHANGE TIME METHOD METHOD:" + AlternativeTimeCounter + " ] at (" + CurrentTime +
                                                             "):" + CurrentTimeString);
+                                    NeedRescanDemoForce = true;
                                 }
                                 else if (BadTimeFound > 250 && AlternativeTimeCounter > 2)
                                 {
