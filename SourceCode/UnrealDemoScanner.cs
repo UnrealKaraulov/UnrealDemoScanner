@@ -27,7 +27,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.68.12";
+        public const string PROGRAMVERSION = "1.68.13";
 
         public enum AngleDirection
         {
@@ -1245,7 +1245,7 @@ namespace DemoScanner.DG
                 }
             }
 
-            if (DUMP_ALL_FRAMES && isstuff)
+            if (DUMP_ALL_FRAMES)
             {
                 DemoScanner.OutDumpString += "{CMD:\"" + s2 + " " + (isstuff ? "STUFFCMD\"" : "\"") + "}\n";
             }
@@ -7336,8 +7336,7 @@ namespace DemoScanner.DG
 
             if (PlayerSensUsageList.Count > 1)
             {
-                PlayerSensUsageList.OrderBy(x => x.usagecount);
-
+                PlayerSensUsageList = PlayerSensUsageList.OrderBy(x => x.usagecount).ToList();
             }
             /*if (ENABLE_LEARN_CLEAN_DEMO)
                 if (BHOPcount < 4 && BadAttackCount < 4 && TotalAimBotDetected < 4 && FakeLagAim < 4 && KreedzHacksCount < 4) MachineLearnAnglesCLEAN.WriteAnglesDB();
@@ -7413,7 +7412,7 @@ namespace DemoScanner.DG
 
                     if (strikedir.EndsWith("/") || strikedir.EndsWith("\\"))
                     {
-                        strikedir.Remove(strikedir.Length - 1);
+                        strikedir = strikedir.Remove(strikedir.Length - 1);
                     }
 
                     if (File.Exists(strikedir + "\\..\\" + "hw.dll"))

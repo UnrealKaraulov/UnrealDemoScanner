@@ -1,6 +1,4 @@
 ﻿using DemoScanner.DemoStuff.GoldSource;
-using DemoScanner.DemoStuff.L4D2Branch;
-using DemoScanner.DemoStuff.Source;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -89,35 +87,11 @@ namespace DemoScanner.DemoStuff
         public GoldSourceDemoInfoHlsooe HlsooeDemoInfo;
 
         /// <summary>
-        ///     The data about the L4D2 Branch demo
-        /// </summary>
-        public L4D2BranchDemoInfo L4D2BranchInfo;
-
-        public byte MaxClients;
-
-        /// <summary>
-        ///     The data about the Source engine demo
-        /// </summary>
-        public SourceDemoInfo Sdi;
-
-        /// <summary>
         ///     Type of the demo
         /// </summary>
         public Parseresult Type;
 
-        /// <summary>
-        ///     Full constructor
-        /// </summary>
-        public CrossParseResult(GoldSourceDemoInfoHlsooe gsdi, Parseresult pr, SourceDemoInfo sdi,
-            GoldSourceDemoInfo gd, L4D2BranchDemoInfo lbi, List<Tuple<string, string>> dd)
-        {
-            HlsooeDemoInfo = gsdi;
-            Type = pr;
-            Sdi = sdi;
-            GsDemoInfo = gd;
-            L4D2BranchInfo = lbi;
-            DisplayData = dd;
-        }
+        public byte MaxClients;
 
         /// <summary>
         ///     Empty constructor
@@ -168,26 +142,9 @@ namespace DemoScanner.DemoStuff
                     cpr.Type = Parseresult.UnsupportedFile;
                     //Main.//Log("Demotype check resulted in an unsupported file.");
                     break;
-                case Parseresult.Source:
-                    cpr.Type = Parseresult.Source;
-                    var a = new SourceParser(new MemoryStream(File.ReadAllBytes(filename)));
-                    cpr.Sdi = a.Info;
-                    if (cpr.Sdi.GameDirectory == "portal")
-                    {
-                        cpr.Type = Parseresult.Portal;
-                        var lp = new L4D2BranchParser();
-                        cpr.L4D2BranchInfo = lp.Parse(filename);
-                    }
-
-                    break;
                 case Parseresult.Hlsooe:
                     cpr.Type = Parseresult.Hlsooe;
                     cpr.HlsooeDemoInfo = GoldSourceParser.ParseDemoHlsooe(filename);
-                    break;
-                case Parseresult.L4D2Branch:
-                    cpr.Type = Parseresult.L4D2Branch;
-                    var l = new L4D2BranchParser();
-                    cpr.L4D2BranchInfo = l.Parse(filename);
                     break;
                 default:
                     cpr.Type = Parseresult.UnsupportedFile;
@@ -324,51 +281,6 @@ namespace DemoScanner.DemoStuff
                             $"{demo.HlsooeDemoInfo.DirectoryEntries.SkipWhile(x => x.FrameCount < 1).Max(x => x.Frames.Max(y => y.Key.Index)) * 0.015}s [{demo.HlsooeDemoInfo.DirectoryEntries.SkipWhile(x => x.FrameCount < 1).Max(x => x.Frames.Max(y => y.Key.Index))}ticks]"),
                         new Tuple<string, string>("Save flag:",
                             $"{demo.HlsooeDemoInfo.DirectoryEntries.SkipWhile(x => x.FrameCount < 1).Max(x => x.Frames.Where(y => y.Key.Type == Hlsooe.DemoFrameType.ConsoleCommand).FirstOrDefault(z => ((Hlsooe.ConsoleCommandFrame) z.Value).Command.Contains("#SAVE#")).Key.Index) * 0.015} [{demo.HlsooeDemoInfo.DirectoryEntries.SkipWhile(x => x.FrameCount < 1).Max(x => x.Frames.Where(y => y.Key.Type == Hlsooe.DemoFrameType.ConsoleCommand).FirstOrDefault(z => ((Hlsooe.ConsoleCommandFrame) z.Value).Command.Contains("#SAVE#")).Key.Index)}ticks]")
-                    };
-                    break;
-                case Parseresult.Source:
-                    result = new List<Tuple<string, string>>
-                    {
-                        new Tuple<string, string>("Demo protocol", $"{demo.Sdi.DemoProtocol}"),
-                        new Tuple<string, string>("Net protocol", $"{demo.Sdi.NetProtocol}"),
-                        new Tuple<string, string>("Server name", $"{demo.Sdi.ServerName}"),
-                        new Tuple<string, string>("Client name", $"{demo.Sdi.ClientName}"),
-                        new Tuple<string, string>("Map name", $"{demo.Sdi.MapName}"),
-                        new Tuple<string, string>("Playback seconds", $"{demo.Sdi.Seconds.ToString("n3")}s"),
-                        new Tuple<string, string>("Playback tick count", $"{demo.Sdi.TickCount}"),
-                        new Tuple<string, string>("Event count", $"{demo.Sdi.EventCount}"),
-                        new Tuple<string, string>("Length",
-                            $"{(demo.Sdi.Messages.SkipWhile(x => x.Type != SourceParser.MessageType.SyncTick).Max(x => x.Tick) * 0.015).ToString("n3")}s"),
-                        new Tuple<string, string>("Ticks",
-                            $"{demo.Sdi.Messages.SkipWhile(x => x.Type != SourceParser.MessageType.SyncTick).Max(x => x.Tick)}")
-                    };
-                    break;
-                case Parseresult.Portal:
-                case Parseresult.L4D2Branch:
-                    result = new List<Tuple<string, string>>
-                    {
-                        new Tuple<string, string>("Demo protocol", $"{demo.L4D2BranchInfo.Header.Protocol}"),
-                        new Tuple<string, string>("Net protocol", $"{demo.L4D2BranchInfo.Header.NetworkProtocol}"),
-                        new Tuple<string, string>("Server name", $"{demo.L4D2BranchInfo.Header.ServerName}"),
-                        new Tuple<string, string>("Client name", $"{demo.L4D2BranchInfo.Header.ClientName}"),
-                        new Tuple<string, string>("Mapname", $"{demo.L4D2BranchInfo.Header.MapName}"),
-                        new Tuple<string, string>("GameDir", $"{demo.L4D2BranchInfo.Header.GameDirectory}"),
-                        new Tuple<string, string>("Playback seconds",
-                            $"{demo.L4D2BranchInfo.Header.PlaybackTime.ToString("n3")}s"),
-                        new Tuple<string, string>("Playback tick count", $"{demo.L4D2BranchInfo.Header.PlaybackTicks}"),
-                        new Tuple<string, string>("Event count", $"{demo.L4D2BranchInfo.Header.EventCount}"),
-                        new Tuple<string, string>("Signon Length", $"{demo.L4D2BranchInfo.Header.SignonLength}"),
-                        new Tuple<string, string>("Tickrate", $"{demo.L4D2BranchInfo.Header.Tickrate}"),
-                        new Tuple<string, string>("Start tick",
-                            $"{demo.L4D2BranchInfo.PortalDemoInfo?.StartAdjustmentTick}"),
-                        new Tuple<string, string>("Type", $"{demo.L4D2BranchInfo.PortalDemoInfo?.StartAdjustmentType}"),
-                        new Tuple<string, string>("End tick",
-                            $"{demo.L4D2BranchInfo.PortalDemoInfo?.EndAdjustmentTick}"),
-                        new Tuple<string, string>("Type", $"{demo.L4D2BranchInfo.PortalDemoInfo?.EndAdjustmentType}"),
-                        new Tuple<string, string>("Adjusted time",
-                            $"{demo.L4D2BranchInfo.PortalDemoInfo?.AdjustTime(demo.L4D2BranchInfo.Header.TicksPerSecond).ToString("n3")}s"),
-                        new Tuple<string, string>("Adjusted ticks",
-                            $"{demo.L4D2BranchInfo.PortalDemoInfo?.AdjustedTicks}")
                     };
                     break;
             }
