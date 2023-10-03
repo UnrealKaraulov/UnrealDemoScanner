@@ -1,7 +1,6 @@
 ﻿using ConsoleTables;
 using DemoScanner.DemoStuff;
 using DemoScanner.DemoStuff.GoldSource;
-using DemoScanner.Settings;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -91,7 +90,7 @@ namespace DemoScanner.DG
             public int state;
         }
 
-        public static bool SkipNextErrors;
+        public static bool SkipNextErrors = false;
 
         public static MyThreadState[] myThreadStates = new MyThreadState[RESOURCE_DOWNLOAD_THREADS + 1];
 
@@ -108,10 +107,10 @@ namespace DemoScanner.DG
         public const float MAX_SPREAD_CONST2 = 0.00004f;
         public const int LEARN_FLOAT_COUNT = 3;
 
-        public static bool DEBUG_ENABLED;
-        public static bool NO_TELEPORT;
-        public static bool DUMP_ALL_FRAMES;
-        public static bool PREVIEW_FRAMES;
+        public static bool DEBUG_ENABLED = false;
+        public static bool NO_TELEPORT = false;
+        public static bool DUMP_ALL_FRAMES = false;
+        public static bool PREVIEW_FRAMES = false;
 
         public const float MIN_SENS_DETECTED = 0.0004f; //SENS < 0.02 (0.018)
         public const float MIN_SENS_WARNING = 0.004f; //SENS < 0.2 (0.18)
@@ -122,44 +121,44 @@ namespace DemoScanner.DG
 
 
         /* public static List<float> LearnAngles = new List<float>();
-         public static bool ENABLE_LEARN_CLEAN_DEMO;
-         public static bool AUTO_LEARN_HACK_DB;
-         public static bool ENABLE_LEARN_HACK_DEMO;
+         public static bool ENABLE_LEARN_CLEAN_DEMO = false;
+         public static bool AUTO_LEARN_HACK_DB = false;
+         public static bool ENABLE_LEARN_HACK_DEMO = false;
          public static bool ENABLE_LEARN_HACK_DEMO_SAVE_ALL_ANGLES = false;
-         public static bool ENABLE_LEARN_HACK_DEMO_FORCE_SAVE;
+         public static bool ENABLE_LEARN_HACK_DEMO_FORCE_SAVE = false;
          public static MachineLearn_CheckAngles MachineLearnAnglesCLEAN = new MachineLearn_CheckAngles("Y_ATTACK_DB_v3.bin", LEARN_FLOAT_COUNT);
          public static MachineLearn_CheckAngles MachineLearnAnglesHACK = new MachineLearn_CheckAngles("Y_ATTACK_DB_HACK_v3.bin", LEARN_FLOAT_COUNT);
         */
-        public static List<string> outFrames;
+        public static List<string> outFrames = new List<string>();
 
-        public static float CurrentFrameTimeBetween;
+        public static float CurrentFrameTimeBetween = 0.0f;
 
-        public static float CurrentTime;
-        public static float CurrentTimeSvc;
-        public static float CurrentTime2;
-        public static float CurrentTime3;
+        public static float CurrentTime = 0.0f;
+        public static float CurrentTimeSvc = 0.0f;
+        public static float CurrentTime2 = 0.0f;
+        public static float CurrentTime3 = 0.0f;
 
-        public static float PreviousTime;
-        public static float PreviousTime2;
-        public static float PreviousTime3;
+        public static float PreviousTime = 0.0f;
+        public static float PreviousTime2 = 0.0f;
+        public static float PreviousTime3 = 0.0f;
 
         public static List<string> whiteListCMDLIST = new List<string>();
 
         public static List<string> unknownCMDLIST = new List<string>();
 
-        public static bool IsJump;
-        public static bool FirstJump;
-        public static bool FirstAttack;
+        public static bool IsJump = false;
+        public static bool FirstJump = false;
+        public static bool FirstAttack = false;
 
-        public static bool NewDirectory;
+        public static bool NewDirectory = false;
 
-        public static int DuckHack3Search;
+        public static int DuckHack3Search = 0;
 
-        public static bool IsDuck;
-        public static bool IsDuckPressed;
-        public static bool FirstDuck;
-        public static float LastUnDuckTime;
-        public static float LastDuckTime;
+        public static bool IsDuck = false;
+        public static bool IsDuckPressed = false;
+        public static bool FirstDuck = false;
+        public static float LastUnDuckTime = 0.0f;
+        public static float LastDuckTime = 0.0f;
 
         public static int MouseJumps = -1;
         public static int JumpWithAlias = -1;
@@ -171,152 +170,152 @@ namespace DemoScanner.DG
 
         public static bool NotFirstEventShift = true;
 
-        public static FPoint oldoriginpos;
-        public static FPoint curoriginpos;
+        public static FPoint oldoriginpos = new FPoint();
+        public static FPoint curoriginpos = new FPoint();
 
         public static int onground_and_alive_tests = 0;
         public static int speedhackdetects = -1;
-        public static float speedhackdetect_time;
+        public static float speedhackdetect_time = 0.0f;
 
-        public static int CurrentFrameLerp;
+        public static int CurrentFrameLerp = 0;
 
-        public static int LerpBeforeAttack;
-        public static int LerpBeforeStopAttack;
-        public static int LerpAfterAttack;
-        public static bool NeedDetectLerpAfterAttack;
-        public static int LerpSearchFramesCount;
-        public static float CurrentFrameTime;
-        public static float PreviousFrameTime;
+        public static int LerpBeforeAttack = 0;
+        public static int LerpBeforeStopAttack = 0;
+        public static int LerpAfterAttack = 0;
+        public static bool NeedDetectLerpAfterAttack = false;
+        public static int LerpSearchFramesCount = 0;
+        public static float CurrentFrameTime = 0.0f;
+        public static float PreviousFrameTime = 0.0f;
 
-        public static float Aim8CurrentFrameViewanglesX;
-        public static float Aim8CurrentFrameViewanglesY;
+        public static float Aim8CurrentFrameViewanglesX = 0.0f;
+        public static float Aim8CurrentFrameViewanglesY = 0.0f;
 
-        public static int AutoPistolStrikes;
+        public static int AutoPistolStrikes = 0;
 
-        public static int AutoAttackStrikes;
-        public static int AutoAttackStrikesID;
-        public static int AutoAttackStrikesLastID;
-        public static float ViewanglesXBeforeBeforeAttack;
-        public static float ViewanglesYBeforeBeforeAttack;
+        public static int AutoAttackStrikes = 0;
+        public static int AutoAttackStrikesID = 0;
+        public static int AutoAttackStrikesLastID = 0;
+        public static float ViewanglesXBeforeBeforeAttack = 0.0f;
+        public static float ViewanglesYBeforeBeforeAttack = 0.0f;
 
-        public static float ViewanglesXBeforeAttack;
-        public static float ViewanglesYBeforeAttack;
+        public static float ViewanglesXBeforeAttack = 0.0f;
+        public static float ViewanglesYBeforeAttack = 0.0f;
 
-        public static float CurrentFramePunchangleZ;
+        public static float CurrentFramePunchangleZ = 0.0f;
         public static string CurrentTimeString = "";
-        public static float PreviousFramePunchangleZ;
+        public static float PreviousFramePunchangleZ = 0.0f;
 
-        public static int NeedSearchViewAnglesAfterAttack;
+        public static int NeedSearchViewAnglesAfterAttack = 0;
 
-        public static float ViewanglesXAfterAttack;
-        public static float ViewanglesYAfterAttack;
+        public static float ViewanglesXAfterAttack = 0.0f;
+        public static float ViewanglesYAfterAttack = 0.0f;
 
         public static bool NeedSearchViewAnglesAfterAttackNext = true;
 
-        public static float ViewanglesXAfterAttackNext;
-        public static float ViewanglesYAfterAttackNext;
+        public static float ViewanglesXAfterAttackNext = 0.0f;
+        public static float ViewanglesYAfterAttackNext = 0.0f;
 
 
         public static float MinFrameViewanglesY = 10000.0f;
         public static float MinFrameViewanglesX = 10000.0f;
 
-        public static bool CurrentFrameAttacked;
-        public static bool CurrentFrameAttacked2;
-        public static bool PreviousFrameAttacked;
-        public static bool PreviousFrameAttacked2;
+        public static bool CurrentFrameAttacked = false;
+        public static bool CurrentFrameAttacked2 = false;
+        public static bool PreviousFrameAttacked = false;
+        public static bool PreviousFrameAttacked2 = false;
 
 
-        public static bool PreviousFrameAlive;
-        public static bool CurrentFrameAlive;
-        public static bool RealAlive;
-        public static bool CurrentFrameJumped;
-        public static bool PreviousFrameJumped;
-        public static bool CurrentFrameOnGround;
-        public static bool PreviousFrameOnGround;
+        public static bool PreviousFrameAlive = false;
+        public static bool CurrentFrameAlive = false;
+        public static bool RealAlive = false;
+        public static bool CurrentFrameJumped = false;
+        public static bool PreviousFrameJumped = false;
+        public static bool CurrentFrameOnGround = false;
+        public static bool PreviousFrameOnGround = false;
 
-        public static bool CurrentFrameDuck;
-        public static bool PreviousFrameDuck;
+        public static bool CurrentFrameDuck = false;
+        public static bool PreviousFrameDuck = false;
 
-        public static int KreedzHacksCount;
-        public static int FakeLagAim;
+        public static int KreedzHacksCount = 0;
+        public static int FakeLagAim = 0;
 
         public static List<int> FakeLagsValus = new List<int>();
 
-        public static int LastJumpFrame;
-        public static int JumpHackCount2;
+        public static int LastJumpFrame = 0;
+        public static int JumpHackCount2 = 0;
 
-        public static int FrameDuplicates;
+        public static int FrameDuplicates = 0;
 
-        public static float LastJumpTime;
+        public static float LastJumpTime = 0.0f;
 
-        public static float LastJumpBtnTime;
-        public static float LastJumpNoGroundTime;
+        public static float LastJumpBtnTime = 0.0f;
+        public static float LastJumpNoGroundTime = 0.0f;
 
-        public static float LastUnJumpTime;
+        public static float LastUnJumpTime = 0.0f;
 
 
-        public static float IdealJmpTmpTime1;
-        public static float IdealJmpTmpTime2;
+        public static float IdealJmpTmpTime1 = 0.0f;
+        public static float IdealJmpTmpTime2 = 0.0f;
 
         public static int BadTimeFound = 0;
 
         public static WeaponIdType CurrentWeapon = WeaponIdType.WEAPON_NONE;
         public static WeaponIdType StrikesWeapon = WeaponIdType.WEAPON_NONE;
-        public static bool WeaponChanged;
+        public static bool WeaponChanged = false;
 
-        public static bool IsAttack;
-        public static bool IsAttack2;
+        public static bool IsAttack = false;
+        public static bool IsAttack2 = false;
 
-        public static int AmmoCount;
-        public static int AttackErrors;
-        public static float LastAttackHack;
+        public static int AmmoCount = 0;
+        public static int AttackErrors = 0;
+        public static float LastAttackHack = 0.0f;
 
 
-        public static int TotalAimBotDetected;
+        public static int TotalAimBotDetected = 0;
 
-        public static int TriggerAimAttackCount;
+        public static int TriggerAimAttackCount = 0;
         public static int FalsePositives = 0;
-        public static bool TriggerAttackFound;
-        public static bool KnifeTriggerAttackFound;
-        public static float LastTriggerAttack;
-        public static float LastSilentAim;
-        public static float IsNoAttackLastTime;
-        public static float IsNoAttackLastTime2;
-        public static float IsAttackLastTime;
+        public static bool TriggerAttackFound = false;
+        public static bool KnifeTriggerAttackFound = false;
+        public static float LastTriggerAttack = 0.0f;
+        public static float LastSilentAim = 0.0f;
+        public static float IsNoAttackLastTime = 0.0f;
+        public static float IsNoAttackLastTime2 = 0.0f;
+        public static float IsAttackLastTime = 0.0f;
 
         public static int AttackCheck = -1;
 
-        public static bool IsReload;
+        public static bool IsReload = false;
 
-        public static int SelectSlot;
+        public static int SelectSlot = 0;
 
         public static bool ChangedWeaponBool = false;
-        public static int FoundForceCenterView;
-        public static float ForceCenterViewTime;
+        public static int FoundForceCenterView = 0;
+        public static float ForceCenterViewTime = 0.0f;
 
-        public static int SkipNextAttack;
+        public static int SkipNextAttack = 0;
         public static int SkipNextAttack2 = 0;
         public static int AttackCurrentFrameI = 0;
 
 
-        public static int attackscounter;
-        public static int attackscounter2;
-        public static int attackscounter3;
-        public static int attackscounter4;
-        public static int attackscounter5;
+        public static int attackscounter = 0;
+        public static int attackscounter2 = 0;
+        public static int attackscounter3 = 0;
+        public static int attackscounter4 = 0;
+        public static int attackscounter5 = 0;
 
-        public static int JumpCount;
-        public static int JumpCount2;
-        public static int JumpCount3;
-        public static int JumpCount4;
-        public static int JumpCount5;
-        public static int JumpCount6;
+        public static int JumpCount = 0;
+        public static int JumpCount2 = 0;
+        public static int JumpCount3 = 0;
+        public static int JumpCount4 = 0;
+        public static int JumpCount5 = 0;
+        public static int JumpCount6 = 0;
 
         public static float last_rg_jump_time = 9999.0f;
 
-        public static int DeathsCoount;
+        public static int DeathsCoount = 0;
         public static int DeathsCoount2 = 0;
-        public static int KillsCount;
+        public static int KillsCount = 0;
 
 
         public static List<int> averagefps = new List<int>();
@@ -325,28 +324,28 @@ namespace DemoScanner.DG
         public static int LastTimeOut = -1;
 
 
-        public static float LastTimeDesync;
+        public static float LastTimeDesync = 0.0f;
 
-        public static bool SecondFound;
-        public static int CurrentFps;
+        public static bool SecondFound = false;
+        public static int CurrentFps = 0;
         public static int RealFpsMin = int.MaxValue;
         public static int RealFpsMax = int.MinValue;
         public static float LastFpsCheckTime = -1.0f;
 
-        public static bool SecondFound2;
-        public static int CurrentFps2;
+        public static bool SecondFound2 = false;
+        public static int CurrentFps2 = 0;
         public static int RealFpsMin2 = int.MaxValue;
         public static int RealFpsMax2 = int.MinValue;
         public static float LastFpsCheckTime2 = -1.0f;
-        public static float LastCmdTime;
+        public static float LastCmdTime = 0.0f;
         public static string LastCmdTimeString = "00h:00m:00s:000ms";
-        public static int LastCmdFrameId;
+        public static int LastCmdFrameId = 0;
         public static string LastCmd = "";
-        public static int CurrentFrameId;
-        public static int CurrentFrameIdWeapon;
+        public static int CurrentFrameId = 0;
+        public static int CurrentFrameIdWeapon = 0;
 
-        public static int CaminCount;
-        public static int FrameCrash;
+        public static int CaminCount = 0;
+        public static int FrameCrash = 0;
 
         public static float CurrentSensitivity = -1.0f;
         public static List<float> PlayerSensitivityHistory = new List<float>();
@@ -367,14 +366,15 @@ namespace DemoScanner.DG
         public static List<string> PlayerSensitivityHistoryStrTime = new List<string>();
         public static List<string> PlayerSensitivityHistoryStrWeapon = new List<string>();
         public static string LastSensWeapon = "";
-        public static int PlayerSensitivityWarning;
+        public static int PlayerSensitivityWarning = 0;
 
 
-        public static int CurrentFrameIdAll;
-        private static float LastClientDataTime;
-        public static int NeedSearchID;
-        public static FPoint3D CDFRAME_ViewAngles;
-        public static FPoint3D PREV_CDFRAME_ViewAngles;
+        public static int CurrentFrameIdAll = 0;
+        private static float LastClientDataTime = 0.0f;
+        public static int NeedSearchID = 0;
+
+        public static FPoint3D CDFRAME_ViewAngles = new FPoint3D();
+        public static FPoint3D PREV_CDFRAME_ViewAngles = new FPoint3D();
 
         public static bool CurrentMovementLeft = false;
         public static int LeftRightMovements = 0;
@@ -383,10 +383,8 @@ namespace DemoScanner.DG
 
         public static int SkipAimType22 = 2;
 
-        private static CrossParseResult CurrentDemoFile;
-        private static HalfLifeDemoParser halfLifeDemoParser;
 
-        public static bool NeedCheckAttack;
+        public static bool NeedCheckAttack = false;
 
         public static float ClientFov2 = 40.0f;
         public static float ClientFov = 90.0f;
@@ -394,9 +392,9 @@ namespace DemoScanner.DG
         public static float checkFov = 90.0f;
         public static string DemoName = "";
 
-        public static bool DisableJump5AndAim16;
+        public static bool DisableJump5AndAim16 = false;
 
-        public static bool UserAlive;
+        public static bool UserAlive = false;
         public static bool FirstUserAlive = true;
 
         public static int NeedWriteAim = 0;
@@ -407,12 +405,12 @@ namespace DemoScanner.DG
         public static bool SearchAutoReload = false;
         public static int AutoReloadStrikes = 0;
 
-        public static bool NewAttack;
-        public static bool NewAttack2;
+        public static bool NewAttack = false;
+        public static bool NewAttack2 = false;
 
-        public static int NewAttackFrame;
+        public static int NewAttackFrame = 0;
 
-        public static int NewAttack2Frame;
+        public static int NewAttack2Frame = 0;
 
         public static bool IsNewAttack()
         {
@@ -424,19 +422,20 @@ namespace DemoScanner.DG
             return NewAttack2 || NewAttack2Frame <= CurrentFrameIdAll && Math.Abs(CurrentFrameIdAll - NewAttack2Frame) < 5;
         }
 
-        public static bool NewAttackForLearn;
-        public static int NewAttackForTrigger;
+        public static bool NewAttackForLearn = false;
+        public static int NewAttackForTrigger = 0;
         public static int LastAttackForTrigger = -1;
         public static int LastAttackForTriggerFrame = -1;
 
-        public static BinaryWriter PreviewFramesWriter;
-        public static BinaryWriter ViewDemoHelperComments;
+        public static BinaryWriter PreviewFramesWriter = null;
+        public static BinaryWriter ViewDemoHelperComments = null;
+
         public static List<string> OutTextDetects = new List<string>();
 
         public static List<string> OutTextMessages = new List<string>();
 
 
-        public static int ViewDemoCommentCount;
+        public static int ViewDemoCommentCount = 0;
 
         public static byte[] xcommentdata =
         {
@@ -458,64 +457,64 @@ namespace DemoScanner.DG
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
         };
 
-        public static float DemoStartTime;
-        public static float DemoStartTime2;
-        public static bool FoundFirstTime;
-        public static bool FoundFirstTime2;
-        public static bool AimType1FalseDetect;
+        public static float DemoStartTime = 0.0f;
+        public static float DemoStartTime2 = 0.0f;
+        public static bool FoundFirstTime = false;
+        public static bool FoundFirstTime2 = false;
+        public static bool AimType1FalseDetect = false;
 
 
-        public static bool NeedSearchAim2;
-        public static bool Aim2AttackDetected;
+        public static bool NeedSearchAim2 = false;
+        public static bool Aim2AttackDetected = false;
 
         public static int ShotFound = -1;
         public static int AttackFloodTimes = 0;
-        public static float ChangeWeaponTime;
+        public static float ChangeWeaponTime = 0.0f;
 
-        public static float ReloadKeyPressTime;
-        public static float ReloadKeyUnPressTime;
-        public static float ReloadHackTime;
+        public static float ReloadKeyPressTime = 0.0f;
+        public static float ReloadKeyUnPressTime = 0.0f;
+        public static float ReloadHackTime = 0.0f;
 
 
         public static WeaponIdType LastWatchWeapon = WeaponIdType.WEAPON_NONE;
-        public static int ReallyAim2;
-        public static float LastKreedzHackTime;
-        public static bool NeedDetectBHOPHack;
-        public static float LastDeathTime;
+        public static int ReallyAim2 = 0;
+        public static float LastKreedzHackTime = 0.0f;
+        public static bool NeedDetectBHOPHack = false;
+        public static float LastDeathTime = 0.0f;
         public static List<Player> playerList = new List<Player>();
         public static List<Player> fullPlayerList = new List<Player>();
         public static int maxfalsepositiveaim3 = 6;
-        public static int FovHackDetected;
+        public static int FovHackDetected = 0;
         public static float FovHackTime = -9999.0f;
-        public static int ThirdHackDetected;
+        public static int ThirdHackDetected = 0;
         public static bool SearchAim6 = false;
         public static List<WindowResolution> playerresolution = new List<WindowResolution>();
         public static float LastResolutionX = 90.0f, LastResolutionY = 90.0f;
-        public static int CheatKey;
-        public static int Reloads;
-        public static int Reloads2;
-        public static int Reloads3;
-        public static bool WeaponAvaiabled;
-        public static int WeaponAvaiabledFrameId;
-        public static float WeaponAvaiabledFrameTime;
+        public static int CheatKey = 0;
+        public static int Reloads = 0;
+        public static int Reloads2 = 0;
+        public static int Reloads3 = 0;
+        public static bool WeaponAvaiabled = false;
+        public static int WeaponAvaiabledFrameId = 0;
+        public static float WeaponAvaiabledFrameTime = 0.0f;
         public static float LastPrimaryAttackTime = 0.0f;
         public static float LastPrevPrimaryAttackTime = 0.0f;
         public static List<float> PrimaryAttackHistory = new List<float>();
         public static bool UsingAnotherMethodWeaponDetection = false;
 
-        public static float LastCmdHack;
+        public static float LastCmdHack = 0.0f;
 
-        public static int AimType7Frames;
-        public static float OldAimType7Time;
-        public static int OldAimType7Frames;
-        public static int AimType7Event;
-        public static int BadVoicePacket;
+        public static int AimType7Frames = 0;
+        public static float OldAimType7Time = 0.0f;
+        public static int OldAimType7Frames = 0;
+        public static int AimType7Event = 0;
+        public static int BadVoicePacket = 0;
 
-        public static bool SearchJumpBug;
+        public static bool SearchJumpBug = false;
 
         public static int MaxIdealJumps = 7;
-        public static int CurrentIdealJumpsStrike;
-        public static bool SearchNextJumpStrike;
+        public static int CurrentIdealJumpsStrike = 0;
+        public static bool SearchNextJumpStrike = false;
 
 
         public static List<string> CommandsDump = new List<string>();
@@ -529,263 +528,264 @@ namespace DemoScanner.DG
         public static List<WarnStruct> DemoScannerWarnList = new List<WarnStruct>();
 
         public static string LastWarnStr = "";
-        public static float LastWarnTime;
+        public static float LastWarnTime = 0.0f;
 
-        public static float LastAnglePunchSearchTime;
+        public static float LastAnglePunchSearchTime = 0.0f;
 
         public static List<AngleSearcher> angleSearchersPunch = new List<AngleSearcher>();
 
 
         public static List<AngleSearcher> angleSearchersView = new List<AngleSearcher>();
-        public static float NewViewAngleSearcherAngle;
+        public static float NewViewAngleSearcherAngle = 0.0f;
 
         public static string lastnormalanswer = "";
 
-        public static float nospreadtest;
+        public static float nospreadtest = 0.0f;
 
-        public static GoldSource.NetMsgFrame CurrentNetMsgFrame;
-        public static GoldSource.NetMsgFrame PreviousNetMsgFrame;
+        public static GoldSource.NetMsgFrame CurrentNetMsgFrame = new GoldSource.NetMsgFrame();
+        public static GoldSource.NetMsgFrame PreviousNetMsgFrame = new GoldSource.NetMsgFrame();
         public static GoldSource.NetMsgFrame NextNetMsgFrame = new GoldSource.NetMsgFrame();
 
         public static string TotalFreewareTool = "[ПОЛНОСТЬЮ БЕСПЛАТНЫЙ] [TOTALLY FREE]";
 
         public static string SourceCode = "https://github.com/UnrealKaraulov/UnrealDemoScanner";
-        public static int usagesrccode;
+        public static int usagesrccode = 0;
 
         public static List<UcmdLerpAndMs> historyUcmdLerpAndMs = new List<UcmdLerpAndMs>();
 
-        public static int cipid;
-        public static float LastAim5Detected;
-        public static float LastAim5DetectedReal;
-        public static bool voicefound;
-        public static float AimType8WarnTime;
-        public static bool AimType8False;
-        public static float AimType8WarnTime2;
-        public static float bAimType8WarnTime;
-        public static float bAimType8WarnTime2;
-        public static int AimType8Warn;
+        public static int cipid = 0;
+        public static float LastAim5Detected = 0.0f;
+        public static float LastAim5DetectedReal = 0.0f;
+        public static bool voicefound = false;
+        public static float AimType8WarnTime = 0.0f;
+        public static bool AimType8False = false;
+        public static float AimType8WarnTime2 = 0.0f;
+        public static float bAimType8WarnTime = 0.0f;
+        public static float bAimType8WarnTime2 = 0.0f;
+        public static int AimType8Warn = 0;
 
-        public static float Aim7PunchangleY;
-        public static float nospreadtest2;
-        public static float MaximumTimeBetweenFrames;
-        public static bool GameEnd;
-        public static int LostStopAttackButton;
-        public static int ModifiedDemoFrames;
+        public static float Aim7PunchangleY = 0.0f;
+        public static float nospreadtest2 = 0.0f;
+        public static float MaximumTimeBetweenFrames = 0.0f;
+        public static bool GameEnd = false;
+        public static int LostStopAttackButton = 0;
+        public static int ModifiedDemoFrames = 0;
         public static int TimeShiftCount = -5;
-        public static float LastAliveTime;
-        public static float LastTeleportusTime;
+        public static float LastAliveTime = 0.0f;
+        public static float LastTeleportusTime = 0.0f;
         public static int Aim73FalseSkip = 2;
-        public static int UserNameAndSteamIDField;
-        public static int UserNameAndSteamIDField2;
+        public static int UserNameAndSteamIDField = 0;
+        public static int UserNameAndSteamIDField2 = 0;
         public static string LastUername = "\tNO NAME";
-        public static float LastUsernameCheckTime;
-        public static int MessageId;
-        public static int SVC_CHOKEMSGID;
-        public static int SVC_CLIENTUPDATEMSGID;
-        public static int SVC_TIMEMSGID;
-        public static uint LossPackets;
-        public static uint LossPackets2;
-        public static uint ServerLagCount;
+        public static float LastUsernameCheckTime = 0.0f;
+        public static int MessageId = 0;
+        public static int SVC_CHOKEMSGID = 0;
+        public static int SVC_CLIENTUPDATEMSGID = 0;
+        public static int SVC_TIMEMSGID = 0;
+        public static uint LossPackets = 0;
+        public static uint LossPackets2 = 0;
+        public static uint ServerLagCount = 0;
 
-        public static int ChokePackets;
-        public static float LastLossPacket;
-        public static float LastLossTime;
-        public static float LastLossTime2;
-        public static float LastLossTimeEnd;
+        public static int ChokePackets = 0;
+        public static float LastLossPacket = 0.0f;
+        public static float LastLossTime = 0.0f;
+        public static float LastLossTime2 = 0.0f;
+        public static float LastLossTimeEnd = 0.0f;
 
 
-        public static float LastChokePacket;
+        public static float LastChokePacket = 0.0f;
         public static string LastStuffCmdCommand = "";
         public static bool MoveLeft = true;
         public static bool MoveRight = true;
-        public static float LastUnMoveLeft;
-        public static float LastMoveLeft;
-        public static bool StrafeOptimizerFalse;
-        public static int DetectStrafeOptimizerStrikes;
-        public static float LastUnMoveRight;
-        public static float LastMoveRight;
-        public static bool DemoScannerBypassDetected;
-        public static int FramesOnGround;
-        public static int FramesOnFly;
-        public static int FlyDirection;
+        public static float LastUnMoveLeft = 0.0f;
+        public static float LastMoveLeft = 0.0f;
+        public static bool StrafeOptimizerFalse = false;
+        public static int DetectStrafeOptimizerStrikes = 0;
+        public static float LastUnMoveRight = 0.0f;
+        public static float LastMoveRight = 0.0f;
+        public static bool DemoScannerBypassDetected = false;
+        public static int FramesOnGround = 0;
+        public static int FramesOnFly = 0;
+        public static int FlyDirection = 0;
         public static float PreviewSimvelZ = 0.0f;
 
         public static bool SearchFakeJump = false;
 
-        public static int TotalFramesOnFly;
-        public static int TotalFramesOnGround;
-        public static int TotalAttackFramesOnFly;
+        public static int TotalFramesOnFly = 0;
+        public static int TotalFramesOnGround = 0;
+        public static int TotalAttackFramesOnFly = 0;
 
         public static string ServerName = "";
         public static string MapName = "";
         public static string GameDir = "";
         public static byte StartPlayerID = 255;
-        public static bool DealthMatch;
-        public static float GameEndTime;
-        public static int DuckHack2Strikes;
-        public static int DuckHack1Strikes;
-        public static bool Intermission;
+        public static bool DealthMatch = false;
+        public static float GameEndTime = 0.0f;
+        public static int DuckHack2Strikes = 0;
+        public static int DuckHack1Strikes = 0;
+        public static bool Intermission = false;
         public static int ViewEntity = -1;
         public static int ViewModel = -1;
-        public static uint LastPlayerEntity;
-        public static uint LastEntity;
-        public static int PlayerTeleportus;
-        public static bool NeedRescanDemoForce = false;
+        public static uint LastPlayerEntity = 0;
+        public static uint LastEntity = 0;
+        public static int PlayerTeleportus = 0;
+        public static int NeedSkipDemoRescan = 0;
+        public static bool DemoRescanned = false;
         public static bool FirstBypassKill = true;
-        public static int BypassCount;
-        public static float LastMovementHackTime;
-        public static int AirShots;
+        public static int BypassCount = 0;
+        public static float LastMovementHackTime = 0.0f;
+        public static int AirShots = 0;
         public static bool InForward = true;
-        public static float LastUnMoveForward;
-        public static float LastMoveForward;
-        public static int DuckStrikes;
-        public static bool NeedDetectThirdPersonHack;
+        public static float LastUnMoveForward = 0.0f;
+        public static float LastMoveForward = 0.0f;
+        public static int DuckStrikes = 0;
+        public static bool NeedDetectThirdPersonHack = false;
         public static int ThirdPersonHackDetectionTimeout = -1;
-        public static float NoSpreadDetectionTime;
-        public static int FrameUnattackStrike;
-        public static int FrameAttackStrike;
-        public static float LastUseTime;
-        public static int MoveLeftStrike;
-        public static int MoveRightStrike;
-        public static bool InStrafe;
-        public static float LastStrafeDisabled;
-        public static float LastStrafeEnabled;
-        public static int BHOPcount;
-        public static int BHOP_GroundWarn;
-        public static int BHOP_JumpWarn;
-        public static int BHOP_GroundSearchDirection;
-        public static float LastBhopTime;
-        public static int CurrentFrameDuplicated;
-        public static int UnknownMessages;
+        public static float NoSpreadDetectionTime = 0.0f;
+        public static int FrameUnattackStrike = 0;
+        public static int FrameAttackStrike = 0;
+        public static float LastUseTime = 0.0f;
+        public static int MoveLeftStrike = 0;
+        public static int MoveRightStrike = 0;
+        public static bool InStrafe = false;
+        public static float LastStrafeDisabled = 0.0f;
+        public static float LastStrafeEnabled = 0.0f;
+        public static int BHOPcount = 0;
+        public static int BHOP_GroundWarn = 0;
+        public static int BHOP_JumpWarn = 0;
+        public static int BHOP_GroundSearchDirection = 0;
+        public static float LastBhopTime = 0.0f;
+        public static int CurrentFrameDuplicated = 0;
+        public static int UnknownMessages = 0;
         public static string LastAltTabStart = "00h:00m:00s:000ms";
-        public static bool AltTabEndSearch;
-        public static int AltTabCount2;
-        public static float LastAngleManipulation;
+        public static bool AltTabEndSearch = false;
+        public static int AltTabCount2 = 0;
+        public static float LastAngleManipulation = 0.0f;
         public static bool NeedFirstNickname = true;
-        public static int AngleStrikeDirection;
-        public static float AngleDirectionChangeTime;
+        public static int AngleStrikeDirection = 0;
+        public static float AngleDirectionChangeTime = 0.0f;
         public static AngleDirection LastAngleDirection = AngleDirection.AngleDirectionNO;
-        public static bool NeedCheckAngleDiffForStrafeOptimizer;
-        public static float LastStrafeOptimizerWarnTime;
-        public static bool CurrentFrameForward;
-        public static bool PreviousFrameForward;
+        public static bool NeedCheckAngleDiffForStrafeOptimizer = false;
+        public static float LastStrafeOptimizerWarnTime = 0.0f;
+        public static bool CurrentFrameForward = false;
+        public static bool PreviousFrameForward = false;
         public static GoldSource.UCMD_BUTTONS CurrentFrameButtons;
         public static GoldSource.UCMD_BUTTONS PreviousFrameButtons;
-        public static bool SearchOneFrameDuck;
-        public static float NeedSearchUserAliveTime;
-        public static float LastJumpHackFalseDetectionTime;
-        public static int AngleDirectionChanges;
-        public static int StrafeAngleDirectionChanges;
+        public static bool SearchOneFrameDuck = false;
+        public static float NeedSearchUserAliveTime = 0.0f;
+        public static float LastJumpHackFalseDetectionTime = 0.0f;
+        public static int AngleDirectionChanges = 0;
+        public static int StrafeAngleDirectionChanges = 0;
         public static float LastStrafeOptimizerDetectWarnTime = 0.0f;
-        public static float LastCmdDuckTime;
-        public static float LastCmdUnduckTime;
-        public static int CurrentNetMsgFrameId;
-        public static int StopAttackBtnFrameId;
-        public static bool NeedSearchAim3;
-        public static bool LossFalseDetection;
+        public static float LastCmdDuckTime = 0.0f;
+        public static float LastCmdUnduckTime = 0.0f;
+        public static int CurrentNetMsgFrameId = 0;
+        public static int StopAttackBtnFrameId = 0;
+        public static bool NeedSearchAim3 = false;
+        public static bool LossFalseDetection = false;
         public static float[] TimeShift4Times = new float[3] { 0.0f, 0.0f, 0.0f };
-        public static int LastFrameDiff;
-        public static bool AimType6FalseDetect;
+        public static int LastFrameDiff = 0;
+        public static bool AimType6FalseDetect = false;
         public static float MaxSpeed = 0.0f;
         public static float StartLengthSearchTime = 0.0f;
-        public static float SecondFrameTime;
+        public static float SecondFrameTime = 0.0f;
         public static float Aim8DetectionTimeY = 0.0f;
-        public static float Aim8DetectionTimeX;
-        public static float NewAttackTime;
-        public static float NewAttackTimeAim9;
-        public static float LastGameMaximizeTime;
-        public static int WeaponAnimWarn;
+        public static float Aim8DetectionTimeX = 0.0f;
+        public static float NewAttackTime = 0.0f;
+        public static float NewAttackTimeAim9 = 0.0f;
+        public static float LastGameMaximizeTime = 0.0f;
+        public static int WeaponAnimWarn = 0;
         public static WeaponIdType LastWeaponAnim = WeaponIdType.WEAPON_NONE;
-        public static float ReloadTime;
+        public static float ReloadTime = 0.0f;
         public static WeaponIdType EndReloadWeapon = WeaponIdType.WEAPON_NONE;
         public static WeaponIdType StartReloadWeapon = WeaponIdType.WEAPON_NONE;
-        public static int ReloadWarns;
-        public static float RoundEndTime;
-        public static float LastSideMoveTime;
-        public static float LastForwardMoveTime;
-        public static float LastBackMoveTime;
+        public static int ReloadWarns = 0;
+        public static float RoundEndTime = 0.0f;
+        public static float LastSideMoveTime = 0.0f;
+        public static float LastForwardMoveTime = 0.0f;
+        public static float LastBackMoveTime = 0.0f;
         public static int DesyncHackWarns = 0;
         public static float LastDesyncDetectTime = 0.0f;
-        public static float LastDamageTime;
+        public static float LastDamageTime = 0.0f;
         public static int StartGameSecond = int.MaxValue;
-        public static int CurrentGameSecond;
-        public static int CurrentGameSecond2;
-        public static float LastRealJumpTime;
-        public static int BHOPJumpHistoryCount1Warn;
-        public static uint LastWeaponReloadStatus;
-        public static float LastScreenshotTime;
-        public static float GameEndTime2;
-        public static float GameStartTime;
-        public static bool PlayerFrozen;
-        public static float PlayerFrozenTime;
-        public static float PlayerUnFrozenTime;
-        public static int ReturnToGameDetects;
-        public static int FovByFunc;
-        public static int FovByFunc2;
-        public static bool IsScreenFade;
-        public static float LastViewChange;
-        public static bool HideWeapon;
-        public static float HideWeaponTime;
+        public static int CurrentGameSecond = 0;
+        public static int CurrentGameSecond2 = 0;
+        public static float LastRealJumpTime = 0.0f;
+        public static int BHOPJumpHistoryCount1Warn = 0;
+        public static uint LastWeaponReloadStatus = 0;
+        public static float LastScreenshotTime = 0.0f;
+        public static float GameEndTime2 = 0.0f;
+        public static float GameStartTime = 0.0f;
+        public static bool PlayerFrozen = false;
+        public static float PlayerFrozenTime = 0.0f;
+        public static float PlayerUnFrozenTime = 0.0f;
+        public static int ReturnToGameDetects = 0;
+        public static int FovByFunc = 0;
+        public static int FovByFunc2 = 0;
+        public static bool IsScreenFade = false;
+        public static float LastViewChange = 0.0f;
+        public static bool HideWeapon = false;
+        public static float HideWeaponTime = 0.0f;
         public static bool MINIMIZED = true;
-        public static int NeedIgnoreAttackFlag;
-        public static int NeedIgnoreAttackFlagCount;
-        public static float LastSoundTime;
+        public static int NeedIgnoreAttackFlag = 0;
+        public static int NeedIgnoreAttackFlagCount = 0;
+        public static float LastSoundTime = 0.0f;
         public static int DesyncDetects = 0;
-        public static float FoundBigVelocityTime;
-        public static float FoundVelocityTime;
-        public static float LastBeamFound;
-        public static float LastForceCenterView;
-        public static int LastIncomingSequence;
-        public static int FrameErrors;
-        public static int LastIncomingAcknowledged;
-        public static int LastOutgoingSequence;
+        public static float FoundBigVelocityTime = 0.0f;
+        public static float FoundVelocityTime = 0.0f;
+        public static float LastBeamFound = 0.0f;
+        public static float LastForceCenterView = 0.0f;
+        public static int LastIncomingSequence = 0;
+        public static int FrameErrors = 0;
+        public static int LastIncomingAcknowledged = 0;
+        public static int LastOutgoingSequence = 0;
 
 
-        public static int maxLastIncomingSequence;
-        public static int maxLastIncomingAcknowledged;
-        public static int maxLastOutgoingSequence;
+        public static int maxLastIncomingSequence = 0;
+        public static int maxLastIncomingAcknowledged = 0;
+        public static int maxLastOutgoingSequence = 0;
 
         public static int AlternativeTimeCounter = 0;
 
         public static int BadSequences = 0;
         public static bool InBack = true;
-        public static float LastMoveBack;
+        public static float LastMoveBack = 0.0f;
 
-        public static bool InLook;
-        public static float LastLookDisabled;
-        public static float LastLookEnabled;
-        public static int FlyJumps;
-        public static bool SearchMoveHack1;
+        public static bool InLook = false;
+        public static float LastLookDisabled = 0.0f;
+        public static float LastLookEnabled = 0.0f;
+        public static int FlyJumps = 0;
+        public static bool SearchMoveHack1 = false;
         public static string KnownSkyName = string.Empty;
-        public static DateTime StartScanTime;
+        public static DateTime StartScanTime = new DateTime();
 
-        public static float HorAngleTime;
+        public static float HorAngleTime = 0.0f;
 
-        public static string codecname;
-        public static int WarnsAfterGameEnd;
-        public static bool SKIP_RESULTS;
-        public static int EmptyFrames;
+        public static string codecname = "";
+        public static int WarnsAfterGameEnd = 0;
+        public static bool SKIP_RESULTS = false;
+        public static int EmptyFrames = 0;
         public static List<float> LastPunchAngleX = new List<float>();
         public static List<float> LastPunchAngleY = new List<float>();
-        public static int PunchWarnings;
-        public static int LostAngleWarnings;
-        public static int ClientDataCountMessages;
-        public static int ClientDataCountDemos;
+        public static int PunchWarnings = 0;
+        public static int LostAngleWarnings = 0;
+        public static int ClientDataCountMessages = 0;
+        public static int ClientDataCountDemos = 0;
 
 
-        public static int SVC_SETANGLEMSGID;
-        public static float LastFakeLagTime;
-        public static int SVC_ADDANGLEMSGID;
+        public static int SVC_SETANGLEMSGID = 0;
+        public static float LastFakeLagTime = 0.0f;
+        public static int SVC_ADDANGLEMSGID = 0;
 
-        public static bool ForceUpdateName;
-        public static float LastAttackCmdTime;
+        public static bool ForceUpdateName = false;
+        public static float LastAttackCmdTime = 0.0f;
         public static float LastFloodAttackTime = 0.0f;
-        public static bool LASTFRAMEISCLIENTDATA;
-        public static int BadAnglesFoundCount;
-        public static int MapAndCrc32_Top;
-        public static int MapAndCrc32_Left;
-        public static int FPS_OVERFLOW;
-        public static float FpsOverflowTime;
+        public static bool LASTFRAMEISCLIENTDATA = false;
+        public static int BadAnglesFoundCount = 0;
+        public static int MapAndCrc32_Top = 0;
+        public static int MapAndCrc32_Left = 0;
+        public static int FPS_OVERFLOW = 0;
+        public static float FpsOverflowTime = 0.0f;
         public static string DownloadLocation = "http://";
         public static List<string> FileDirectories = new List<string>();
 
@@ -796,40 +796,40 @@ namespace DemoScanner.DG
 
 
         public static List<string> DownloadResources = new List<string>();
-        public static ulong DownloadResourcesSize;
+        public static ulong DownloadResourcesSize = 0;
 
         public static List<float> LastSearchViewAngleY = new List<float>();
 
         public static int PluginEvents = -1;
-        public static int BadEvents;
-        public static uint CurrentEvents;
-        public static bool IsRussia;
+        public static int BadEvents = 0;
+        public static uint CurrentEvents = 0;
+        public static bool IsRussia = false;
         public static bool FirstMap = true;
-        public static float LastAttackPressed;
+        public static float LastAttackPressed = 0.0f;
         public static int PluginFrameNum = -1;
         public static string PluginVersion = string.Empty;
-        public static int InitAimMissingSearch;
-        public static uint LastLossPacketCount;
+        public static int InitAimMissingSearch = 0;
+        public static uint LastLossPacketCount = 0;
 
-        public static int CurrentMsgBytes;
-        public static int MaxBytesPerSecond;
+        public static int CurrentMsgBytes = 0;
+        public static int MaxBytesPerSecond = 0;
 
-        public static int MsgOverflowSecondsCount;
+        public static int MsgOverflowSecondsCount = 0;
 
-        public static int CurrentMsgHudCount;
-        public static int CurrentMsgPrintCount;
-        public static int CurrentMsgStuffCmdCount;
+        public static int CurrentMsgHudCount = 0;
+        public static int CurrentMsgPrintCount = 0;
+        public static int CurrentMsgStuffCmdCount = 0;
 
-        public static int MaxHudMsgPerSecond;
-        public static int MaxStuffCmdMsgPerSecond;
-        public static int MaxPrintCmdMsgPerSecond;
+        public static int MaxHudMsgPerSecond = 0;
+        public static int MaxStuffCmdMsgPerSecond = 0;
+        public static int MaxPrintCmdMsgPerSecond = 0;
 
 
-        public static int SkipChangeWeapon;
+        public static int SkipChangeWeapon = 0;
         public static byte VoiceQuality = 5;
-        public static int SearchJumpHack5;
+        public static int SearchJumpHack5 = 0;
 
-        public static int SearchJumpHack51;
+        public static int SearchJumpHack51 = 0;
 
         public static List<int> fovsAllowed = new List<int>();
 
@@ -837,6 +837,7 @@ namespace DemoScanner.DG
         public static bool BadPunchAngle = false;
 
         public static float FrametimeMin = 9999.0f, MsecMin = 9999.0f, FrametimeMax = 0.0f, MsecMax = 0.0f;
+
 
         public static WeaponIdType GetWeaponByStr(string str)
         {
@@ -2296,12 +2297,17 @@ namespace DemoScanner.DG
             string CurrentDemoFilePath = "";
             bool filefound = false;
 
+        DEMO_FULLRESET:
+
             foreach (string arg in args)
             {
-                CurrentDemoFilePath = arg.Replace("\"", "");
-                if (File.Exists(CurrentDemoFilePath))
+                if (!filefound)
                 {
-                    filefound = true;
+                    CurrentDemoFilePath = arg.Replace("\"", "");
+                    if (File.Exists(CurrentDemoFilePath))
+                    {
+                        filefound = true;
+                    }
                 }
                 else if (arg.IndexOf("-debug") > -1)
                 {
@@ -2365,7 +2371,7 @@ namespace DemoScanner.DG
 
 
 
-            if (!SKIP_RESULTS)
+            if (!SKIP_RESULTS && !DemoRescanned)
             {
                 try
                 {
@@ -2398,8 +2404,6 @@ namespace DemoScanner.DG
 
             if (!SKIP_RESULTS)
             {
-
-
                 if (!File.Exists(CurrentDir + @"\lang.ru") && !File.Exists(CurrentDir + @"\lang.en"))
                 {
                     Console.Write("Enter language EN - Engish / RU - Russian:");
@@ -2557,7 +2561,6 @@ namespace DemoScanner.DG
 
             if (!filefound)
             {
-                CurrentDemoFilePath = "NOFILE";
                 while (!File.Exists(CurrentDemoFilePath))
                 {
                     CurrentDemoFilePath = Console.ReadLine().Replace("\"", "");
@@ -2650,7 +2653,7 @@ namespace DemoScanner.DG
 
             }
 
-            CurrentDemoFile = CrossDemoParser.Parse(CurrentDemoFilePath);
+            CrossParseResult CurrentDemoFile = CrossDemoParser.Parse(CurrentDemoFilePath);
 
             if (File.Exists(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) +
                             "log"))
@@ -2718,7 +2721,7 @@ namespace DemoScanner.DG
                 Console.WriteLine("Start demo analyze.....");
             }
 
-            halfLifeDemoParser = new HalfLifeDemoParser(CurrentDemoFile);
+            HalfLifeDemoParser halfLifeDemoParser = new HalfLifeDemoParser(CurrentDemoFile);
 
             if (usagesrccode != 1)
             {
@@ -2818,6 +2821,32 @@ namespace DemoScanner.DG
                         }
                         break;
                     }
+
+                    if (NeedSkipDemoRescan == 1)
+                    {
+                        Console.WriteLine();
+                        if (IsRussia)
+                        {
+                            Console.WriteLine("Извините возникла критическая ошибка при сканировании демо. Повтор..." + CurrentTimeString);
+                        }
+                        else
+                        {
+                            Console.WriteLine("Sorry but need rescan demo! This action is automatically!" + CurrentTimeString);
+                        }
+
+                        Console.WriteLine();
+
+                        /*SOME BLACK MAGIC*/
+                        typeof(DemoScanner).GetConstructor(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public, null, new Type[0], null).Invoke(null, null);
+                        /* VERY DARK BLACK MAGIC!!!!!! */
+
+
+                        DemoScanner.DemoRescanned = true;
+                        DemoScanner.FirstBypassKill = false;
+                        DemoScanner.NeedSkipDemoRescan = 2;
+                        goto DEMO_FULLRESET;
+                    }
+
                     GoldSource.FramesHren frame = CurrentDemoFile.GsDemoInfo.DirectoryEntries[index]
                         .Frames[frameindex];
                     try
@@ -2891,22 +2920,6 @@ namespace DemoScanner.DG
                     .Frames.Count; frameindex++)
                 {
                     UpdateWarnList();
-                    if (NeedRescanDemoForce)
-                    {
-                        NeedRescanDemoForce = false;
-                        Console.WriteLine();
-                        if (IsRussia)
-                        {
-                            Console.WriteLine("Извините возникла критическая ошибка при сканировании демо. Повтор..." + CurrentTimeString);
-                        }
-                        else
-                        {
-                            Console.WriteLine("Sorry but need rescan demo ^_^! This action is automatically!" + CurrentTimeString);
-                        }
-
-                        Console.WriteLine();
-                        frameindex = 0;
-                    }
                     GoldSource.FramesHren frame = CurrentDemoFile.GsDemoInfo.DirectoryEntries[index]
                     .Frames[frameindex];
 
@@ -2953,10 +2966,6 @@ namespace DemoScanner.DG
                                 }
 
                                 ClientDataCountDemos++;
-                                if (asdf.asdf2 != 1)
-                                {
-                                    break;
-                                }
 
                                 LastClientDataTime = CurrentTime;
 
@@ -4058,13 +4067,21 @@ namespace DemoScanner.DG
 
                                 if (AlternativeTimeCounter == 1)
                                 {
-                                    CurrentTime = CurrentTimeSvc;
                                     if (abs(CurrentTime) > 1.0 && abs(CurrentTimeSvc) < 0.01f)
                                     {
-                                        BadTimeFound += 20;
+                                        BadTimeFound += 10;
                                     }
+                                    CurrentTime = CurrentTimeSvc;
                                 }
-                                else if (AlternativeTimeCounter > 1)
+                                else if (AlternativeTimeCounter == 0)
+                                {
+                                    if (abs(CurrentTime) > 1.0 && abs(nf.RParms.Time) < 0.01f)
+                                    {
+                                        BadTimeFound += 10;
+                                    }
+                                    CurrentTime = nf.RParms.Time;
+                                }
+                                else
                                 {
                                     float newtime = abs(CurrentTime3 - PreviousTime3);
                                     if (newtime > 1.0f)
@@ -4072,42 +4089,45 @@ namespace DemoScanner.DG
 
                                     CurrentTime += newtime;
                                 }
-                                else
-                                {
-                                    if (abs(CurrentTime) > 1.0 && abs(nf.RParms.Time) < 0.01f)
-                                    {
-                                        BadTimeFound += 20;
-                                    }
-                                    CurrentTime = nf.RParms.Time;
-                                }
 
                                 if (BadTimeFound > 250 && AlternativeTimeCounter <= 2)
                                 {
                                     BadTimeFound = 0;
                                     AlternativeTimeCounter++;
-
+                                    int newAltTimer = AlternativeTimeCounter;
                                     Console.Clear();
 
                                     if (IsRussia)
                                         DemoScanner_AddInfo(
-                                                        "[СМЕНА ПОДСЧЕТА ВРЕМЕНИ РЕЖИМ:" + AlternativeTimeCounter + " ] на (" + CurrentTime +
+                                                        "[СМЕНА ПОДСЧЕТА ВРЕМЕНИ. РЕЖИМ №:" + AlternativeTimeCounter + " ] на (" + CurrentTime +
                                                         "):" + CurrentTimeString);
                                     else
                                         DemoScanner_AddInfo(
-                                                            "[CHANGE TIME METHOD METHOD:" + AlternativeTimeCounter + " ] at (" + CurrentTime +
+                                                            "[CHANGE TIME METHOD. METHOD №:" + AlternativeTimeCounter + " ] at (" + CurrentTime +
                                                             "):" + CurrentTimeString);
-                                    NeedRescanDemoForce = true;
+
+                                    Console.WriteLine();
+
+                                    /*SOME BLACK MAGIC*/
+                                    typeof(DemoScanner).GetConstructor(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public, null, new Type[0], null).Invoke(null, null);
+                                    /* VERY DARK BLACK MAGIC!!!!!! */
+
+
+                                    AlternativeTimeCounter = newAltTimer;
+                                    DemoScanner.DemoRescanned = true;
+                                    goto DEMO_FULLRESET;
                                 }
-                                else if (BadTimeFound > 250 && AlternativeTimeCounter > 2)
+                                else if (BadTimeFound > 250 && AlternativeTimeCounter == 3)
                                 {
                                     BadTimeFound = 0;
+                                    AlternativeTimeCounter++;
                                     if (IsRussia)
                                         DemoScanner_AddWarn(
-                                                        "[ОШИБКА ВРЕМЕНИ. ДЕМО ВЗЛОМАНО!:" + AlternativeTimeCounter + " ] на (" + CurrentTime +
+                                                        "[ОШИБКА ВРЕМЕНИ. ДЕМО ВЗЛОМАНО?!:" + AlternativeTimeCounter + " ] на (" + CurrentTime +
                                                         "):" + CurrentTimeString, true, true, true);
                                     else
                                         DemoScanner_AddWarn(
-                                                            "[ОШИБКА ВРЕМЕНИ. ДЕМО ВЗЛОМАНО!:" + AlternativeTimeCounter + " ] at (" + CurrentTime +
+                                                            "[TIME ERROR! DEMO IS CRACKED?!:" + AlternativeTimeCounter + " ] at (" + CurrentTime +
                                                             "):" + CurrentTimeString, true, true, true);
                                 }
                                 else
@@ -4200,7 +4220,7 @@ namespace DemoScanner.DG
                                     break;
                                 }
 
-                                ParseGameData(nf.MsgBytes);
+                                ParseGameData(halfLifeDemoParser, nf.MsgBytes); ;
 
                                 if (SkipNextErrors)
                                 {
@@ -5421,7 +5441,7 @@ namespace DemoScanner.DG
                                 }
 
 
-                                
+
 
                                 if (NeedDetectThirdPersonHack)
                                 {
@@ -8334,11 +8354,10 @@ namespace DemoScanner.DG
         public static string GetSourceCodeString()
         {
             usagesrccode++;
-            asdf.asdf2++;
             return SourceCode.Length != 51 ? throw new Exception("ANAL ERROR") : SourceCode;
         }
 
-        private static void ParseGameData(byte[] msgBytes)
+        private static void ParseGameData(HalfLifeDemoParser halfLifeDemoParser, byte[] msgBytes)
         {
             halfLifeDemoParser.ParseGameDataMessages(msgBytes);
         }
@@ -9385,7 +9404,7 @@ namespace DemoScanner.DG
             svc_exec = 59
         }
 
-        public static int ErrorCount;
+        public static int ErrorCount = 0;
         private readonly Hashtable deltaDecoderTable;
 
         private readonly Hashtable
@@ -12084,8 +12103,11 @@ namespace DemoScanner.DG
                         }
                         else
                         {
-                            DemoScanner.FirstBypassKill = false;
-                            DemoScanner.NeedRescanDemoForce = true;
+                            if (DemoScanner.NeedSkipDemoRescan == 0)
+                            {
+                                DemoScanner.FirstBypassKill = false;
+                                DemoScanner.NeedSkipDemoRescan = 1;
+                            }
                         }
                     }
                     DemoScanner.FirstUserAlive = false;
