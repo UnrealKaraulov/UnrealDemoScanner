@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.68.13";
+        public const string PROGRAMVERSION = "1.68.14";
 
         public enum AngleDirection
         {
@@ -4452,6 +4452,7 @@ namespace DemoScanner.DG
 
                                             if (abs(IsAttackLastTime - LastPrevPrimaryAttackTime) < EPSILON)
                                                 AutoPistolStrikes++;
+
                                             if (AutoPistolStrikes == 3)
                                             {
                                                 DemoScanner_AddWarn(
@@ -11407,7 +11408,7 @@ namespace DemoScanner.DG
 
             // different size in network protocols < 45 like gamedata frame header???
 
-            Seek(98);
+            Seek(97);
             BitBuffer.ReadString();
         }
 
