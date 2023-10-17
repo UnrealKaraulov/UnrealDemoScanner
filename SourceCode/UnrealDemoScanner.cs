@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.68.14";
+        public const string PROGRAMVERSION = "1.68.15";
 
         public enum AngleDirection
         {
@@ -1377,7 +1377,7 @@ namespace DemoScanner.DG
                     {
                         if (abs(DemoScanner.CurrentTime - DemoScanner.LastKreedzHackTime) > 2.5f)
                         {
-                            DemoScanner_AddWarn("[XTREME JUMPHACK] at (" + CurrentTime + ") " + CurrentTimeString);
+                            DemoScanner_AddWarn("[JUMPHACK XTREME] at (" + CurrentTime + ") " + CurrentTimeString);
 
                             DemoScanner.LastKreedzHackTime = DemoScanner.CurrentTime;
 
@@ -2813,13 +2813,12 @@ namespace DemoScanner.DG
                         SkipNextErrors = false;
                         if (DemoScanner.IsRussia)
                         {
-                            Console.WriteLine("Сканирование неожиданно прервано.");
+                            Console.WriteLine("Критическая ошибка сканирования[1]. \nРезультаты сканирования могут быть не однозначными...");
                         }
                         else
                         {
-                            Console.WriteLine("Demo analyze stopped because found unexpected file end.");
+                            Console.WriteLine("Critical error in message parser.[1] \nThe scan result may not be unambiguous...");
                         }
-                        break;
                     }
 
                     if (NeedSkipDemoRescan == 1)
@@ -4209,30 +4208,30 @@ namespace DemoScanner.DG
 
                                 if (SkipNextErrors)
                                 {
+                                    SkipNextErrors = false;
                                     if (DemoScanner.IsRussia)
                                     {
-                                        Console.WriteLine("Сканирование неожиданно прервано.");
+                                        Console.WriteLine("Критическая ошибка сканирования[2]. \nРезультаты сканирования могут быть не однозначными...");
                                     }
                                     else
                                     {
-                                        Console.WriteLine("Demo analyze stopped because found unexpected file end.");
+                                        Console.WriteLine("Critical error in message parser.[2] \nThe scan result may not be unambiguous...");
                                     }
-                                    break;
                                 }
 
                                 ParseGameData(halfLifeDemoParser, nf.MsgBytes); ;
 
                                 if (SkipNextErrors)
                                 {
+                                    SkipNextErrors = false;
                                     if (DemoScanner.IsRussia)
                                     {
-                                        Console.WriteLine("Сканирование неожиданно прервано.");
+                                        Console.WriteLine("Критическая ошибка сканирования[3]. \nРезультаты сканирования могут быть не однозначными...");
                                     }
                                     else
                                     {
-                                        Console.WriteLine("Demo analyze stopped because found unexpected file end.");
+                                        Console.WriteLine("Critical error in message parser.[3] \nThe scan result may not be unambiguous...");
                                     }
-                                    break;
                                 }
 
                                 if (nf.MsgBytes.Length < 8 && abs(CurrentTime) > EPSILON)
@@ -5201,7 +5200,8 @@ namespace DemoScanner.DG
                                         {
                                             if (abs(CurrentTime - LastJumpBtnTime) > 0.2)
                                             {
-                                                DemoScanner_AddWarn("[HPP JMPBUG] at (" + CurrentTime + ") : " + CurrentTimeString, true);
+                                                KreedzHacksCount++;
+                                                DemoScanner_AddWarn("[JUMPHACK HPP] at (" + CurrentTime + ") : " + CurrentTimeString, true);
                                             }
                                         }
                                         if (FlyDirection < 0)
@@ -6426,9 +6426,18 @@ namespace DemoScanner.DG
                                     {
                                         if (abs(CurrentTime - LastCmdHack) > 5.0)
                                         {
-                                            DemoScanner_AddWarn(
-                                                "[CMD HACK TYPE 1] at (" +
-                                                CurrentTime + ") " + CurrentTimeString, !IsAngleEditByEngine());
+											if (RealFpsMax > 1001)
+											{
+												DemoScanner_AddWarn(
+													"[FPS HACK TYPE 2] at (" +
+													CurrentTime + ") " + CurrentTimeString, !IsAngleEditByEngine());
+											}
+											else 
+											{
+												DemoScanner_AddWarn(
+													"[CMD HACK TYPE 1] at (" +
+													CurrentTime + ") " + CurrentTimeString, !IsAngleEditByEngine());
+											}
                                         }
 
                                         LastCmdHack = CurrentTime;
@@ -7012,14 +7021,15 @@ namespace DemoScanner.DG
                 if (IsRussia)
                 {
                     DemoScanner_AddInfo("Не найден бесплатный серверный модуль. Часть данных недоступна.", true);
+                    DemoScanner_AddInfo("https://github.com/UnrealKaraulov/UnrealDemoScanner/blob/main/PLUGIN/plugin.sma", true);
                     DemoScanner_AddInfo("Возможны ложные срабатывания на [AIM TYPE 1.6].", true);
                 }
                 else
                 {
                     DemoScanner_AddInfo("AMXX Plugin not found. Some detects is skipped.", true);
+                    DemoScanner_AddInfo("https://github.com/UnrealKaraulov/UnrealDemoScanner/blob/main/PLUGIN/plugin.sma", true);
                     DemoScanner_AddInfo("Possible false detect one of aimbots: [AIM TYPE 1.6].", true);
                 }
-
             }
             else
             {
@@ -7428,7 +7438,7 @@ namespace DemoScanner.DG
 
                 if (command == "9")
                 {
-                    Console.Write("Enter path to cstrike dir:");
+                    Console.Write("Enter path to cstrike dir[D:/HalfLife1/cstrike/]:");
                     string strikedir = Console.ReadLine().Replace("\"", "");
 
                     if (strikedir.EndsWith("/") || strikedir.EndsWith("\\"))
@@ -7541,12 +7551,12 @@ namespace DemoScanner.DG
                         }
                         else
                         {
-                            Console.WriteLine("Bad directory! Please enter path to Half Life directory!");
+                            Console.WriteLine("Bad directory[1]! Please enter path to Half Life directory!");
                         }
                     }
                     else
                     {
-                        Console.WriteLine("Bad directory! Please enter path to Half Life directory!");
+                        Console.WriteLine("Bad directory[1]! Please enter path to Half Life directory!");
                     }
 
                 }
@@ -7569,7 +7579,7 @@ namespace DemoScanner.DG
                     Console.WriteLine(
                         " * Report false positive: (Сообщить о ложном срабатывании):");
                     Console.WriteLine(
-                        " * https://c-s.net.ua/forum/topic90973.html , https://goldsrc.ru/threads/4627/");
+                        " * https://dev-cs.ru/threads/10684/ , https://goldsrc.ru/threads/4627/");
                     Console.WriteLine(
                         " * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ");
                     Console.WriteLine(" ");
@@ -8938,7 +8948,7 @@ namespace DemoScanner.DG
 
                             if (!FindLerpAndMs(lerpms, ms))
                             {
-                                DemoScanner_AddWarn("[FAKELAG] at (" + CurrentTime +
+                                DemoScanner_AddWarn("[FAKELAG TYPE 1] at (" + CurrentTime +
                                                     "):" + CurrentTimeString, true, true, false, true);
                                 FakeLagAim++;
                             }
@@ -9760,6 +9770,7 @@ namespace DemoScanner.DG
                 else
                     Console.WriteLine("(E=" + ex.Message + ") at " + DemoScanner.CurrentTime);
                 Console.ForegroundColor = tmpcolor;
+
                 if (DemoScanner.DUMP_ALL_FRAMES)
                 {
                     DemoScanner.OutDumpString += "(E=" + ex.Message + ") (" + ex.Source + ") \n(" + ex.StackTrace + ")";
@@ -9769,6 +9780,7 @@ namespace DemoScanner.DG
                 {
                     DemoScanner.OutDumpString += "FATAL ERROR. STOP MESSAGE PARSING.\n}\n";
                 }
+
                 DemoScanner.SkipNextErrors = true;
             }
 
@@ -10562,7 +10574,7 @@ namespace DemoScanner.DG
                 if (abs(DemoScanner.CurrentTime - DemoScanner.speedhackdetect_time) > 5.0)
                 {
                     DemoScanner.DemoScanner_AddWarn(
-                        "[FakeSpeed Type 2] at (" + DemoScanner.CurrentTime +
+                        "[FAKESPEED TYPE 2] at (" + DemoScanner.CurrentTime +
                         "):" + DemoScanner.CurrentTimeString, false);
                 }
 
@@ -11359,7 +11371,7 @@ namespace DemoScanner.DG
                 if (abs(DemoScanner.CurrentTime - DemoScanner.LastFakeLagTime) > 5.0f)
                 {
                     DemoScanner.DemoScanner_AddWarn(
-                        "[Fakelag Type 2] at (" + DemoScanner.CurrentTime +
+                        "[FAKELAG TYPE 2] at (" + DemoScanner.CurrentTime +
                         "):" + DemoScanner.CurrentTimeString, false);
                 }
 
@@ -11945,7 +11957,8 @@ namespace DemoScanner.DG
                 BitBuffer.ReadString(); // Client Index ?
 
             string arg1 = BitBuffer.ReadStringMaxLen(256);
-            string arg2 = arg1.IndexOf("%s") == 0 || (arg1.IndexOf("#") == 0 && target != TEXTMSG_Type.TEXT_PRINTCENTER) ? BitBuffer.ReadStringMaxLen(256) : "";
+            string arg2 = arg1.IndexOf("%s") == 0 || (arg1.IndexOf("#") == 0 && arg1.IndexOf(" ") == -1 && target != TEXTMSG_Type.TEXT_PRINTCENTER) ? BitBuffer.ReadStringMaxLen(256) : "";
+            
             /*string arg3 = BitBuffer.ReadStringMaxLen(256).Replace("\n", "^n").Replace("\r", "^n")
                 .Replace("\x01", "^1").Replace("\x02", "^2")
                 .Replace("\x03", "^3").Replace("\x04", "^4");
@@ -11955,6 +11968,7 @@ namespace DemoScanner.DG
             string arg5 = BitBuffer.ReadStringMaxLen(256).Replace("\n", "^n").Replace("\r", "^n")
                 .Replace("\x01", "^1").Replace("\x02", "^2")
                 .Replace("\x03", "^3").Replace("\x04", "^4");*/
+
             //Console.WriteLine("[" + target.ToString() + "]\"" + arg1 + "|" + arg2 /*+ "|" + arg3 + "|" + arg4 + "|" + arg5 + "|" */+ "\"");
             if (/*arg1 == "#Game_Commencing"
                 || */arg1 == "#Game_will_restart_in"
