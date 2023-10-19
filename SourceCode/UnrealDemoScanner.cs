@@ -521,6 +521,9 @@ namespace DemoScanner.DG
         public static bool SearchNextJumpStrike = false;
 
 
+        
+
+
         public static List<string> CommandsDump = new List<string>();
         public static string framecrashcmd = "";
 
@@ -3056,20 +3059,38 @@ namespace DemoScanner.DG
                                     {
                                         if (FovHackDetected <= 10)
                                         {
-                                            if (abs(checkFov - 90.0f) > 0.01 && abs(checkFov - 40.0f) > 0.01 && abs(checkFov - 10.0f) > 0.01)
+                                            /* AWP, SCOUT, ... for next update weapon check */
+                                            float fov2_clean1 = CalcFov(10.0f, LastResolutionX, LastResolutionY);
+                                            float fov2_clean2 = CalcFov(15.0f, LastResolutionX, LastResolutionY);
+                                            float fov2_clean3 = CalcFov(40.0f, LastResolutionX, LastResolutionY);
+
+                                            float fov_clean1 = 10.0f;
+                                            float fov_clean2 = 15.0f;
+                                            float fov_clean3 = 40.0f;
+
+                                            // NORMAL FOV FOR CUSTOM GAME CLIENT
+                                            float fov2_clean4 = CalcFov(90.0f, LastResolutionX, LastResolutionY);
+
+                                            float fov_clean4 = 90.0f;
+
+                                            // IF fov found, and fov not clean:
+                                            if (checkFov2 > 0.01 && abs(checkFov - fov_clean1) > 0.01 && abs(checkFov - fov_clean2) > 0.01 && abs(checkFov - fov_clean3) > 0.01 && abs(checkFov - fov_clean4) > 0.01
+                                                && abs(checkFov - fov2_clean1) > 0.01 && abs(checkFov - fov2_clean2) > 0.01 && abs(checkFov - fov2_clean3) > 0.01 && abs(checkFov - fov2_clean4) > 0.01)
                                             {
                                                 float fov1 = CalcFov(ClientFov, LastResolutionX, LastResolutionY);
-                                                float fov2 = CalcFov(FovByFunc, LastResolutionX, LastResolutionY);
-                                                float fov3 = CalcFov(ClientFov2, LastResolutionX, LastResolutionY);
+                                                float fov2 = CalcFov(ClientFov2, LastResolutionX, LastResolutionY);
+
+                                                float fov3 = CalcFov(FovByFunc, LastResolutionX, LastResolutionY);
                                                 float fov4 = CalcFov(FovByFunc2, LastResolutionX, LastResolutionY);
 
+                                                // If fov not by server
                                                 if (abs(checkFov - fov1) > 0.01 && abs(checkFov - fov2) > 0.01
                                                         && abs(checkFov - fov3) > 0.01 && abs(checkFov - fov4) > 0.01)
                                                 {
                                                     DemoScanner_AddWarn(
-                                                                   "[FOV HACK TYPE 1] [" + checkFov +/*" == " + fov1 + " or " + fov2 + " or " + fov3 + */" FOV] at (" + CurrentTime +
-                                                                   "):" + CurrentTimeString, abs(checkFov - ClientFov) > 0.01 && abs(checkFov - ClientFov2) > 0.01
-                                                                   && abs(checkFov - FovByFunc) > 0.01 && abs(checkFov - FovByFunc2) > 0.01 && !IsAngleEditByEngine() && !IsPlayerLossConnection());
+                                                        "[FOV HACK TYPE 2] [" + checkFov + " FOV] at (" + CurrentTime +
+                                                        "):" + CurrentTimeString, abs(checkFov - ClientFov) > 0.01 && abs(checkFov - ClientFov2) > 0.01
+                                                        && abs(checkFov - FovByFunc) > 0.01 && abs(checkFov - FovByFunc2) > 0.01 && !IsAngleEditByEngine() && !IsPlayerLossConnection());
                                                     FovHackTime = CurrentTime;
                                                     FovHackDetected += 1;
                                                 }
@@ -4019,25 +4040,43 @@ namespace DemoScanner.DG
                                     {
                                         if (bframe.Buffer[0] == 1)
                                         {
-                                            float fov = BitConverter.ToSingle(bframe.Buffer.ToArray(), 4);
+                                            float floatfov = BitConverter.ToSingle(bframe.Buffer.ToArray(), 4);
                                             if (RealAlive && (CurrentFrameAttacked || CurrentFrameJumped) && abs(CurrentTime - LastDeathTime) > 5.0f && abs(CurrentTime - LastAliveTime) > 2.0f)
                                             {
                                                 if (abs(CurrentTime - FovHackTime) > 30.0f)
                                                 {
                                                     if (FovHackDetected <= 10)
                                                     {
-                                                        if (checkFov2 > 0.01 && abs(fov - 90.0f) > 0.01 && abs(fov - 40.0f) > 0.01 && abs(fov - 10.0f) > 0.01)
+                                                        /* AWP, SCOUT, ... for next update weapon check */
+                                                        float fov2_clean1 = CalcFov(10.0f, LastResolutionX, LastResolutionY);
+                                                        float fov2_clean2 = CalcFov(15.0f, LastResolutionX, LastResolutionY);
+                                                        float fov2_clean3 = CalcFov(40.0f, LastResolutionX, LastResolutionY);
+
+                                                        float fov_clean1 = 10.0f;
+                                                        float fov_clean2 = 15.0f;
+                                                        float fov_clean3 = 40.0f;
+
+                                                        // NORMAL FOV FOR CUSTOM GAME CLIENT
+                                                        float fov2_clean4 = CalcFov(90.0f, LastResolutionX, LastResolutionY);
+
+                                                        float fov_clean4 = 90.0f;
+
+                                                        // IF fov found, and fov not clean:
+                                                        if (checkFov2 > 0.01 && abs(checkFov2 - fov_clean1) > 0.01 && abs(checkFov2 - fov_clean2) > 0.01 && abs(checkFov2 - fov_clean3) > 0.01 && abs(checkFov2 - fov_clean4) > 0.01
+                                                            && abs(checkFov2 - fov2_clean1) > 0.01 && abs(checkFov2 - fov2_clean2) > 0.01 && abs(checkFov2 - fov2_clean3) > 0.01 && abs(checkFov2 - fov2_clean4) > 0.01)
                                                         {
                                                             float fov1 = CalcFov(ClientFov, LastResolutionX, LastResolutionY);
-                                                            float fov2 = CalcFov(FovByFunc, LastResolutionX, LastResolutionY);
-                                                            float fov3 = CalcFov(ClientFov2, LastResolutionX, LastResolutionY);
+                                                            float fov2 = CalcFov(ClientFov2, LastResolutionX, LastResolutionY);
+
+                                                            float fov3 = CalcFov(FovByFunc, LastResolutionX, LastResolutionY);
                                                             float fov4 = CalcFov(FovByFunc2, LastResolutionX, LastResolutionY);
 
-                                                            if (abs(fov - fov1) > 0.01 && abs(fov - fov2) > 0.01
-                                                                    && abs(fov - fov3) > 0.01 && abs(fov - fov4) > 0.01)
+                                                            // If fov not by server
+                                                            if (abs(checkFov2 - fov1) > 0.01 && abs(checkFov2 - fov2) > 0.01
+                                                                    && abs(checkFov2 - fov3) > 0.01 && abs(checkFov2 - fov4) > 0.01)
                                                             {
                                                                 DemoScanner_AddWarn(
-                                                                    "[FOV HACK TYPE 2] [" + fov +/*" == " + fov1 + " or " + fov2 + " or " + fov3 + */" FOV] at (" + CurrentTime +
+                                                                    "[FOV HACK TYPE 2] [" + checkFov2 + " FOV] at (" + CurrentTime +
                                                                     "):" + CurrentTimeString, abs(checkFov2 - ClientFov) > 0.01 && abs(checkFov2 - ClientFov2) > 0.01
                                                                     && abs(checkFov2 - FovByFunc) > 0.01 && abs(checkFov2 - FovByFunc2) > 0.01 && !IsAngleEditByEngine() && !IsPlayerLossConnection());
                                                                 FovHackTime = CurrentTime;
@@ -4047,9 +4086,10 @@ namespace DemoScanner.DG
                                                     }
                                                 }
                                             }
-                                            checkFov2 = fov;
-                                           // Console.WriteLine(CurrentTimeString + "[DEMOBUFFER: " + CurrentWeapon + "] = " + fov + " framefov = " + cdframeFov);
+                                            checkFov2 = floatfov;
+                                            // Console.WriteLine(CurrentTimeString + "[DEMOBUFFER: " + CurrentWeapon + "] = " + fov + " framefov = " + cdframeFov);
                                         }
+                                        else MessageBox.Show("YEEEEEEEEEES");
                                     }
                                     else
                                     {
@@ -13429,7 +13469,6 @@ namespace DemoScanner.DG
                                             DemoScanner.ClientFov2 = DemoScanner.ClientFov;
                                             DemoScanner.ClientFov = fov;
                                         }
-
                                     }
 
                                     if (entryList[index].Name == "fuser2")
