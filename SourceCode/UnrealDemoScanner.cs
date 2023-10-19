@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.68.15";
+        public const string PROGRAMVERSION = "1.68.16";
 
         public enum AngleDirection
         {
@@ -365,6 +365,7 @@ namespace DemoScanner.DG
         public static List<float> PlayerAngleLenHistory = new List<float>();
         public static List<string> PlayerSensitivityHistoryStrTime = new List<string>();
         public static List<string> PlayerSensitivityHistoryStrWeapon = new List<string>();
+        public static List<string> PlayerSensitivityHistoryStrFOV = new List<string>();
         public static string LastSensWeapon = "";
         public static int PlayerSensitivityWarning = 0;
 
@@ -386,10 +387,13 @@ namespace DemoScanner.DG
 
         public static bool NeedCheckAttack = false;
 
+        public static int FovByFunc = 0;
+        public static int FovByFunc2 = 0;
         public static float ClientFov2 = 40.0f;
         public static float ClientFov = 90.0f;
         public static float cdframeFov = 90.0f;
         public static float checkFov = 90.0f;
+        public static float checkFov2 = 90.0f;
         public static string DemoName = "";
 
         public static bool DisableJump5AndAim16 = false;
@@ -720,8 +724,6 @@ namespace DemoScanner.DG
         public static float PlayerFrozenTime = 0.0f;
         public static float PlayerUnFrozenTime = 0.0f;
         public static int ReturnToGameDetects = 0;
-        public static int FovByFunc = 0;
-        public static int FovByFunc2 = 0;
         public static bool IsScreenFade = false;
         public static float LastViewChange = 0.0f;
         public static bool HideWeapon = false;
@@ -2610,25 +2612,17 @@ namespace DemoScanner.DG
 
 
             StartScanTime = DateTime.Now;
-            if (!DUMP_ALL_FRAMES)
-            {
-                if (File.Exists(CurrentDir + @"\Frames.txt"))
-                {
-                    DUMP_ALL_FRAMES = true;
-                    Console.WriteLine("Dump mode activated.");
-                }
-            }
 
             try
             {
                 if (DUMP_ALL_FRAMES)
                 {
-                    File.Delete(CurrentDir + @"\Frames.txt");
-                    File.Create(CurrentDir + @"\Frames.txt").Close();
+                    File.Delete(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) + @"_Frames.txt");
+                    File.Create(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) + @"_Frames.txt").Close();
 
-                    if (File.Exists(CurrentDir + @"\Frames.txt"))
+                    if (File.Exists(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) + @"_Frames.txt"))
                     {
-                        File.AppendAllText(CurrentDir + @"\Frames.txt",
+                        File.AppendAllText(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) + @"_Frames.txt",
                             "Полный дамп демо в текстовом формате\n");
                     }
                 }
@@ -3056,37 +3050,33 @@ namespace DemoScanner.DG
 
                                 cdframeFov = cdframe.Fov;
 
-                                if (RealAlive && CurrentFrameAttacked && abs(CurrentTime - LastDeathTime) > 5.0f && abs(CurrentTime - LastAliveTime) > 2.0f)
+                                if (RealAlive && (CurrentFrameAttacked || CurrentFrameJumped) && abs(CurrentTime - LastDeathTime) > 5.0f && abs(CurrentTime - LastAliveTime) > 2.0f)
                                 {
-                                    if (abs(CurrentTime - FovHackTime) > 60.0f)
+                                    if (abs(CurrentTime - FovHackTime) > 30.0f)
                                     {
-                                        if (!IsAngleEditByEngine() && !IsPlayerLossConnection() && FovHackDetected <= 5)
+                                        if (FovHackDetected <= 10)
                                         {
                                             if (abs(checkFov - 90.0f) > 0.01 && abs(checkFov - 40.0f) > 0.01 && abs(checkFov - 10.0f) > 0.01)
                                             {
-                                                if (abs(checkFov - ClientFov) > 0.01 && abs(checkFov - ClientFov2) > 0.01
-                                                        && abs(checkFov - FovByFunc) > 0.01 && abs(checkFov - FovByFunc2) > 0.01)
-                                                {
-                                                    float fov1 = CalcFov(ClientFov, LastResolutionX, LastResolutionY);
-                                                    float fov2 = CalcFov(FovByFunc, LastResolutionX, LastResolutionY);
-                                                    float fov3 = CalcFov(ClientFov2, LastResolutionX, LastResolutionY);
-                                                    float fov4 = CalcFov(FovByFunc2, LastResolutionX, LastResolutionY);
+                                                float fov1 = CalcFov(ClientFov, LastResolutionX, LastResolutionY);
+                                                float fov2 = CalcFov(FovByFunc, LastResolutionX, LastResolutionY);
+                                                float fov3 = CalcFov(ClientFov2, LastResolutionX, LastResolutionY);
+                                                float fov4 = CalcFov(FovByFunc2, LastResolutionX, LastResolutionY);
 
-                                                    if (abs(checkFov - fov1) > 0.01 && abs(checkFov - fov2) > 0.01
-                                                         && abs(checkFov - fov3) > 0.01 && abs(checkFov - fov4) > 0.01)
-                                                    {
-                                                        DemoScanner_AddWarn(
-                                                            "[FOV HACK TYPE 1] [" + checkFov +/*" == " + fov1 + " or " + fov2 + " or " + fov3 + */" FOV] at (" + CurrentTime +
-                                                            "):" + CurrentTimeString, !(abs(checkFov - ClientFov) < EPSILON || abs(checkFov - FovByFunc) < EPSILON));
-                                                        FovHackTime = CurrentTime;
-                                                        FovHackDetected += 1;
-                                                    }
+                                                if (abs(checkFov - fov1) > 0.01 && abs(checkFov - fov2) > 0.01
+                                                        && abs(checkFov - fov3) > 0.01 && abs(checkFov - fov4) > 0.01)
+                                                {
+                                                    DemoScanner_AddWarn(
+                                                                   "[FOV HACK TYPE 1] [" + checkFov +/*" == " + fov1 + " or " + fov2 + " or " + fov3 + */" FOV] at (" + CurrentTime +
+                                                                   "):" + CurrentTimeString, abs(checkFov - ClientFov) > 0.01 && abs(checkFov - ClientFov2) > 0.01
+                                                                   && abs(checkFov - FovByFunc) > 0.01 && abs(checkFov - FovByFunc2) > 0.01 && !IsAngleEditByEngine() && !IsPlayerLossConnection());
+                                                    FovHackTime = CurrentTime;
+                                                    FovHackDetected += 1;
                                                 }
                                             }
                                         }
                                     }
                                 }
-
 
                                 checkFov = cdframeFov;
 
@@ -3633,6 +3623,7 @@ namespace DemoScanner.DG
                                                 "(" + LastFpsCheckTime + "): " + CurrentTimeString);
                                             PlayerSensitivityHistoryStrWeapon.Add(
                                                 LastSensWeapon);
+                                            PlayerSensitivityHistoryStrFOV.Add((int)checkFov + "/" + (int)checkFov2);
                                         }
                                         CurrentSensitivity = -1.0f;
                                     }
@@ -4015,13 +4006,59 @@ namespace DemoScanner.DG
                             }
                         case GoldSource.DemoFrameType.DemoBuffer:
                             {
-                                // LASTFRAMEISCLIENTDATA = false;
-                                /*var bframe = (GoldSource.DemoBufferFrame)frame.Value;
-                                if (bframe.Buffer.Length > 0)
+                                var bframe = (GoldSource.DemoBufferFrame)frame.Value;
+                                if (bframe.Buffer.Count > 0)
                                 {
-                                    Console.WriteLine("Demobuf found");
-                                    File.WriteAllBytes("demobuffer/demobuf_" + CurrentFrameId + ".bin", bframe.Buffer);
-                                }*/
+                                    if (DUMP_ALL_FRAMES)
+                                    {
+                                        subnode.Text += "{ DEMOBUFFER HAS DATA\n";
+                                        subnode.Text += BitConverter.ToString(bframe.Buffer.ToArray()).Replace("-", "");
+                                        subnode.Text += "}\n";
+                                    }
+                                    if (bframe.Buffer.Count >= 8)
+                                    {
+                                        if (bframe.Buffer[0] == 1)
+                                        {
+                                            float fov = BitConverter.ToSingle(bframe.Buffer.ToArray(), 4);
+                                            if (RealAlive && (CurrentFrameAttacked || CurrentFrameJumped) && abs(CurrentTime - LastDeathTime) > 5.0f && abs(CurrentTime - LastAliveTime) > 2.0f)
+                                            {
+                                                if (abs(CurrentTime - FovHackTime) > 30.0f)
+                                                {
+                                                    if (FovHackDetected <= 10)
+                                                    {
+                                                        if (checkFov2 > 0.01 && abs(fov - 90.0f) > 0.01 && abs(fov - 40.0f) > 0.01 && abs(fov - 10.0f) > 0.01)
+                                                        {
+                                                            float fov1 = CalcFov(ClientFov, LastResolutionX, LastResolutionY);
+                                                            float fov2 = CalcFov(FovByFunc, LastResolutionX, LastResolutionY);
+                                                            float fov3 = CalcFov(ClientFov2, LastResolutionX, LastResolutionY);
+                                                            float fov4 = CalcFov(FovByFunc2, LastResolutionX, LastResolutionY);
+
+                                                            if (abs(fov - fov1) > 0.01 && abs(fov - fov2) > 0.01
+                                                                    && abs(fov - fov3) > 0.01 && abs(fov - fov4) > 0.01)
+                                                            {
+                                                                DemoScanner_AddWarn(
+                                                                    "[FOV HACK TYPE 2] [" + fov +/*" == " + fov1 + " or " + fov2 + " or " + fov3 + */" FOV] at (" + CurrentTime +
+                                                                    "):" + CurrentTimeString, abs(checkFov2 - ClientFov) > 0.01 && abs(checkFov2 - ClientFov2) > 0.01
+                                                                    && abs(checkFov2 - FovByFunc) > 0.01 && abs(checkFov2 - FovByFunc2) > 0.01 && !IsAngleEditByEngine() && !IsPlayerLossConnection());
+                                                                FovHackTime = CurrentTime;
+                                                                FovHackDetected += 1;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            checkFov2 = fov;
+                                           // Console.WriteLine(CurrentTimeString + "[DEMOBUFFER: " + CurrentWeapon + "] = " + fov + " framefov = " + cdframeFov);
+                                        }
+                                    }
+                                    else
+                                    {
+
+                                    }
+                                }
+
+                                // LASTFRAMEISCLIENTDATA = false;
+                                /**/
                                 break;
                             }
                         case GoldSource.DemoFrameType.NetMsg:
@@ -6426,18 +6463,18 @@ namespace DemoScanner.DG
                                     {
                                         if (abs(CurrentTime - LastCmdHack) > 5.0)
                                         {
-											if (RealFpsMax > 1001)
-											{
-												DemoScanner_AddWarn(
-													"[FPS HACK TYPE 2] at (" +
-													CurrentTime + ") " + CurrentTimeString, !IsAngleEditByEngine());
-											}
-											else 
-											{
-												DemoScanner_AddWarn(
-													"[CMD HACK TYPE 1] at (" +
-													CurrentTime + ") " + CurrentTimeString, !IsAngleEditByEngine());
-											}
+                                            if (RealFpsMax > 1001)
+                                            {
+                                                DemoScanner_AddWarn(
+                                                    "[FPS HACK TYPE 2] at (" +
+                                                    CurrentTime + ") " + CurrentTimeString, !IsAngleEditByEngine());
+                                            }
+                                            else
+                                            {
+                                                DemoScanner_AddWarn(
+                                                    "[CMD HACK TYPE 1] at (" +
+                                                    CurrentTime + ") " + CurrentTimeString, !IsAngleEditByEngine());
+                                            }
                                         }
 
                                         LastCmdHack = CurrentTime;
@@ -6989,9 +7026,9 @@ namespace DemoScanner.DG
 
             try
             {
-                if (File.Exists(CurrentDir + @"\Frames.txt") || DUMP_ALL_FRAMES)
+                if (DUMP_ALL_FRAMES && File.Exists(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) + @"_Frames.txt"))
                 {
-                    File.WriteAllLines(CurrentDir + @"\Frames.txt", outFrames.ToArray());
+                    File.AppendAllLines(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) + @"_Frames.txt", outFrames.ToArray());
                 }
             }
             catch
@@ -7635,12 +7672,12 @@ namespace DemoScanner.DG
 
                 if (command == "6")
                 {
-                    table = new ConsoleTable("Second", "Sensitivity", "Length", "Time", "Weapon");
+                    table = new ConsoleTable("Second", "Sensitivity", "Length", "Time", "Weapon", "FOV");
                     for (int i = 0; i < PlayerSensitivityHistory.Count; i++)
                     {
                         table.AddRow(i + 1, (PlayerSensitivityHistory[i] / 0.022f).ToString("F6"), PlayerAngleLenHistory[i],
                             PlayerSensitivityHistoryStrTime[i]
-                            , PlayerSensitivityHistoryStrWeapon[i]);
+                            , PlayerSensitivityHistoryStrWeapon[i], PlayerSensitivityHistoryStrFOV[i]);
                     }
 
                     table.Write(Format.Alternative);
@@ -11958,7 +11995,7 @@ namespace DemoScanner.DG
 
             string arg1 = BitBuffer.ReadStringMaxLen(256);
             string arg2 = arg1.IndexOf("%s") == 0 || (arg1.IndexOf("#") == 0 && arg1.IndexOf(" ") == -1 && target != TEXTMSG_Type.TEXT_PRINTCENTER) ? BitBuffer.ReadStringMaxLen(256) : "";
-            
+
             /*string arg3 = BitBuffer.ReadStringMaxLen(256).Replace("\n", "^n").Replace("\r", "^n")
                 .Replace("\x01", "^1").Replace("\x02", "^2")
                 .Replace("\x03", "^3").Replace("\x04", "^4");

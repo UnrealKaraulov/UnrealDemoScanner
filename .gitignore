@@ -131,8 +131,6 @@ $RECYCLE.BIN/
 _NCrunch*
 Release/*
 SourceCode/bin/Release/UnrealDemoScanner.exe
-CheatDemos/
-CheatDemos2/
 CheatDemos3/
 CheatDemos4/
 CheatDemos5/

@@ -366,7 +366,7 @@ namespace DemoScanner.DemoStuff.GoldSource
             public float Volume;
         }
 
-        public struct DemoBufferFrame : IFrame { public byte[] Buffer; }
+        public struct DemoBufferFrame : IFrame { public List<byte> Buffer; }
 
         public struct DemoStartFrame : IFrame { }
 
@@ -1563,7 +1563,11 @@ namespace DemoScanner.DemoStuff.GoldSource
                                                 break;
                                                 // return gDemo;
                                             }
-                                            bframe.Buffer = br.ReadBytes(buggerlength);
+                                            bframe.Buffer = new List<byte>();
+                                            if (buggerlength > 0)
+                                            {
+                                                bframe.Buffer.AddRange(br.ReadBytes(buggerlength));
+                                            }
                                             entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame, bframe));
                                             break;
                                         case GoldSource.DemoFrameType.NetMsg:
