@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.68.16";
+        public const string PROGRAMVERSION = "1.68.17";
 
         public enum AngleDirection
         {
@@ -521,7 +521,7 @@ namespace DemoScanner.DG
         public static bool SearchNextJumpStrike = false;
 
 
-        
+
 
 
         public static List<string> CommandsDump = new List<string>();
@@ -843,6 +843,11 @@ namespace DemoScanner.DG
 
         public static float FrametimeMin = 9999.0f, MsecMin = 9999.0f, FrametimeMax = 0.0f, MsecMax = 0.0f;
 
+        public static bool DetectCmdHackType10 = false;
+        public static float CmdHack10_origX = 0.0f;
+        public static float CmdHack10_origY = 0.0f;
+        public static float CmdHack10_origZ = 0.0f;
+        public static float CmdHack10_detecttime = 0.0f;
 
         public static WeaponIdType GetWeaponByStr(string str)
         {
@@ -3051,6 +3056,41 @@ namespace DemoScanner.DG
                                     subnode.Text += "}\n";
                                 }
 
+                                if (DetectCmdHackType10)
+                                {
+                                    DetectCmdHackType10 = false;
+
+                                    if (RealAlive && abs(CurrentTime - LastDeathTime) > 5.0f && abs(CurrentTime - LastAliveTime) > 2.0f)
+                                    {
+                                        if (abs(CurrentTime - CmdHack10_detecttime) > 30.0f)
+                                        {
+                                            if (abs(CmdHack10_detecttime) > 0.0001f)
+                                            {
+                                                if (abs(CmdHack10_origX) > 0.001f && abs(CmdHack10_origX - cdframe.Origin.X) > 0.001f)
+                                                {
+                                                    DemoScanner_AddWarn(
+                                                                   "[CMD HACK TYPE 10] at (" + CurrentTime +
+                                                                   "):" + CurrentTimeString, false/*!IsAngleEditByEngine() && !IsPlayerLossConnection()*/);
+                                                }
+                                                if (abs(CmdHack10_origY) > 0.001f && abs(CmdHack10_origY - cdframe.Origin.Y) > 0.001f)
+                                                {
+                                                    DemoScanner_AddWarn(
+                                                                   "[CMD HACK TYPE 10] at (" + CurrentTime +
+                                                                   "):" + CurrentTimeString, false /*!IsAngleEditByEngine() && !IsPlayerLossConnection()*/);
+                                                }
+                                                if (abs(CmdHack10_origZ) > 0.001f && abs(CmdHack10_origZ - cdframe.Origin.Z) > 0.001f)
+                                                {
+                                                    DemoScanner_AddWarn(
+                                                                   "[CMD HACK TYPE 10] at (" + CurrentTime +
+                                                                   "):" + CurrentTimeString, false /*!IsAngleEditByEngine() && !IsPlayerLossConnection()*/);
+                                                }
+                                            }
+                                            CmdHack10_detecttime = CurrentTime;
+                                        }
+                                    }
+                                    CmdHack10_origX = CmdHack10_origY = CmdHack10_origZ = 0.0f;
+                                }
+
                                 cdframeFov = cdframe.Fov;
 
                                 if (RealAlive && (CurrentFrameAttacked || CurrentFrameJumped) && abs(CurrentTime - LastDeathTime) > 5.0f && abs(CurrentTime - LastAliveTime) > 2.0f)
@@ -3059,23 +3099,24 @@ namespace DemoScanner.DG
                                     {
                                         if (FovHackDetected <= 10)
                                         {
-                                            /* AWP, SCOUT, ... for next update weapon check */
+                                            /* AWP, SCOUT, ETC ... for next update weapon check */
                                             float fov2_clean1 = CalcFov(10.0f, LastResolutionX, LastResolutionY);
                                             float fov2_clean2 = CalcFov(15.0f, LastResolutionX, LastResolutionY);
                                             float fov2_clean3 = CalcFov(40.0f, LastResolutionX, LastResolutionY);
+                                            float fov2_clean4 = CalcFov(55.0f, LastResolutionX, LastResolutionY);
 
                                             float fov_clean1 = 10.0f;
                                             float fov_clean2 = 15.0f;
                                             float fov_clean3 = 40.0f;
+                                            float fov_clean4 = 55.0f;
 
                                             // NORMAL FOV FOR CUSTOM GAME CLIENT
-                                            float fov2_clean4 = CalcFov(90.0f, LastResolutionX, LastResolutionY);
-
-                                            float fov_clean4 = 90.0f;
+                                            float fov2_clean5 = CalcFov(90.0f, LastResolutionX, LastResolutionY);
+                                            float fov_clean5 = 90.0f;
 
                                             // IF fov found, and fov not clean:
-                                            if (checkFov2 > 0.01 && abs(checkFov - fov_clean1) > 0.01 && abs(checkFov - fov_clean2) > 0.01 && abs(checkFov - fov_clean3) > 0.01 && abs(checkFov - fov_clean4) > 0.01
-                                                && abs(checkFov - fov2_clean1) > 0.01 && abs(checkFov - fov2_clean2) > 0.01 && abs(checkFov - fov2_clean3) > 0.01 && abs(checkFov - fov2_clean4) > 0.01)
+                                            if (checkFov2 > 0.01 && abs(checkFov - fov_clean1) > 0.01 && abs(checkFov - fov_clean2) > 0.01 && abs(checkFov - fov_clean3) > 0.01 && abs(checkFov - fov_clean4) > 0.01 && abs(checkFov - fov_clean5) > 0.01
+                                                && abs(checkFov - fov2_clean1) > 0.01 && abs(checkFov - fov2_clean2) > 0.01 && abs(checkFov - fov2_clean3) > 0.01 && abs(checkFov - fov2_clean4) > 0.01 && abs(checkFov - fov2_clean5) > 0.01)
                                             {
                                                 float fov1 = CalcFov(ClientFov, LastResolutionX, LastResolutionY);
                                                 float fov2 = CalcFov(ClientFov2, LastResolutionX, LastResolutionY);
@@ -3303,6 +3344,7 @@ namespace DemoScanner.DG
                                     PREV_CDFRAME_ViewAngles.X = CDFRAME_ViewAngles.X;
                                     PREV_CDFRAME_ViewAngles.Y = CDFRAME_ViewAngles.Y;
                                 }
+
                                 bool skip_sens_check = false;
                                 if ((normalizeangle(abs(PREV_CDFRAME_ViewAngles.X)) > 88.95 && normalizeangle(abs(PREV_CDFRAME_ViewAngles.X)) < 89.1) ||
                                     (normalizeangle(abs(CDFRAME_ViewAngles.X)) > 88.95 && normalizeangle(abs(CDFRAME_ViewAngles.X)) < 89.1))
@@ -3353,7 +3395,6 @@ namespace DemoScanner.DG
 
                                         if (CheckedSensCount >= SENS_COUNT_FOR_AIM)
                                         {
-                                            CheckedSensCount = 0;
                                             bool foundUsageSens = false;
                                             for (int i = 0; i < PlayerSensUsageList.Count; i++)
                                             {
@@ -3373,7 +3414,6 @@ namespace DemoScanner.DG
                                                 PlayerSensUsageList.Add(tmpSensUsageStruct);
                                             }
                                         }
-
                                     }
 
 
@@ -4047,23 +4087,24 @@ namespace DemoScanner.DG
                                                 {
                                                     if (FovHackDetected <= 10)
                                                     {
-                                                        /* AWP, SCOUT, ... for next update weapon check */
+                                                        /* AWP, SCOUT, ETC ... for next update weapon check */
                                                         float fov2_clean1 = CalcFov(10.0f, LastResolutionX, LastResolutionY);
                                                         float fov2_clean2 = CalcFov(15.0f, LastResolutionX, LastResolutionY);
                                                         float fov2_clean3 = CalcFov(40.0f, LastResolutionX, LastResolutionY);
+                                                        float fov2_clean4 = CalcFov(55.0f, LastResolutionX, LastResolutionY);
 
                                                         float fov_clean1 = 10.0f;
                                                         float fov_clean2 = 15.0f;
                                                         float fov_clean3 = 40.0f;
+                                                        float fov_clean4 = 55.0f;
 
                                                         // NORMAL FOV FOR CUSTOM GAME CLIENT
-                                                        float fov2_clean4 = CalcFov(90.0f, LastResolutionX, LastResolutionY);
-
-                                                        float fov_clean4 = 90.0f;
+                                                        float fov2_clean5 = CalcFov(90.0f, LastResolutionX, LastResolutionY);
+                                                        float fov_clean5 = 90.0f;
 
                                                         // IF fov found, and fov not clean:
-                                                        if (checkFov2 > 0.01 && abs(checkFov2 - fov_clean1) > 0.01 && abs(checkFov2 - fov_clean2) > 0.01 && abs(checkFov2 - fov_clean3) > 0.01 && abs(checkFov2 - fov_clean4) > 0.01
-                                                            && abs(checkFov2 - fov2_clean1) > 0.01 && abs(checkFov2 - fov2_clean2) > 0.01 && abs(checkFov2 - fov2_clean3) > 0.01 && abs(checkFov2 - fov2_clean4) > 0.01)
+                                                        if (checkFov2 > 0.01 && abs(checkFov2 - fov_clean1) > 0.01 && abs(checkFov2 - fov_clean2) > 0.01 && abs(checkFov2 - fov_clean3) > 0.01 && abs(checkFov2 - fov_clean4) > 0.01 && abs(checkFov2 - fov_clean5) > 0.01
+                                                            && abs(checkFov2 - fov2_clean1) > 0.01 && abs(checkFov2 - fov2_clean2) > 0.01 && abs(checkFov2 - fov2_clean3) > 0.01 && abs(checkFov2 - fov2_clean4) > 0.01 && abs(checkFov2 - fov2_clean5) > 0.01)
                                                         {
                                                             float fov1 = CalcFov(ClientFov, LastResolutionX, LastResolutionY);
                                                             float fov2 = CalcFov(ClientFov2, LastResolutionX, LastResolutionY);
@@ -4089,7 +4130,6 @@ namespace DemoScanner.DG
                                             checkFov2 = floatfov;
                                             // Console.WriteLine(CurrentTimeString + "[DEMOBUFFER: " + CurrentWeapon + "] = " + fov + " framefov = " + cdframeFov);
                                         }
-                                        else MessageBox.Show("YEEEEEEEEEES");
                                     }
                                     else
                                     {
@@ -7444,7 +7484,7 @@ namespace DemoScanner.DG
 
             if (PlayerSensUsageList.Count > 1)
             {
-                PlayerSensUsageList = PlayerSensUsageList.OrderBy(x => x.usagecount).ToList();
+                PlayerSensUsageList = new List<PLAYER_USED_SENS>(PlayerSensUsageList.OrderByDescending(x => x.usagecount));
             }
             /*if (ENABLE_LEARN_CLEAN_DEMO)
                 if (BHOPcount < 4 && BadAttackCount < 4 && TotalAimBotDetected < 4 && FakeLagAim < 4 && KreedzHacksCount < 4) MachineLearnAnglesCLEAN.WriteAnglesDB();
@@ -10117,8 +10157,12 @@ namespace DemoScanner.DG
 
                 if (packetIndexBit)
                 {
-                    BitBuffer.SeekBits(11); // packet index
+                    int packindex = BitBuffer.ReadBits(11); // packet index
 
+                    if (DemoScanner.DUMP_ALL_FRAMES)
+                    {
+                        DemoScanner.OutDumpString += "\nPACKET ID[" + packindex + "]\n";
+                    }
                     bool deltaBit = BitBuffer.ReadBoolean();
 
                     if (deltaBit)
@@ -10133,7 +10177,7 @@ namespace DemoScanner.DG
                 {
                     if (DemoScanner.DUMP_ALL_FRAMES)
                     {
-                        DemoScanner.OutDumpString += "TIME:" + BitBuffer.ReadUnsignedBits(16);
+                        DemoScanner.OutDumpString += "FIRETIME:" + BitBuffer.ReadUnsignedBits(16);
                     }
                     else
                     {
@@ -10613,7 +10657,7 @@ namespace DemoScanner.DG
 
             if (deltaSequence)
             {
-                BitBuffer.SeekBits(8); // delta sequence number
+                int seqnum = BitBuffer.ReadBits(8); // delta sequence number
             }
 
             HalfLifeDeltaStructure tmpdelta = GetDeltaStructure("clientdata_t");
@@ -10635,8 +10679,6 @@ namespace DemoScanner.DG
 
             BitBuffer.SkipRemainingBits();
             BitBuffer.Endian = BitBuffer.EndianType.Little;
-
-
 
 
             if (DemoScanner.SVC_CHOKEMSGID - 1 == DemoScanner.SVC_TIMEMSGID
@@ -10779,7 +10821,11 @@ namespace DemoScanner.DG
 
             if (delayBit)
             {
-                BitBuffer.SeekBits(16); // delay / 100.0f
+                int delay_reliable = BitBuffer.ReadBits(16); // delay / 100.0f
+                if (DemoScanner.DUMP_ALL_FRAMES)
+                {
+                    DemoScanner.OutDumpString += "EventDelay:( " + (delay_reliable / 100.0f) + " ){\n";
+                }
             }
 
             BitBuffer.SkipRemainingBits();
@@ -11204,9 +11250,13 @@ namespace DemoScanner.DG
 
         public void MessagePacketEntities()
         {
-            BitBuffer.SeekBits(
+            int num_ents = BitBuffer.ReadBits(
                 16); // num entities (not reliable at all, loop until footer - see below)
-
+            if (DemoScanner.DUMP_ALL_FRAMES)
+            {
+                DemoScanner.OutDumpString +=
+                    "MessagePacketEntities->total_num_ents:" + num_ents + "\n";
+            }
             if (demo.GsDemoInfo.Header.NetProtocol <= 43)
             {
                 BitBuffer.Endian = BitBuffer.EndianType.Big;
@@ -11292,10 +11342,14 @@ namespace DemoScanner.DG
 
         public void MessageDeltaPacketEntities()
         {
-            BitBuffer.SeekBits(
+            int num_ents = BitBuffer.ReadBits(
                 16); // num entities (not reliable at all, loop until footer - see below)
-            BitBuffer.SeekBits(8); // delta sequence number
-
+            byte seq_number = BitBuffer.ReadByte(); // delta sequence number
+            if (DemoScanner.DUMP_ALL_FRAMES)
+            {
+                DemoScanner.OutDumpString +=
+                    "MessageDeltaPacketEntities->total_num_ents:" + num_ents + " and seq_num:" + seq_number + "\n";
+            }
             if (demo.GsDemoInfo.Header.NetProtocol <= 43)
             {
                 BitBuffer.Endian = BitBuffer.EndianType.Big;
@@ -13444,6 +13498,25 @@ namespace DemoScanner.DG
                                         {
                                             DemoScanner.SkipNextAttack = 2;
                                         }
+                                    }
+
+                                    if (entryList[index].Name == "origin[0]")
+                                    {
+                                        float origin_x = value != null ? (float)value : 0.0f;
+                                        DemoScanner.DetectCmdHackType10 = true;
+                                        DemoScanner.CmdHack10_origX = origin_x;
+                                    }
+                                    if (entryList[index].Name == "origin[1]")
+                                    {
+                                        float origin_y = value != null ? (float)value : 0.0f;
+                                        DemoScanner.DetectCmdHackType10 = true;
+                                        DemoScanner.CmdHack10_origY = origin_y;
+                                    }
+                                    if (entryList[index].Name == "origin[2]")
+                                    {
+                                        float origin_z = value != null ? (float)value : 0.0f;
+                                        DemoScanner.DetectCmdHackType10 = true;
+                                        DemoScanner.CmdHack10_origZ = origin_z;
                                     }
 
                                     if (entryList[index].Name == "velocity[0]" || entryList[index].Name == "velocity[1]")

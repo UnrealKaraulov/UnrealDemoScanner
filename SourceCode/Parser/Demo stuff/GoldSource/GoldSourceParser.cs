@@ -556,7 +556,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                 public Point3D ImpactPosition;
                 public sbyte Impulse;
                 public int LerpMsec;
-                public sbyte Lightlevel;
+                public byte Lightlevel;
                 public byte Msec;
                 public float Sidemove;
                 public float Upmove;
@@ -1686,7 +1686,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             nf.UCmd.Forwardmove = br.ReadSingle();
                                             nf.UCmd.Sidemove = br.ReadSingle();
                                             nf.UCmd.Upmove = br.ReadSingle();
-                                            nf.UCmd.Lightlevel = br.ReadSByte();
+                                            nf.UCmd.Lightlevel = br.ReadByte();
                                             nf.UCmd.Align2 = br.ReadSByte();
                                             nf.UCmd.Buttons = (GoldSource.UCMD_BUTTONS)br.ReadUInt16();
                                             nf.UCmd.Impulse = br.ReadSByte();
