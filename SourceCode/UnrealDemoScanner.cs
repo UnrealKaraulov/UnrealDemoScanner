@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.68.17";
+        public const string PROGRAMVERSION = "1.68.18";
 
         public enum AngleDirection
         {
@@ -714,7 +714,8 @@ namespace DemoScanner.DG
         public static int DesyncHackWarns = 0;
         public static float LastDesyncDetectTime = 0.0f;
         public static float LastDamageTime = 0.0f;
-        public static int StartGameSecond = int.MaxValue;
+        public static float StartGameSecond = float.MaxValue;
+        public static float EndGameSecond = float.MinValue;
         public static int CurrentGameSecond = 0;
         public static int CurrentGameSecond2 = 0;
         public static float LastRealJumpTime = 0.0f;
@@ -782,7 +783,7 @@ namespace DemoScanner.DG
         public static float LastFakeLagTime = 0.0f;
         public static int SVC_ADDANGLEMSGID = 0;
 
-        public static bool ForceUpdateName = false;
+        public static bool ForceUpdateName = true;
         public static float LastAttackCmdTime = 0.0f;
         public static float LastFloodAttackTime = 0.0f;
         public static bool LASTFRAMEISCLIENTDATA = false;
@@ -2319,7 +2320,8 @@ namespace DemoScanner.DG
                         filefound = true;
                     }
                 }
-                else if (arg.IndexOf("-debug") > -1)
+                
+                if (arg.IndexOf("-debug") > -1)
                 {
                     DEBUG_ENABLED = true;
                     Console.WriteLine("Debug mode activated.");
@@ -2429,6 +2431,10 @@ namespace DemoScanner.DG
                 }
 
                 IsRussia = !File.Exists(CurrentDir + @"\lang.en");
+            }
+            else
+            {
+                IsRussia = false;
             }
 
             try
@@ -2569,7 +2575,7 @@ namespace DemoScanner.DG
                 Console.WriteLine("Drag & drop .dem file. Or enter path manually:");
             }
 
-            if (!filefound)
+            if (!filefound && !SKIP_RESULTS)
             {
                 while (!File.Exists(CurrentDemoFilePath))
                 {
@@ -2617,7 +2623,11 @@ namespace DemoScanner.DG
                     }
                 }
             }
-
+            else if (!filefound)
+            {
+                Console.WriteLine("[ERROR] NO FILE FOUND! ERROR!");
+                return;
+            }
 
             StartScanTime = DateTime.Now;
 
@@ -2685,8 +2695,10 @@ namespace DemoScanner.DG
                         "File " +
                         CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) + "log" +
                         " open error : No access to remove!");
-                    Console.Write("No access to file... Try again!");
-                    Console.ReadKey();
+                    Console.Write("[ERROR] No access to file... Try again!");
+
+                    if (!SKIP_RESULTS)
+                        Console.ReadKey();
                     return;
                 }
             }
@@ -2770,10 +2782,11 @@ namespace DemoScanner.DG
             {
                 Console.Write("  Map : ");
             }
-
-            MapAndCrc32_Top = Console.CursorTop;
-            MapAndCrc32_Left = Console.CursorLeft;
-
+            if (!SKIP_RESULTS)
+            {
+                MapAndCrc32_Top = Console.CursorTop;
+                MapAndCrc32_Left = Console.CursorLeft;
+            }
             Console.ForegroundColor = ConsoleColor.Red;
             Console.Write("\"maps/" + CurrentDemoFile.GsDemoInfo.Header.MapName + ".bsp\" ");
             MapName = "maps/" + CurrentDemoFile.GsDemoInfo.Header.MapName + ".bsp";
@@ -2788,9 +2801,11 @@ namespace DemoScanner.DG
             {
                 Console.Write("Username and steamid : ");
             }
-
-            UserNameAndSteamIDField = Console.CursorTop;
-            UserNameAndSteamIDField2 = Console.CursorLeft;
+            if (!SKIP_RESULTS)
+            {
+                UserNameAndSteamIDField = Console.CursorTop;
+                UserNameAndSteamIDField2 = Console.CursorLeft;
+            }
             Console.WriteLine();
 
             Console.ForegroundColor = ConsoleColor.Cyan;
@@ -4261,11 +4276,6 @@ namespace DemoScanner.DG
                                 }
 
 
-                                if (abs(CurrentTime) > EPSILON && StartGameSecond > CurrentTime / 60.0f)
-                                {
-                                    StartGameSecond = Convert.ToInt32(CurrentTime / 60.0f);
-                                }
-
                                 if (abs(CurrentTime - PreviousTime) > 0.20f)
                                 {
                                     LastLossTime = PreviousTime;
@@ -4318,6 +4328,18 @@ namespace DemoScanner.DG
                                             Console.WriteLine("Error access to frametime.");
                                         }
                                     }
+                                }
+
+
+
+                                if (abs(CurrentTime) > EPSILON && StartGameSecond > CurrentTime)
+                                {
+                                    StartGameSecond = CurrentTime;
+                                }
+
+                                if (abs(CurrentTime) > EPSILON && EndGameSecond < CurrentTime)
+                                {
+                                    EndGameSecond = CurrentTime;
                                 }
 
                                 if (abs(CurrentTime) > EPSILON)
@@ -6466,24 +6488,27 @@ namespace DemoScanner.DG
                                         &&
                                         plsteam != "NOSTEAM" && plname != "\tNO NAME")
                                     {
-                                        int tmpcursortop = Console.CursorTop;
-                                        int tmpcursorleft = Console.CursorLeft;
-                                        Console.CursorTop = UserNameAndSteamIDField;
-                                        Console.CursorLeft = UserNameAndSteamIDField2;
-                                        ConsoleColor tmpconsolecolor = Console.ForegroundColor;
-                                        Console.ForegroundColor = ConsoleColor.Red;
-                                        for (int i = 0; i < 64; i++)
+                                        if (!SKIP_RESULTS)
                                         {
-                                            Console.Write(" ");
-                                        }
+                                            int tmpcursortop = Console.CursorTop;
+                                            int tmpcursorleft = Console.CursorLeft;
+                                            Console.CursorTop = UserNameAndSteamIDField;
+                                            Console.CursorLeft = UserNameAndSteamIDField2;
+                                            ConsoleColor tmpconsolecolor = Console.ForegroundColor;
+                                            Console.ForegroundColor = ConsoleColor.Red;
+                                            for (int i = 0; i < 64; i++)
+                                            {
+                                                Console.Write(" ");
+                                            }
 
-                                        Console.CursorLeft = UserNameAndSteamIDField2;
-                                        Console.Write(plname.TrimBad().Trim());
-                                        Console.ForegroundColor = ConsoleColor.Cyan;
-                                        Console.WriteLine(" [" + plsteam + "]");
-                                        Console.ForegroundColor = tmpconsolecolor;
-                                        Console.CursorTop = tmpcursortop;
-                                        Console.CursorLeft = tmpcursorleft;
+                                            Console.CursorLeft = UserNameAndSteamIDField2;
+                                            Console.Write(plname.TrimBad().Trim());
+                                            Console.ForegroundColor = ConsoleColor.Cyan;
+                                            Console.WriteLine(" [" + plsteam + "]");
+                                            Console.ForegroundColor = tmpconsolecolor;
+                                            Console.CursorTop = tmpcursortop;
+                                            Console.CursorLeft = tmpcursorleft;
+                                        }
                                         LastUername = plname;
                                     }
                                     LastUsernameCheckTime = CurrentTime;
@@ -7467,19 +7492,31 @@ namespace DemoScanner.DG
             ForceFlushScanResults();
             DateTime EndScanTime = Trim(new DateTime((DateTime.Now - StartScanTime).Ticks), 10);
 
-            TimeSpan time1 = TimeSpan.FromSeconds(Math.Min(StartGameSecond, CurrentGameSecond));
+            TimeSpan t1 = TimeSpan.FromSeconds(StartGameSecond);
 
-            TimeSpan time2 = TimeSpan.FromSeconds(Math.Max(StartGameSecond, CurrentGameSecond));
+            string t1str = string.Format("{0:D2}h:{1:D2}m:{2:D2}s:{3:D3}ms",
+                t1.Hours,
+                t1.Minutes,
+                t1.Seconds,
+                t1.Milliseconds);
+
+            TimeSpan t2 = TimeSpan.FromSeconds(EndGameSecond);
+
+            string t2str = string.Format("{0:D2}h:{1:D2}m:{2:D2}s:{3:D3}ms",
+                t2.Hours,
+                t2.Minutes,
+                t2.Seconds,
+                t2.Milliseconds);
 
             if (IsRussia)
             {
                 Console.WriteLine("Анализ завершен, потрачено " + EndScanTime.ToString("T") + " времени");
-                Console.WriteLine("Игровое время демо начинается с " + time1.ToString("T") + " по " + time2.ToString("T") + " секунд.");
+                Console.WriteLine("Игровое время демо начинается с " + t1str + " по " + t2str + " секунд.");
             }
             else
             {
                 Console.WriteLine("Scan completed. Scan time: " + EndScanTime.ToString("T"));
-                Console.WriteLine("Demo playing time: " + time1.ToString("T") + " ~ " + time2.ToString("T") + " seconds.");
+                Console.WriteLine("Demo playing time: " + t1str + " ~ " + t2str + " seconds.");
             }
 
             if (PlayerSensUsageList.Count > 1)
@@ -10473,19 +10510,22 @@ namespace DemoScanner.DG
 
             if (DemoScanner.FirstMap)
             {
-                int tmpcursortop = Console.CursorTop;
-                int tmpcursorleft = Console.CursorLeft;
-                Console.CursorTop = DemoScanner.MapAndCrc32_Top;
-                Console.CursorLeft = DemoScanner.MapAndCrc32_Left;
-                ConsoleColor tmpconsolecolor = Console.ForegroundColor;
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.Write("\"" + DemoScanner.MapName + "\" ");
-                Console.ForegroundColor = ConsoleColor.Green;
-                Console.Write("(CRC \"" + mapcrc32 + "\")              ");
-                Console.ForegroundColor = tmpconsolecolor;
-                Console.CursorTop = tmpcursortop;
-                Console.CursorLeft = tmpcursorleft;
-                DemoScanner.FirstMap = false;
+                if (!SKIP_RESULTS)
+                {
+                    int tmpcursortop = Console.CursorTop;
+                    int tmpcursorleft = Console.CursorLeft;
+                    Console.CursorTop = DemoScanner.MapAndCrc32_Top;
+                    Console.CursorLeft = DemoScanner.MapAndCrc32_Left;
+                    ConsoleColor tmpconsolecolor = Console.ForegroundColor;
+                    Console.ForegroundColor = ConsoleColor.Red;
+                    Console.Write("\"" + DemoScanner.MapName + "\" ");
+                    Console.ForegroundColor = ConsoleColor.Green;
+                    Console.Write("(CRC \"" + mapcrc32 + "\")              ");
+                    Console.ForegroundColor = tmpconsolecolor;
+                    Console.CursorTop = tmpcursortop;
+                    Console.CursorLeft = tmpcursorleft;
+                    DemoScanner.FirstMap = false;
+                }
             }
         }
 
