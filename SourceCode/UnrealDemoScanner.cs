@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.68.18";
+        public const string PROGRAMVERSION = "1.69.0";
 
         public enum AngleDirection
         {
