@@ -2155,7 +2155,6 @@ namespace DemoScanner.DG
         {
             return value.Replace("\n", "").Replace("\r", "");
         }
-
         public static string GetAim7String(ref int val1, ref int val2, ref int val3, int type, float angle, ref bool detect)
         {
             if (val1 > 11)
@@ -2657,12 +2656,18 @@ namespace DemoScanner.DG
 
             if (PREVIEW_FRAMES)
             {
-
-                if (File.Exists(CurrentDemoFilePath + ".pfrm"))
-                    File.Delete(CurrentDemoFilePath + ".pfrm");
-                PreviewFramesWriter = new BinaryWriter(File.OpenWrite(CurrentDemoFilePath + ".pfrm"));
-                PreviewFramesWriter.BaseStream.Seek(0, SeekOrigin.Begin);
-
+                try
+                {
+                    if (File.Exists(CurrentDemoFilePath + ".pfrm"))
+                        File.Delete(CurrentDemoFilePath + ".pfrm");
+                    PreviewFramesWriter = new BinaryWriter(File.OpenWrite(CurrentDemoFilePath + ".pfrm"));
+                    PreviewFramesWriter.BaseStream.Seek(0, SeekOrigin.Begin);
+                }
+                catch
+                {
+                    PREVIEW_FRAMES = false;
+                    Console.WriteLine("Cant generate pfrm file");
+                }
             }
 
             CrossParseResult CurrentDemoFile = CrossDemoParser.Parse(CurrentDemoFilePath);
@@ -4272,7 +4277,20 @@ namespace DemoScanner.DG
                                 if (PREVIEW_FRAMES && IsUserAlive())
                                 {
                                     PreviewFramesWriter.Write(CurrentTime);
+                                    PreviewFramesWriter.Write(Convert.ToUInt16(PreviousNetMsgFrame.UCmd.Buttons));
+                                    PreviewFramesWriter.Write(PreviousNetMsgFrame.RParms.Viewangles.X);
+                                    PreviewFramesWriter.Write(PreviousNetMsgFrame.RParms.Viewangles.Y);
+                                    PreviewFramesWriter.Write(PreviousNetMsgFrame.RParms.Viewangles.Z);
+                                    PreviewFramesWriter.Write(PreviousNetMsgFrame.RParms.ClViewangles.X);
+                                    PreviewFramesWriter.Write(PreviousNetMsgFrame.RParms.ClViewangles.Y);
+                                    PreviewFramesWriter.Write(PreviousNetMsgFrame.RParms.ClViewangles.Z);
+                                    PreviewFramesWriter.Write(PreviousNetMsgFrame.UCmd.Viewangles.X);
+                                    PreviewFramesWriter.Write(PreviousNetMsgFrame.UCmd.Viewangles.Y);
+                                    PreviewFramesWriter.Write(PreviousNetMsgFrame.UCmd.Viewangles.Z);
+                                    PreviewFramesWriter.Write(CDFRAME_ViewAngles.X);
                                     PreviewFramesWriter.Write(CDFRAME_ViewAngles.Y);
+                                    PreviewFramesWriter.Write(CDFRAME_ViewAngles.Z);
+
                                 }
 
 
@@ -7189,8 +7207,7 @@ namespace DemoScanner.DG
             if (PREVIEW_FRAMES)
             {
                 PreviewFramesWriter.Close();
-
-                Preview tmpPreview = new Preview();
+                Preview tmpPreview = new Preview(CurrentDemoFilePath + ".pfrm");
                 tmpPreview.ShowDialog();
                 return;
             }
