@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.69.0";
+        public const string PROGRAMVERSION = "1.69.1";
 
         public enum AngleDirection
         {
@@ -614,7 +614,10 @@ namespace DemoScanner.DG
         public static int FramesOnGround = 0;
         public static int FramesOnFly = 0;
         public static int FlyDirection = 0;
-        public static float PreviewSimvelZ = 0.0f;
+        public static float PreviousSimvelZ = 0.0f;
+        public static float PreviousSimvelZ_forstuck = 0.0f;
+        public static float PreviousSimorgZ_forstuck = 0.0f;
+        public static int AirStuckWarnTimes = 0;
 
         public static bool SearchFakeJump = false;
 
@@ -930,6 +933,8 @@ namespace DemoScanner.DG
                 }
             }
         }
+
+      
 
         public static void AddViewAngleSearcher(float angle)
         {
@@ -2319,7 +2324,7 @@ namespace DemoScanner.DG
                         filefound = true;
                     }
                 }
-                
+
                 if (arg.IndexOf("-debug") > -1)
                 {
                     DEBUG_ENABLED = true;
@@ -3574,6 +3579,19 @@ namespace DemoScanner.DG
                                             }
                                             PlayerSensitivityWarning = 0;
                                         }
+                                        else if (PlayerSensitivityWarning == 2)
+                                        {
+                                            if (abs(LastAim5Detected) > EPSILON &&
+                                          abs(CurrentTime - LastAim5Detected) < 0.75f)
+                                            {
+                                                DemoScanner_AddWarn(
+                                                       "[AIM TYPE 5.10 " + CurrentWeapon + "] at (" + LastAim5Detected +
+                                                       "):" + GetTimeString(LastAim5Detected), false);
+                                                LastAim5Detected = 0.0f;
+                                            }
+
+                                            PlayerSensitivityWarning = 0;
+                                        }
                                         else
                                         {
                                             if (abs(LastAim5DetectedReal) > EPSILON &&
@@ -3667,6 +3685,30 @@ namespace DemoScanner.DG
                                         {
                                             PlayerSensitivityWarning = 1;
                                             LastAim5Detected = CurrentTime;
+                                        }
+                                    }
+                                    else if (abs(tmpYangle) > EPSILON &&
+                                    tmpYangle < flAngleRealDetect)
+                                    {
+                                        if (CurrentWeapon == WeaponIdType.WEAPON_C4
+                                            || CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE
+                                            || CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE
+                                            || CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG
+                                            || CurrentWeapon == WeaponIdType.WEAPON_NONE
+                                            || CurrentWeapon == WeaponIdType.WEAPON_BAD
+                                            || CurrentWeapon == WeaponIdType.WEAPON_BAD2)
+                                        {
+
+                                        }
+                                        else
+                                        {
+                                            //if (!CurrentFrameAttacked
+                                            //        && !PreviousFrameAttacked && CurrentFrameOnGround && PreviousFrameOnGround && !BadPunchAngle && !IsTakeDamage() && !IsAngleEditByEngine())
+                                            //{
+                                            //    Console.WriteLine("PREV_CDFRAME_ViewAngles.Y=" + PREV_CDFRAME_ViewAngles.Y + " CDFRAME_ViewAngles.Y=",)
+                                            //    LastAim5Detected = CurrentTime;
+                                            //    PlayerSensitivityWarning = 2;
+                                            //}
                                         }
                                     }
 
@@ -5300,7 +5342,6 @@ namespace DemoScanner.DG
                                 {
                                     FramesOnGround++;
                                     FramesOnFly = 0;
-
                                 }
 
 
@@ -5346,39 +5387,87 @@ namespace DemoScanner.DG
                                 //    }
                                 //}
 
-                                if (!PreviousFrameOnGround && !CurrentFrameOnGround && CurrentFrameDuplicated == 0)
+                                if (!PreviousFrameOnGround && !CurrentFrameOnGround && RealAlive)
                                 {
-                                    FramesOnFly++;
-                                    FramesOnGround = 0;
-
-                                    if (nf.RParms.Simvel.Z > 100.0 && nf.RParms.Simvel.Z > PreviewSimvelZ)
+                                    if (CurrentFrameDuplicated == 0)
                                     {
-                                        if (SearchFakeJump && FlyDirection < -5 && PreviewSimvelZ < -500.0f)
+                                        FramesOnFly++;
+                                        FramesOnGround = 0;
+
+                                        if (nf.RParms.Simvel.Z > 100.0 && nf.RParms.Simvel.Z > PreviousSimvelZ)
                                         {
-                                            if (abs(CurrentTime - LastJumpBtnTime) > 0.2)
+                                            if (SearchFakeJump && FlyDirection < -5 && PreviousSimvelZ < -500.0f)
                                             {
-                                                KreedzHacksCount++;
-                                                DemoScanner_AddWarn("[JUMPHACK HPP] at (" + CurrentTime + ") : " + CurrentTimeString, true);
+                                                if (abs(CurrentTime - LastJumpBtnTime) > 0.2)
+                                                {
+                                                    KreedzHacksCount++;
+                                                    DemoScanner_AddWarn("[JUMPHACK HPP] at (" + CurrentTime + ") : " + CurrentTimeString, true);
+                                                }
+                                            }
+                                            if (FlyDirection < 0)
+                                            {
+                                                FlyDirection = 0;
+                                            }
+                                            FlyDirection++;
+                                        }
+                                        else if (nf.RParms.Simvel.Z < -100.0 && nf.RParms.Simvel.Z < PreviousSimvelZ)
+                                        {
+                                            if (FlyDirection > 0)
+                                            {
+                                                FlyDirection = 0;
+                                            }
+                                            FlyDirection--;
+                                        }
+                                        else
+                                        {
+                                            FlyDirection /= 2;
+                                        }
+
+                                        float abssimvelz = abs(nf.RParms.Simvel.Z);
+                                        float abssimorgz = abs(nf.RParms.Simorg.Z);
+
+                                        if (abssimvelz > 50.0)
+                                        {
+                                            if (abs(PreviousSimvelZ_forstuck) < 0.01)
+                                            {
+                                                PreviousSimvelZ_forstuck = abssimvelz;
+                                                PreviousSimorgZ_forstuck = abssimorgz;
+                                            }
+                                            else if (abs(abssimvelz - PreviousSimvelZ_forstuck) > 3.0 ||
+                                                abs(abssimorgz - PreviousSimorgZ_forstuck) > 3.0)
+                                            {
+                                                PreviousSimvelZ_forstuck = 0.0f;
+                                                PreviousSimorgZ_forstuck = 0.0f;
+                                                AirStuckWarnTimes = 0;
+                                            }
+                                            else
+                                            {
+                                                AirStuckWarnTimes++;
+                                                if (AirStuckWarnTimes > 50)
+                                                {
+                                                    KreedzHacksCount++;
+                                                    DemoScanner_AddWarn("[BETA][AIRSTUCK HACK] at (" + CurrentTime + ") : " + CurrentTimeString, true);
+                                                    AirStuckWarnTimes = 0;
+                                                }
                                             }
                                         }
-                                        if (FlyDirection < 0)
-                                            FlyDirection = 0;
-                                        FlyDirection++;
-                                    }
-                                    else if (nf.RParms.Simvel.Z < -100.0 && nf.RParms.Simvel.Z < PreviewSimvelZ)
-                                    {
-                                        if (FlyDirection > 0)
-                                            FlyDirection = 0;
-                                        FlyDirection--;
-                                    }
-                                    else
-                                    {
-                                        FlyDirection /= 2;
-                                    }
+                                        else
+                                        {
+                                            PreviousSimvelZ_forstuck = 0.0f;
+                                            PreviousSimorgZ_forstuck = 0.0f;
+                                            AirStuckWarnTimes = 0;
+                                        }
 
-                                    PreviewSimvelZ = nf.RParms.Simvel.Z;
-
-                                    SearchFakeJump = true;
+                                        PreviousSimvelZ = nf.RParms.Simvel.Z;
+                                        SearchFakeJump = true;
+                                    }
+                                }
+                                else
+                                {
+                                    PreviousSimvelZ_forstuck = 0.0f;
+                                    PreviousSimorgZ_forstuck = 0.0f;
+                                    FlyDirection = 0;
+                                    AirStuckWarnTimes = 0;
                                 }
 
                                 //if (CurrentFrameDuplicated == 1)
