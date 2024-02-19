@@ -1,4 +1,6 @@
-﻿namespace DemoScanner
+﻿using System;
+
+namespace DemoScanner
 {
     public struct Point3D
     {
@@ -16,9 +18,9 @@
         public override bool Equals(object obj)
         {
             return obj is Point3D d &&
-                   X == d.X &&
-                   Y == d.Y &&
-                   Z == d.Z;
+                   Math.Abs(X - d.X) < 0.00001f &&
+                  Math.Abs(Y - d.Y) < 0.00001f &&
+                   Math.Abs(Z - d.Z) < 0.00001f;
         }
 
         public override int GetHashCode()
@@ -37,7 +39,7 @@
 
         public static bool operator !=(Point3D per1, Point3D per2)
         {
-            return per1.X != per2.X || per1.Y != per2.Y || per1.Z != per2.Z;
+            return Math.Abs(per1.X - per2.X) > 0.00001f || Math.Abs(per1.Y - per2.Y) > 0.00001f || Math.Abs(per1.Z - per2.Z) > 0.00001f;
         }
     }
 
@@ -57,9 +59,9 @@
         public override bool Equals(object obj)
         {
             return obj is FPoint3D d &&
-                   X == d.X &&
-                   Y == d.Y &&
-                   Z == d.Z;
+                  Math.Abs(X - d.X) < 0.00001f &&
+                  Math.Abs(Y - d.Y) < 0.00001f &&
+                   Math.Abs(Z - d.Z) < 0.00001f;
         }
 
         public override int GetHashCode()
@@ -78,7 +80,7 @@
 
         public static bool operator !=(FPoint3D per1, FPoint3D per2)
         {
-            return per1.X != per2.X || per1.Y != per2.Y || per1.Z != per2.Z;
+            return Math.Abs(per1.X - per2.X) > 0.00001f || Math.Abs(per1.Y - per2.Y) > 0.00001f || Math.Abs(per1.Z - per2.Z) > 0.00001f;
         }
     }
 }

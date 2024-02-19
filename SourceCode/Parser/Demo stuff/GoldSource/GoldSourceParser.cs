@@ -475,7 +475,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                            EqualityComparer<Point3D>.Default.Equals(Forward, @params.Forward) &&
                            Hardware == @params.Hardware &&
                            Health == @params.Health &&
-                           Idealpitch == @params.Idealpitch &&
+                           Math.Abs(Idealpitch - @params.Idealpitch) < 0.00001f &&
                            Intermission == @params.Intermission &&
                            Maxclients == @params.Maxclients &&
                            MaxEntities == @params.MaxEntities &&
@@ -492,14 +492,14 @@ namespace DemoScanner.DemoStuff.GoldSource
                            EqualityComparer<Point3D>.Default.Equals(Simvel, @params.Simvel) &&
                            Smoothing == @params.Smoothing &&
                            Spectator == @params.Spectator &&
-                           Time == @params.Time &&
+                            Math.Abs(Time - @params.Time) < 0.00001f &&
                            EqualityComparer<Point3D>.Default.Equals(Up, @params.Up) &&
                            EqualityComparer<FPoint3D>.Default.Equals(Viewangles, @params.Viewangles) &&
                            Viewentity == @params.Viewentity &&
                            EqualityComparer<Point3D>.Default.Equals(Viewheight, @params.Viewheight) &&
                            EqualityComparer<Point3D>.Default.Equals(Vieworg, @params.Vieworg) &&
                            EqualityComparer<Point4D>.Default.Equals(Viewport, @params.Viewport) &&
-                           Viewsize == @params.Viewsize &&
+                           Math.Abs(Viewsize - @params.Viewsize) < 0.00001f &&
                            Waterlevel == @params.Waterlevel;
                 }
 
@@ -571,15 +571,15 @@ namespace DemoScanner.DemoStuff.GoldSource
                            Align3 == cmd.Align3 &&
                            Align4 == cmd.Align4 &&
                            Buttons == cmd.Buttons &&
-                           Forwardmove == cmd.Forwardmove &&
+                           Math.Abs(Forwardmove - cmd.Forwardmove) < 0.00001f &&
                            ImpactIndex == cmd.ImpactIndex &&
                            EqualityComparer<Point3D>.Default.Equals(ImpactPosition, cmd.ImpactPosition) &&
                            Impulse == cmd.Impulse &&
                            LerpMsec == cmd.LerpMsec &&
                            Lightlevel == cmd.Lightlevel &&
                            Msec == cmd.Msec &&
-                           Sidemove == cmd.Sidemove &&
-                           Upmove == cmd.Upmove &&
+                           Math.Abs(Sidemove - cmd.Sidemove) < 0.00001f &&
+                            Math.Abs(Upmove - cmd.Upmove) < 0.00001f &&
                            EqualityComparer<FPoint3D>.Default.Equals(Viewangles, cmd.Viewangles) &&
                            Weaponselect == cmd.Weaponselect;
                 }
@@ -965,7 +965,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                     Frame = i + 1
                                 };
 
-                                if (float.IsNaN(currentDemoFrame.Time) || currentDemoFrame.Time == 0.0f)
+                                if (float.IsNaN(currentDemoFrame.Time) || Math.Abs(currentDemoFrame.Time - 0.0f) < 0.00001f)
                                 {
                                     br.BaseStream.Seek(entry.Offset, SeekOrigin.Begin);
                                     hlsooeDemo.ParsingErrors.Add(

@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.69.1";
+        public const string PROGRAMVERSION = "1.69.2";
 
         public enum AngleDirection
         {
@@ -418,12 +418,12 @@ namespace DemoScanner.DG
 
         public static bool IsNewAttack()
         {
-            return NewAttack || NewAttackFrame <= CurrentFrameIdAll && Math.Abs(CurrentFrameIdAll - NewAttackFrame) < 5;
+            return NewAttack || (NewAttackFrame <= CurrentFrameIdAll && Math.Abs(CurrentFrameIdAll - NewAttackFrame) < 5);
         }
 
         public static bool IsNewSecondKnifeAttack()
         {
-            return NewAttack2 || NewAttack2Frame <= CurrentFrameIdAll && Math.Abs(CurrentFrameIdAll - NewAttack2Frame) < 5;
+            return NewAttack2 || (NewAttack2Frame <= CurrentFrameIdAll && Math.Abs(CurrentFrameIdAll - NewAttack2Frame) < 5);
         }
 
         public static bool NewAttackForLearn = false;
@@ -934,7 +934,7 @@ namespace DemoScanner.DG
             }
         }
 
-      
+
 
         public static void AddViewAngleSearcher(float angle)
         {
@@ -4507,7 +4507,7 @@ namespace DemoScanner.DG
                                     }
                                 }
 
-                                if (abs(CurrentTime) > EPSILON && PreviousNetMsgFrame.RParms.Time == nf.RParms.Time)
+                                if (abs(CurrentTime) > EPSILON && abs(PreviousNetMsgFrame.RParms.Time - nf.RParms.Time) < EPSILON)
                                 {
                                     // DemoScanner.FpsOverflowTime = CurrentTime;
                                     //if (nf.MsgBytes.Length <= 8)
@@ -5400,8 +5400,8 @@ namespace DemoScanner.DG
                                             {
                                                 if (abs(CurrentTime - LastJumpBtnTime) > 0.2)
                                                 {
-                                                    KreedzHacksCount++;
-                                                    DemoScanner_AddWarn("[JUMPHACK HPP] at (" + CurrentTime + ") : " + CurrentTimeString, true);
+                                                    //KreedzHacksCount++;
+                                                    DemoScanner_AddWarn("[BETA] [JUMPHACK HPP] at (" + CurrentTime + ") : " + CurrentTimeString, false);
                                                 }
                                             }
                                             if (FlyDirection < 0)
@@ -5853,8 +5853,8 @@ namespace DemoScanner.DG
                                             AimType8False = false;
                                         }
                                     }
-                                    if (nf.RParms.ClViewangles.Y != PREV_CDFRAME_ViewAngles.Y
-                                       || nf.UCmd.Viewangles.Y != PREV_CDFRAME_ViewAngles.Y)
+                                    if (abs(nf.RParms.ClViewangles.Y - PREV_CDFRAME_ViewAngles.Y) > EPSILON
+                                       || abs(nf.UCmd.Viewangles.Y - PREV_CDFRAME_ViewAngles.Y) > EPSILON)
                                     {
                                         if (!IsForceCenterView() && !IsAngleEditByEngine()
                                             && AngleBetween(CDFRAME_ViewAngles.X, nf.RParms.Viewangles.X) > EPSILON
@@ -5941,8 +5941,8 @@ namespace DemoScanner.DG
                                     //    //    Console.WriteLine("NONE(" + CurrentFrameButtons + ")");
                                     //    //}
                                     //}
-                                    if (nf.RParms.ClViewangles.Y != PREV_CDFRAME_ViewAngles.Y
-                                        || nf.UCmd.Viewangles.Y != PREV_CDFRAME_ViewAngles.Y)
+                                    if (abs(nf.RParms.ClViewangles.Y - PREV_CDFRAME_ViewAngles.Y) > EPSILON
+                                        || abs(nf.UCmd.Viewangles.Y - PREV_CDFRAME_ViewAngles.Y) > EPSILON)
                                     {
                                         if (CDFRAME_ViewAngles != nf.RParms.ClViewangles)
                                         {
@@ -6942,7 +6942,7 @@ namespace DemoScanner.DG
                                             DemoScanner_AddWarn(
                                                 "[AIM TYPE 1.1 " + CurrentWeapon + "] at (" + NeedWriteAimTime +
                                                 "):" + GetTimeString(NeedWriteAim), NeedWriteAim == 2 && !IsChangeWeapon() && !IsPlayerLossConnection() && !IsForceCenterView() && !IsAngleEditByEngine());
-                                            if (!IsAngleEditByEngine() && !IsChangeWeapon() && !IsPlayerLossConnection() && !IsForceCenterView() && !IsAngleEditByEngine())
+                                            if (!IsChangeWeapon() && !IsPlayerLossConnection() && !IsForceCenterView() && !IsAngleEditByEngine())
                                             {
                                                 TotalAimBotDetected++;
                                             }
@@ -7420,7 +7420,7 @@ namespace DemoScanner.DG
                 {
                     OutTextDetects.Add("Обнаружен алиас \"+jump;wait;-jump; like alias\". Количество:" + JumpWithAlias);
                     Console.WriteLine("Обнаружен алиас \"+jump;wait;-jump; like alias\". Количество:" + JumpWithAlias);
-                    if (MouseJumps > JumpWithAlias && MouseJumps > 0)
+                    if (MouseJumps > JumpWithAlias)
                     {
                         Console.WriteLine("Вероятность использования: " + Math.Round(Convert.ToSingle(JumpWithAlias) / Convert.ToSingle(MouseJumps) * 100.0f, 1) + "%");
                     }
@@ -7434,7 +7434,7 @@ namespace DemoScanner.DG
                     OutTextDetects.Add("Detected \"+jump;wait;-jump; like alias\". Detect count:" + JumpWithAlias);
                     Console.WriteLine("Detected \"+jump;wait;-jump; like alias\". Detect count:" + JumpWithAlias);
 
-                    if (MouseJumps > JumpWithAlias && MouseJumps > 0)
+                    if (MouseJumps > JumpWithAlias)
                     {
                         Console.WriteLine("Mouse jump / alias ratio: " + Math.Round(Convert.ToSingle(JumpWithAlias) / Convert.ToSingle(MouseJumps) * 100.0f, 1) + "%");
                     }
@@ -7754,8 +7754,8 @@ namespace DemoScanner.DG
 
                                      current_thread_id = threadid;
                                      threadid++;
-                                     sum++;
-                                     threads++;
+                                     Interlocked.Increment(ref sum);
+                                     Interlocked.Increment(ref threads);
                                  }
 
                                  Thread.SetData(Thread.GetNamedDataSlot("int"), current_thread_id);
@@ -8442,7 +8442,7 @@ namespace DemoScanner.DG
 
         private static void AddLerpAndMs(int lerpMsec, byte msec)
         {
-            while (historyUcmdLerpAndMs.Count > 10)
+            while (historyUcmdLerpAndMs.Count > 20)
             {
                 historyUcmdLerpAndMs.RemoveAt(0);
             }
@@ -8455,34 +8455,24 @@ namespace DemoScanner.DG
             historyUcmdLerpAndMs.Add(tmpUcmdLerpAndMs);
         }
 
-        public static bool FindLerpAndMs(int lerpMsec, byte msec)
+        public static bool FindLerpAndMs(int lerpMsec, byte msec, bool old_variant = true)
         {
-            if (lerpMsec > 0 || msec > 0)
+            if (old_variant)
             {
-                return true;
-            }
-
-            foreach (UcmdLerpAndMs v in historyUcmdLerpAndMs)
-            {
-                if (v.lerp < 0 || (v.lerp == lerpMsec && v.msec == msec))
+                if (lerpMsec > 0 || msec > 0)
                 {
                     return true;
                 }
             }
 
-            msec = Convert.ToByte(msec * 2.0);
-            if (lerpMsec > 0 || msec > 0)
-            {
-                return true;
-            }
-
             foreach (UcmdLerpAndMs v in historyUcmdLerpAndMs)
             {
-                if (v.lerp < 0 || (v.lerp == lerpMsec && v.msec == msec))
+                if (v.lerp < 0 || (v.lerp == lerpMsec && (v.msec == msec || v.msec == Convert.ToByte(msec * 2))))
                 {
                     return true;
                 }
             }
+
 
             return false;
         }
@@ -9079,6 +9069,9 @@ namespace DemoScanner.DG
                 OutDumpString += "\n{ UCMD PLUGIN MESSAGE:" + cmd + "}\n";
             }
 
+            if (cmd.Length <= 0)
+                return;
+
             string[] cmdList = cmd.Split('/');
             if (cmdList.Length > 0)
             {
@@ -9208,9 +9201,17 @@ namespace DemoScanner.DG
 
                             if (!FindLerpAndMs(lerpms, ms))
                             {
-                                DemoScanner_AddWarn("[FAKELAG TYPE 1] at (" + CurrentTime +
+                                DemoScanner_AddWarn("[FAKELAG TYPE 1.1] at (" + CurrentTime +
                                                     "):" + CurrentTimeString, true, true, false, true);
                                 FakeLagAim++;
+                            }
+                            else
+                            {
+                                if (!FindLerpAndMs(lerpms, ms))
+                                {
+                                    DemoScanner_AddWarn("[FAKELAG TYPE 1.2] at (" + CurrentTime +
+                                                        "):" + CurrentTimeString,false, true, false, true);
+                                }
                             }
                         }
                         else if (cmdList[1] == "EVENTS" && !DisableJump5AndAim16)
@@ -10034,10 +10035,6 @@ namespace DemoScanner.DG
                 if (DemoScanner.DUMP_ALL_FRAMES)
                 {
                     DemoScanner.OutDumpString += "(E=" + ex.Message + ") (" + ex.Source + ") \n(" + ex.StackTrace + ")";
-                }
-
-                if (DemoScanner.DUMP_ALL_FRAMES)
-                {
                     DemoScanner.OutDumpString += "FATAL ERROR. STOP MESSAGE PARSING.\n}\n";
                 }
 
@@ -12367,8 +12364,7 @@ namespace DemoScanner.DG
 
                 if (!DemoScanner.UserAlive && (abs(DemoScanner.CurrentTime - DemoScanner.LastDeathTime) > 5.0f || DemoScanner.FirstUserAlive))
                 {
-                    if (!DemoScanner.UserAlive)
-                        DemoScanner.DemoScanner_AddTextMessage("Respawn[2]", "USER_INFO", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
+                    DemoScanner.DemoScanner_AddTextMessage("Respawn[2]", "USER_INFO", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
                     DemoScanner.UserAlive = true;
                     if (DemoScanner.FirstUserAlive)
                     {
@@ -12464,8 +12460,7 @@ namespace DemoScanner.DG
                         Console.WriteLine("Alive 2 at " + DemoScanner.CurrentTimeString);
                     }
 
-                    if (!DemoScanner.UserAlive)
-                        DemoScanner.DemoScanner_AddTextMessage("Respawn[3]", "USER_INFO", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
+                    DemoScanner.DemoScanner_AddTextMessage("Respawn[3]", "USER_INFO", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
 
                     DemoScanner.UserAlive = true;
                     DemoScanner.LastAliveTime = DemoScanner.CurrentTime;
@@ -13479,8 +13474,7 @@ namespace DemoScanner.DG
                                                     Console.WriteLine("Alive 1 at " + DemoScanner.CurrentTimeString);
                                                 }
 
-                                                if (!DemoScanner.UserAlive)
-                                                    DemoScanner.DemoScanner_AddTextMessage("Respawn[4]", "USER_INFO", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
+                                                DemoScanner.DemoScanner_AddTextMessage("Respawn[4]", "USER_INFO", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
 
                                                 DemoScanner.UserAlive = true;
                                                 DemoScanner.LastAliveTime = DemoScanner.CurrentTime;
@@ -13521,8 +13515,7 @@ namespace DemoScanner.DG
                                         if (!DemoScanner.UserAlive && abs(DemoScanner.CurrentTime - DemoScanner.LastDeathTime) > 5.0)
                                         {
 
-                                            if (!DemoScanner.UserAlive)
-                                                DemoScanner.DemoScanner_AddTextMessage("Respawn[5]", "USER_INFO", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
+                                            DemoScanner.DemoScanner_AddTextMessage("Respawn[5]", "USER_INFO", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
                                             //DemoScanner.FirstUserAlive = false;
                                             DemoScanner.UserAlive = true;
                                             DemoScanner.LastAliveTime = DemoScanner.CurrentTime;
@@ -13683,7 +13676,7 @@ namespace DemoScanner.DG
                                     {
                                         float fov = value != null ? (float)value : 0.0f;
 
-                                        if (fov != DemoScanner.ClientFov && fov != DemoScanner.ClientFov2)
+                                        if (abs(fov - DemoScanner.ClientFov) > EPSILON && abs(fov - DemoScanner.ClientFov2) > EPSILON)
                                         {
                                             DemoScanner.ClientFov2 = DemoScanner.ClientFov;
                                             DemoScanner.ClientFov = fov;
@@ -13979,20 +13972,6 @@ namespace DemoScanner.DG
                                                 if (DemoScanner.DEBUG_ENABLED)
                                                 {
                                                     Console.WriteLine("INLUK" + "(" +
-                                                                      DemoScanner.CurrentTime + ") " + DemoScanner.CurrentTimeString);
-                                                }
-
-                                                if (DemoScanner.INSPECT_BAD_SHOT)
-                                                {
-                                                    Console.ReadKey();
-                                                }
-                                            }
-                                            else if (DemoScanner.IsPlayerFrozen())
-                                            {
-                                                DemoScanner.attackscounter5++;
-                                                if (DemoScanner.DEBUG_ENABLED)
-                                                {
-                                                    Console.WriteLine("FROZEN" + "(" +
                                                                       DemoScanner.CurrentTime + ") " + DemoScanner.CurrentTimeString);
                                                 }
 
