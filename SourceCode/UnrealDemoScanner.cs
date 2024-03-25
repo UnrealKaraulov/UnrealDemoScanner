@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.69.2";
+        public const string PROGRAMVERSION = "1.69.3";
 
         public enum AngleDirection
         {
@@ -97,6 +97,7 @@ namespace DemoScanner.DG
         public static bool INSPECT_BAD_SHOT = false;
 
         public const float EPSILON = 0.0000005f;
+        public const float EPSILON_2 = 0.00005f;
 
         public const int SENS_COUNT_FOR_AIM = 15;
 
@@ -2006,20 +2007,19 @@ namespace DemoScanner.DG
                         if (abs(CurrentTime - LastBhopTime) > 1.0f && abs(LastBhopTime) > EPSILON)
                         {
                             DemoScanner_AddWarn("[BHOP TYPE 1] at (" + CurrentTime + ") " + CurrentTimeString + " [" + (BHOP_JumpWarn - 1) + "]" + " times.");
+                            LastBhopTime = CurrentTime;
                         }
-
-                        LastBhopTime = CurrentTime;
                     }
 
                     if (BHOP_GroundWarn > 2)
                     {
-                        if (abs(CurrentTime - LastBhopTime) > 0.5f && abs(CurrentTime - LastBhopTime) < 2.5f && abs(LastBhopTime) > EPSILON)
+                        if (abs(CurrentTime - LastBhopTime) > 0.75f && abs(CurrentTime - LastBhopTime) < 2.5f && abs(LastBhopTime) > EPSILON)
                         {
                             BHOPcount += BHOP_GroundWarn - 1;
                             DemoScanner_AddWarn("[BHOP TYPE 2] at (" + CurrentTime + ") " + CurrentTimeString + " [" + (BHOP_GroundWarn - 1) + "]" + " times.",
                                 BHOP_GroundWarn > 3, BHOP_GroundWarn > 3);
+                            LastBhopTime = CurrentTime;
                         }
-                        LastBhopTime = CurrentTime;
                     }
 
                     LastJumpTime = CurrentTime;
@@ -5623,8 +5623,8 @@ namespace DemoScanner.DG
                                             {
                                                 Console.WriteLine("BAD BAD LERP:" + CurrentFrameLerp);
                                             }
+                                             LastCmdHack = CurrentTime;
                                         }
-                                        LastCmdHack = CurrentTime;
                                     }
                                 }
 
@@ -6669,38 +6669,42 @@ namespace DemoScanner.DG
                                         @"UCmd.Buttons  = " + nf.UCmd.Buttons.ToString() + "\n";
                                 }
 
-                                if (IsUserAlive() && FirstJump && abs(CurrentTime) > EPSILON)
+                                if (IsUserAlive() && FirstJump && abs(CurrentTime) > EPSILON )
                                 {
-                                    if (nf.UCmd.Msec == 0 && nf.RParms.Frametime > EPSILON)
+                                    if (nf.UCmd.Msec == 0 && nf.RParms.Frametime > EPSILON_2 && CurrentFrameDuplicated == 0)
                                     {
                                         if (abs(CurrentTime - LastCmdHack) > 5.0)
                                         {
-                                            if (RealFpsMax > 1001)
+                                            if (RealFpsMax > 2500)
                                             {
                                                 DemoScanner_AddWarn(
-                                                    "[FPS HACK TYPE 2] at (" +
-                                                    CurrentTime + ") " + CurrentTimeString, !IsAngleEditByEngine());
+                                                    "[FPS HACK TYPE 2. FPS = "+ RealFpsMax + " ] at (" +
+                                                    CurrentTime + ") " + CurrentTimeString + ". Epsilon: " + RealFpsMax, !IsAngleEditByEngine());
                                             }
-                                            else
+
+                                            if (RealFpsMax < 400)
                                             {
                                                 DemoScanner_AddWarn(
                                                     "[CMD HACK TYPE 1] at (" +
-                                                    CurrentTime + ") " + CurrentTimeString, !IsAngleEditByEngine());
+                                                    CurrentTime + ") " + CurrentTimeString + ". Epsilon: " + RealFpsMax, !IsAngleEditByEngine());
                                             }
+
+                                            LastCmdHack = CurrentTime;
                                         }
 
-                                        LastCmdHack = CurrentTime;
                                     }
-                                    else if (nf.UCmd.Msec / nf.RParms.Frametime < 500.0f)
+                                    else if (nf.UCmd.Msec / nf.RParms.Frametime < 500.0f )
                                     {
-                                        if (abs(CurrentTime - LastCmdHack) > 5.0)
+                                        if (abs(CurrentTime - LastCmdHack) > 4.0)
                                         {
                                             DemoScanner_AddWarn(
                                                 "[CMD HACK TYPE 2] at (" +
                                                 CurrentTime + ") " + CurrentTimeString, !IsAngleEditByEngine());
+
+                                            LastCmdHack = CurrentTime;
                                         }
                                         //Console.WriteLine("BAD BAD " + nf.UCmd.Msec + " / " + nf.RParms.Frametime + " = " + ((float)nf.UCmd.Msec / nf.RParms.Frametime).ToString());
-                                        LastCmdHack = CurrentTime;
+                                      
                                     }
                                 }
 
@@ -7139,9 +7143,11 @@ namespace DemoScanner.DG
                                                 DemoScanner_AddWarn(
                                                     "[CMD HACK TYPE 4] at (" +
                                                     CurrentTime + ") " + CurrentTimeString, false);
+
+                                                LastCmdHack = CurrentTime;
                                             }
                                             // Console.WriteLine("BAD BAD " + nf.UCmd.Msec + " / " + nf.RParms.Frametime + " = " + ((float)nf.UCmd.Msec / nf.RParms.Frametime).ToString() + " / " + (nf.IncomingSequence - LastIncomingSequence) + " / " + (nf.OutgoingSequence - LastOutgoingSequence));
-                                            LastCmdHack = CurrentTime;
+                                        
                                             NeedSearchCMDHACK4 = false;
                                         }
                                         FrameErrors++;
@@ -7157,9 +7163,10 @@ namespace DemoScanner.DG
                                             DemoScanner_AddWarn(
                                                 "[CMD HACK TYPE 9] at (" +
                                                 CurrentTime + ") " + CurrentTimeString, false);
+                                            LastCmdHack = CurrentTime;
                                         }
                                         // Console.WriteLine("BAD BAD " + nf.UCmd.Msec + " / " + nf.RParms.Frametime + " = " + ((float)nf.UCmd.Msec / nf.RParms.Frametime).ToString() + " / " + (nf.IncomingSequence - LastIncomingSequence) + " / " + (nf.OutgoingSequence - LastOutgoingSequence));
-                                        LastCmdHack = CurrentTime;
+                                      
                                     }
                                 }
 
