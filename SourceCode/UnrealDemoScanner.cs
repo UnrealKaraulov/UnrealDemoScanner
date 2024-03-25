@@ -6679,14 +6679,14 @@ namespace DemoScanner.DG
                                             {
                                                 DemoScanner_AddWarn(
                                                     "[FPS HACK TYPE 2. FPS = "+ RealFpsMax + " ] at (" +
-                                                    CurrentTime + ") " + CurrentTimeString + ". Epsilon: " + RealFpsMax, !IsAngleEditByEngine());
+                                                    CurrentTime + ") " + CurrentTimeString, !IsAngleEditByEngine());
                                             }
 
                                             if (RealFpsMax < 400)
                                             {
                                                 DemoScanner_AddWarn(
                                                     "[CMD HACK TYPE 1] at (" +
-                                                    CurrentTime + ") " + CurrentTimeString + ". Epsilon: " + RealFpsMax, !IsAngleEditByEngine());
+                                                    CurrentTime + ") " + CurrentTimeString, !IsAngleEditByEngine());
                                             }
 
                                             LastCmdHack = CurrentTime;
