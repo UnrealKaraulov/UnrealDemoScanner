@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.69.3";
+        public const string PROGRAMVERSION = "1.69.5";
 
         public enum AngleDirection
         {
@@ -324,6 +324,7 @@ namespace DemoScanner.DG
 
         public static int LastTimeOut = -1;
 
+        public static int StuckFrames = 0;
 
         public static float LastTimeDesync = 0.0f;
 
@@ -536,7 +537,6 @@ namespace DemoScanner.DG
         public static List<WarnStruct> DemoScannerWarnList = new List<WarnStruct>();
 
         public static string LastWarnStr = "";
-        public static float LastWarnTime = 0.0f;
 
         public static float LastAnglePunchSearchTime = 0.0f;
 
@@ -1065,19 +1065,20 @@ namespace DemoScanner.DG
                 {
                     WarnsAfterGameEnd++;
                 }
-
                 return;
             }
-            if (abs(LastWarnTime - CurrentTime) < EPSILON && !uds_plugin)
+
+            if (LastWarnStr == warn)
             {
                 return;
             }
 
-            LastWarnTime = CurrentTime;
+            LastWarnStr = warn;
+
             WarnStruct warnStruct = new WarnStruct
             {
                 Warn = warn,
-                WarnTime = LastWarnTime,
+                WarnTime = CurrentTime,
                 Detected = detected,
                 Log = log,
                 SkipAllChecks = skipallchecks,
@@ -2385,8 +2386,6 @@ namespace DemoScanner.DG
                 }
             }
 
-
-
             if (!SKIP_RESULTS && !DemoRescanned)
             {
                 try
@@ -3091,23 +3090,26 @@ namespace DemoScanner.DG
                                         {
                                             if (abs(CmdHack10_detecttime) > 0.0001f)
                                             {
-                                                if (abs(CmdHack10_origX) > 0.001f && abs(CmdHack10_origX - cdframe.Origin.X) > 0.001f)
+                                                if (ThirdHackDetected <= 0)
                                                 {
-                                                    DemoScanner_AddWarn(
-                                                                   "[CMD HACK TYPE 10] at (" + CurrentTime +
-                                                                   "):" + CurrentTimeString, false/*!IsAngleEditByEngine() && !IsPlayerLossConnection()*/);
-                                                }
-                                                if (abs(CmdHack10_origY) > 0.001f && abs(CmdHack10_origY - cdframe.Origin.Y) > 0.001f)
-                                                {
-                                                    DemoScanner_AddWarn(
-                                                                   "[CMD HACK TYPE 10] at (" + CurrentTime +
-                                                                   "):" + CurrentTimeString, false /*!IsAngleEditByEngine() && !IsPlayerLossConnection()*/);
-                                                }
-                                                if (abs(CmdHack10_origZ) > 0.001f && abs(CmdHack10_origZ - cdframe.Origin.Z) > 0.001f)
-                                                {
-                                                    DemoScanner_AddWarn(
-                                                                   "[CMD HACK TYPE 10] at (" + CurrentTime +
-                                                                   "):" + CurrentTimeString, false /*!IsAngleEditByEngine() && !IsPlayerLossConnection()*/);
+                                                    if (abs(CmdHack10_origX) > 0.001f && abs(CmdHack10_origX - cdframe.Origin.X) > 0.001f)
+                                                    {
+                                                        DemoScanner_AddWarn(
+                                                                       "[CMD HACK TYPE 10] at (" + CurrentTime +
+                                                                       "):" + CurrentTimeString, false/*!IsAngleEditByEngine() && !IsPlayerLossConnection()*/);
+                                                    }
+                                                    if (abs(CmdHack10_origY) > 0.001f && abs(CmdHack10_origY - cdframe.Origin.Y) > 0.001f)
+                                                    {
+                                                        DemoScanner_AddWarn(
+                                                                       "[CMD HACK TYPE 10] at (" + CurrentTime +
+                                                                       "):" + CurrentTimeString, false /*!IsAngleEditByEngine() && !IsPlayerLossConnection()*/);
+                                                    }
+                                                    if (abs(CmdHack10_origZ) > 0.001f && abs(CmdHack10_origZ - cdframe.Origin.Z) > 0.001f)
+                                                    {
+                                                        DemoScanner_AddWarn(
+                                                                       "[CMD HACK TYPE 10] at (" + CurrentTime +
+                                                                       "):" + CurrentTimeString, false /*!IsAngleEditByEngine() && !IsPlayerLossConnection()*/);
+                                                    }
                                                 }
                                             }
                                             CmdHack10_detecttime = CurrentTime;
@@ -3197,14 +3199,7 @@ namespace DemoScanner.DG
                                     {
                                         if (ReturnToGameDetects > 1)
                                         {
-                                            if (!IsRussia)
-                                            {
-                                                DemoScanner_AddWarn("['RETURN TO GAME' FEATURE] ", true, true, true);
-                                            }
-                                            else
-                                            {
-                                                DemoScanner_AddWarn("[Функция возврата в игру]", true, true, true);
-                                            }
+                                            DemoScanner_AddWarn("['RETURN TO GAME' FEATURE] ", true, true, true);
                                         }
                                         ReturnToGameDetects++;
                                     }
@@ -4031,11 +4026,17 @@ namespace DemoScanner.DG
                                     subnode.Text += "}\n";
                                 }
 
-                                if (abs(CurrentTime - LastClientDataTime) < EPSILON)
+                                if (abs(CurrentTime - LastClientDataTime) < EPSILON && abs(CurrentTime - LastAttackCmdTime) < EPSILON)
                                 {
-                                    if (AngleBetween(CDFRAME_ViewAngles.Y, eframe.EventArguments.Angles.Y) > EPSILON)
+                                    if (eframe.EventArguments.Iparam1 == 0 && eframe.EventArguments.Iparam2 == 0)
                                     {
-                                        // Console.WriteLine("AIM IM IM:" + viewanglesforsearch.Y + ":" + eframe.EventArguments.Angles.Y);
+                                        if (AngleBetween(CDFRAME_ViewAngles.Y, eframe.EventArguments.Angles.Y) > EPSILON
+                                        || AngleBetween(CDFRAME_ViewAngles.X, eframe.EventArguments.Angles.X) > EPSILON)
+                                        {
+                                            DemoScanner_AddWarn(
+                                                       "[BETA][AIM TYPE 10 " + CurrentWeapon.ToString() + "] at (" + DemoScanner.IsAttackLastTime +
+                                                       "):" + DemoScanner.CurrentTimeString, false);
+                                        }
                                     }
                                 }
 
@@ -5170,7 +5171,7 @@ namespace DemoScanner.DG
                                     DemoScanner.SearchJumpHack5--;
                                     if (!IsPlayerAnyJumpPressed() && IsUserAlive() && !DisableJump5AndAim16)
                                     {
-                                        DemoScanner_AddWarn("[EXPERIMENTAL][JUMPHACK TYPE 5] at (" + CurrentTime +
+                                        DemoScanner_AddWarn("[EXPERIMENTAL][JUMPHACK TYPE 5.2] at (" + CurrentTime +
                                                             "):" + CurrentTimeString, false, true, false, true);
                                     }
                                 }
@@ -5623,7 +5624,7 @@ namespace DemoScanner.DG
                                             {
                                                 Console.WriteLine("BAD BAD LERP:" + CurrentFrameLerp);
                                             }
-                                             LastCmdHack = CurrentTime;
+                                            LastCmdHack = CurrentTime;
                                         }
                                     }
                                 }
@@ -5704,6 +5705,19 @@ namespace DemoScanner.DG
                                         ThirdHackDetected += 1;
                                         NeedDetectThirdPersonHack = false;
                                         ThirdPersonHackDetectionTimeout = -1;
+                                        if (ThirdHackDetected == 1)
+                                        {
+                                            if (IsRussia)
+                                            {
+                                                DemoScanner_AddInfo("Внимание. Обнаружен вид от третьего лица.");
+                                                DemoScanner_AddInfo("Отключаются ложные обнаружение : NOSPREAD TYPE X и CMD HACK TYPE 10.");
+                                            }
+                                            else
+                                            {
+                                                DemoScanner_AddInfo("WARNING! Detecetd 'third person'");
+                                                DemoScanner_AddInfo("False NOSPREAD TYPE X and CMD HACK TYPE 10 detection is disabled.");
+                                            }
+                                        }
                                     }
                                 }
 
@@ -5874,10 +5888,13 @@ namespace DemoScanner.DG
 
                                                 if (abs(NoSpreadDetectionTime - CurrentTime) > EPSILON && spreadtest > MAX_SPREAD_CONST && spreadtest2 > MAX_SPREAD_CONST)
                                                 {
-                                                    NoSpreadDetectionTime = CurrentTime;
-                                                    DemoScanner_AddWarn(
-                                                        "[NOSPREAD TYPE 1 " + CurrentWeapon + "] at (" +
-                                                        CurrentTime + "):" + CurrentTimeString, false);
+                                                    if (ThirdHackDetected <= 0)
+                                                    {
+                                                        NoSpreadDetectionTime = CurrentTime;
+                                                        DemoScanner_AddWarn(
+                                                            "[NOSPREAD TYPE 1 " + CurrentWeapon + "] at (" +
+                                                            CurrentTime + "):" + CurrentTimeString, false);
+                                                    }
                                                 }
                                             }
                                         }
@@ -5915,10 +5932,13 @@ namespace DemoScanner.DG
                                                 if (abs(NoSpreadDetectionTime - CurrentTime) > EPSILON && spreadtest > MAX_SPREAD_CONST2
                                                     && spreadtest2 > MAX_SPREAD_CONST2)
                                                 {
-                                                    NoSpreadDetectionTime = CurrentTime;
-                                                    DemoScanner_AddWarn(
-                                                        "[NOSPREAD TYPE 2 " + CurrentWeapon + "] at (" +
-                                                        CurrentTime + "):" + CurrentTimeString, false);
+                                                    if (ThirdHackDetected <= 0)
+                                                    {
+                                                        NoSpreadDetectionTime = CurrentTime;
+                                                        DemoScanner_AddWarn(
+                                                            "[NOSPREAD TYPE 2 " + CurrentWeapon + "] at (" +
+                                                            CurrentTime + "):" + CurrentTimeString, false);
+                                                    }
                                                 }
                                             }
                                         }
@@ -6063,7 +6083,6 @@ namespace DemoScanner.DG
                                                     + "(" + CurrentTime + "):" + "(" + DemoStartTime2 + "):" + "(" + CurrentTime2 + "):" +
                                                     CurrentTimeString, false);
                                                 LastTimeOut = 1;
-
                                             }
                                         }
                                         if (CurrentTime - PreviousTime > MaximumTimeBetweenFrames)
@@ -6669,20 +6688,20 @@ namespace DemoScanner.DG
                                         @"UCmd.Buttons  = " + nf.UCmd.Buttons.ToString() + "\n";
                                 }
 
-                                if (IsUserAlive() && FirstJump && abs(CurrentTime) > EPSILON )
+                                if (IsUserAlive() && FirstJump && abs(CurrentTime) > EPSILON)
                                 {
                                     if (nf.UCmd.Msec == 0 && nf.RParms.Frametime > EPSILON_2 && CurrentFrameDuplicated == 0)
                                     {
                                         if (abs(CurrentTime - LastCmdHack) > 5.0)
                                         {
-                                            if (RealFpsMax > 2500)
+                                            if (RealFpsMax > 2000)
                                             {
                                                 DemoScanner_AddWarn(
-                                                    "[FPS HACK TYPE 2. FPS = "+ RealFpsMax + " ] at (" +
+                                                    "[FPS HACK TYPE 2. FPS = " + RealFpsMax + " ] at (" +
                                                     CurrentTime + ") " + CurrentTimeString, !IsAngleEditByEngine());
                                             }
 
-                                            if (RealFpsMax < 400)
+                                            if (RealFpsMax < 600)
                                             {
                                                 DemoScanner_AddWarn(
                                                     "[CMD HACK TYPE 1] at (" +
@@ -6691,9 +6710,9 @@ namespace DemoScanner.DG
 
                                             LastCmdHack = CurrentTime;
                                         }
-
+                                        StuckFrames++;
                                     }
-                                    else if (nf.UCmd.Msec / nf.RParms.Frametime < 500.0f )
+                                    else if (nf.UCmd.Msec / nf.RParms.Frametime < 500.0f)
                                     {
                                         if (abs(CurrentTime - LastCmdHack) > 4.0)
                                         {
@@ -6704,7 +6723,7 @@ namespace DemoScanner.DG
                                             LastCmdHack = CurrentTime;
                                         }
                                         //Console.WriteLine("BAD BAD " + nf.UCmd.Msec + " / " + nf.RParms.Frametime + " = " + ((float)nf.UCmd.Msec / nf.RParms.Frametime).ToString());
-                                      
+
                                     }
                                 }
 
@@ -7147,7 +7166,7 @@ namespace DemoScanner.DG
                                                 LastCmdHack = CurrentTime;
                                             }
                                             // Console.WriteLine("BAD BAD " + nf.UCmd.Msec + " / " + nf.RParms.Frametime + " = " + ((float)nf.UCmd.Msec / nf.RParms.Frametime).ToString() + " / " + (nf.IncomingSequence - LastIncomingSequence) + " / " + (nf.OutgoingSequence - LastOutgoingSequence));
-                                        
+
                                             NeedSearchCMDHACK4 = false;
                                         }
                                         FrameErrors++;
@@ -7166,7 +7185,7 @@ namespace DemoScanner.DG
                                             LastCmdHack = CurrentTime;
                                         }
                                         // Console.WriteLine("BAD BAD " + nf.UCmd.Msec + " / " + nf.RParms.Frametime + " = " + ((float)nf.UCmd.Msec / nf.RParms.Frametime).ToString() + " / " + (nf.IncomingSequence - LastIncomingSequence) + " / " + (nf.OutgoingSequence - LastOutgoingSequence));
-                                      
+
                                     }
                                 }
 
@@ -7321,7 +7340,7 @@ namespace DemoScanner.DG
                 Console.WriteLine("Unreal Demo Scanner [ " + PROGRAMVERSION + " ] scan result:");
             }
 
-
+            GameEnd = false;
             // Console.WriteLine("MAX BETWEENS: " + DemoScanner.maxLastIncomingSequence + "/ " + DemoScanner.maxLastIncomingAcknowledged + "/ " + DemoScanner.maxLastOutgoingSequence);
 
             //Console.WriteLine(AngleLenMaxX);
@@ -7405,7 +7424,6 @@ namespace DemoScanner.DG
             //    Console.WriteLine("Detected [UNKNOWN CONFIG] для атаки. Detect count:" + AttackErrors);
             //    Console.WriteLine("Last using at " + LastAttackHack + " second game time.");
             //}
-
 
             if (MouseJumps > 10)
             {
@@ -7681,8 +7699,8 @@ namespace DemoScanner.DG
                         "Игроки", "Голоса", "История мыши", "Команды");
                     table.AddRow("1", "2", "3", "4", "5", "6", "7");
                     table.Write(Format.Alternative);
-                    table = new ConsoleTable("Помощь", "Скачать", "Все сообщения", "Выход");
-                    table.AddRow("8", "9", "10", "0/Enter");
+                    table = new ConsoleTable("Помощь", "Скачать", "Все сообщения", "Читы", "Выход");
+                    table.AddRow("8", "9", "10", "11", "0/Enter");
                     table.Write(Format.Alternative);
                 }
                 else
@@ -7691,8 +7709,8 @@ namespace DemoScanner.DG
                   "Player info", "Wav Player", "Sens History", "Commands");
                     table.AddRow("1", "2", "3", "4", "5", "6", "7");
                     table.Write(Format.Alternative);
-                    table = new ConsoleTable("Help", "Download", "All msg", "Exit");
-                    table.AddRow("8", "9", "10", "0/Enter");
+                    table = new ConsoleTable("Help", "Download", "All msg", "Hacks", "Exit");
+                    table.AddRow("8", "9", "10", "11", "0/Enter");
                     table.Write(Format.Alternative);
                 }
 
@@ -7701,6 +7719,106 @@ namespace DemoScanner.DG
                 if (command.Length == 0 || command == "0")
                 {
                     return;
+                }
+
+                if (command == "11")
+                {
+                    if (IsRussia)
+                    {
+                        DemoScanner_AddInfo("[AIM TYPE 1.X] - Чит аимбот");
+                        DemoScanner_AddInfo("[AIM TYPE 2.X] - Чит аимбот, автоатака");
+                        DemoScanner_AddInfo("[AIM TYPE 3] - Чит аимбот, прерывание атаки");
+                        DemoScanner_AddInfo("[AIM TYPE 4.X] - Чит аимбот, лаги при выстрелах");
+                        DemoScanner_AddInfo("[AIM TYPE 5.X] - Чит аимбот, манипуляция мышью");
+                        DemoScanner_AddInfo("[AIM TYPE 7.X] - Чит HPP, триггер бот, аим бот");
+                        DemoScanner_AddInfo("[AIM TYPE 8.X] - Чит аимбот, используется во многих функциях");
+                        DemoScanner_AddInfo("[AIM TYPE 9.X] - Чит аимбот, антиразброс");
+                        DemoScanner_AddInfo("[AIRSTUCK HACK] - Функия читов, зависание в воздухе");
+                        DemoScanner_AddInfo("[AUTORELOAD TYPE 1] - Чит аимбот, автоперезарядка");
+                        DemoScanner_AddInfo("[ATTACK FLOOD TYPE X] - Обход сканера");
+                        DemoScanner_AddInfo("[BHOP TYPE 1] - Распрыжка без соотвествующей команды, читы");
+                        DemoScanner_AddInfo("[BHOP TYPE 2] - Распрыжка вообще без команд, читы");
+                        DemoScanner_AddInfo("[CMD HACK TYPE 1]");
+                        DemoScanner_AddInfo("[CMD HACK TYPE 2] - Зависание в воздухе, флуд командами, читы");
+                        DemoScanner_AddInfo("[CMD HACK TYPE 4] - Генератор фейк лагов, часть аимбота");
+                        DemoScanner_AddInfo("[CMD HACK TYPE 6] - Фейк лаг, часть аим бота, подделка данных");
+                        DemoScanner_AddInfo("[CMD HACK TYPE 9] - Часть аим бота, подделка данных");
+                        DemoScanner_AddInfo("[CMD HACK TYPE 10] - Чит вид от третьего лица, или anti-noflash плагин сервера");
+                        DemoScanner_AddInfo("[DUCK FLOOD TYPE X] - Обход сканера, читы");
+                        DemoScanner_AddInfo("[DUCK HACK TYPE 1] - Приседание без команды, читы");
+                        DemoScanner_AddInfo("[DUCK HACK TYPE 2] - Приседание без кнопок, читы");
+                        DemoScanner_AddInfo("[DUCK HACK TYPE 3] - Так называемый ddrun/gstrafe, читы");
+                        DemoScanner_AddInfo("[DUCK HACK TYPE 4] - Приседание без соответсвующих команд, читы");
+                        DemoScanner_AddInfo("[EXPERIMENTAL][JUMPHACK TYPE 5.X] - Распрыжка без команд, попытка обхода");
+                        DemoScanner_AddInfo("[FAKELAG TYPE X] - Фейклаги, подделка данных");
+                        DemoScanner_AddInfo("[FAKESPEED TYPE X] - Спидхак или подделка данных");
+                        DemoScanner_AddInfo("[FORWARD HACK TYPE 1] - Чит на ускорение, распрыжку");
+                        DemoScanner_AddInfo("[FOV HACK TYPE X] - Смена FOV, может быть читом");
+                        DemoScanner_AddInfo("[FPS HACK TYPE 1] - ФПС бустер, может быть читом");
+                        DemoScanner_AddInfo("[FPS HACK TYPE 2] - Очень высокий фпс, может быть читом");
+                        DemoScanner_AddInfo("[IDEALJUMP] - Идеальный прыжок, может быть читом");
+                        DemoScanner_AddInfo("[JUMPHACK XTREME] - Чит XTREME");
+                        DemoScanner_AddInfo("[JUMPHACK HPP] - Чит HPP");
+                        DemoScanner_AddInfo("[JUMPHACK TYPE X] - Остальные читы на прыжки");
+                        DemoScanner_AddInfo("[KNIFEBOT TYPE X] - Кнайф бот");
+                        DemoScanner_AddInfo("[MOVEMENT HACK TYPE 1] - Чит на ускорение, стрейфы, часть аимбота/KZ хака");
+                        DemoScanner_AddInfo("[MOVEMENT HACK TYPE 2] - Чит на ускорение, часть аимбота/KZ хака");
+                        DemoScanner_AddInfo("[NO WEAPON ANIM] - Скрытие анимации оружия, часть аим бота");
+                        DemoScanner_AddInfo("[NO SPREAD TYPE X] - Чит аимбот, антиразброс");
+                        DemoScanner_AddInfo("['RETURN TO GAME' FEATURE] - Автовозврат к игре (чит или функция кастом клиентов)");
+                        DemoScanner_AddInfo("[STRAFE OPTIMIZER] - Чит [strafe_optimizer.exe] и подобные");
+                        DemoScanner_AddInfo("[TIMESHIFT] - Чит спидхак, если много срабатываний");
+                        DemoScanner_AddInfo("[THIRD PERSON HACK] - Вид от третьего лица, может быть читом, или сервер-плагином");
+                        DemoScanner_AddInfo("[TRIGGER TYPE X] - Триггер бот");
+                    }
+                    else
+                    {
+                        DemoScanner_AddInfo("[AIM TYPE 1.X] - Aimbot");
+                        DemoScanner_AddInfo("[AIM TYPE 2.X] - Aimbot, autoattack");
+                        DemoScanner_AddInfo("[AIM TYPE 3] - Aimbot, attack interruption");
+                        DemoScanner_AddInfo("[AIM TYPE 4.X] - Aimbot, lagshot");
+                        DemoScanner_AddInfo("[AIM TYPE 5.X] - Aimbot, fake sensitivity");
+                        DemoScanner_AddInfo("[AIM TYPE 7.X] - HPP, trigger/aimbot");
+                        DemoScanner_AddInfo("[AIM TYPE 8.X] - Aimbot, fake angles");
+                        DemoScanner_AddInfo("[AIM TYPE 9.X] - Aimbot, no-spread");
+                        DemoScanner_AddInfo("[AIRSTUCK HACK] - 'Airstuck' feature");
+                        DemoScanner_AddInfo("[AUTORELOAD TYPE 1] - Aimbot, autoreload");
+                        DemoScanner_AddInfo("[ATTACK FLOOD TYPE X] - Scanner bypass");
+                        DemoScanner_AddInfo("[BHOP TYPE 1] - Auto bhop without jump");
+                        DemoScanner_AddInfo("[BHOP TYPE 2] - Auto bhop without any commands");
+                        DemoScanner_AddInfo("[CMD HACK TYPE 1]");
+                        DemoScanner_AddInfo("[CMD HACK TYPE 2] - Airstuck, fake cmd, part of aimbot");
+                        DemoScanner_AddInfo("[CMD HACK TYPE 4] - Fakelag generation, part of aimbot");
+                        DemoScanner_AddInfo("[CMD HACK TYPE 6] - Fakelag, fake cmd, part of aimbot");
+                        DemoScanner_AddInfo("[CMD HACK TYPE 9] - Fake data, part of aimbot");
+                        DemoScanner_AddInfo("[CMD HACK TYPE 10] - Third person hack, or anti-noflash server plugin");
+                        DemoScanner_AddInfo("[DUCK FLOOD TYPE X] - Scanner bypass, part of hack");
+                        DemoScanner_AddInfo("[DUCK HACK TYPE 1] - No duck, part of hack");
+                        DemoScanner_AddInfo("[DUCK HACK TYPE 2] - Duck no button, part of hack");
+                        DemoScanner_AddInfo("[DUCK HACK TYPE 3] - ddrun/gstrafe, part of hack");
+                        DemoScanner_AddInfo("[DUCK HACK TYPE 4] - Duck no any commands, part of hack");
+                        DemoScanner_AddInfo("[EXPERIMENTAL][JUMPHACK TYPE 5.X] - Jump no any command, bypass tries");
+                        DemoScanner_AddInfo("[FAKELAG TYPE X] - Fakelag, fake data");
+                        DemoScanner_AddInfo("[FAKESPEED TYPE X] - Speedhack, fake data");
+                        DemoScanner_AddInfo("[FORWARD HACK TYPE 1] - Run forward hack");
+                        DemoScanner_AddInfo("[FOV HACK TYPE X] - FOV changed, can be part of hack");
+                        DemoScanner_AddInfo("[FPS HACK TYPE 1] - FPS-booster, can be part of hack");
+                        DemoScanner_AddInfo("[FPS HACK TYPE 2] - Really big FPS, can be part of hack");
+                        DemoScanner_AddInfo("[IDEALJUMP] - One-Frame ideal jump, can be part of hack");
+                        DemoScanner_AddInfo("[JUMPHACK XTREME] - XTREME Jump");
+                        DemoScanner_AddInfo("[JUMPHACK HPP] - HPP JumpHack");
+                        DemoScanner_AddInfo("[JUMPHACK TYPE X] - Other jump hacks");
+                        DemoScanner_AddInfo("[KNIFEBOT TYPE X] - Knife bot");
+                        DemoScanner_AddInfo("[MOVEMENT HACK TYPE 1] - Run/strafe hack, part of aimbot/KZ hack");
+                        DemoScanner_AddInfo("[MOVEMENT HACK TYPE 2] - Run forward hack, part of aimbot/KZ hack");
+                        DemoScanner_AddInfo("[NO WEAPON ANIM] - No weapon animation, part of aimbot");
+                        DemoScanner_AddInfo("[NO SPREAD TYPE X] - Aimbot, no spread");
+                        DemoScanner_AddInfo("['RETURN TO GAME' FEATURE] - Part of aimbot features, or another CS-1.6 client feature");
+                        DemoScanner_AddInfo("[STRAFE OPTIMIZER] - strafe_optimizer.exe (and same hacks)");
+                        DemoScanner_AddInfo("[TIMESHIFT] - Speedhack (if multiple times)");
+                        DemoScanner_AddInfo("[THIRD PERSON HACK] - Third person hack, can be part of hack, or server plugin");
+                        DemoScanner_AddInfo("[TRIGGER TYPE X] - Trigger bot");
+                    }
                 }
 
                 if (command == "9")
@@ -8317,6 +8435,18 @@ namespace DemoScanner.DG
                     if (CurrentFrameIdAll > 0)
                     {
                         Console.WriteLine("Frames(всего кадров): " + CurrentFrameIdAll);
+                    }
+
+                    if (StuckFrames > 10)
+                    {
+                        if (IsRussia)
+                        {
+                            DemoScanner_AddInfo("Залипаний из-за высокого фпс [msec == 0]: " + StuckFrames + ".");
+                        }
+                        else
+                        {
+                            DemoScanner_AddInfo("Stuck frames [msec == 0]: " + StuckFrames + ".");
+                        }
                     }
 
                     if (LostStopAttackButton > 5)
@@ -9214,10 +9344,10 @@ namespace DemoScanner.DG
                             }
                             else
                             {
-                                if (!FindLerpAndMs(lerpms, ms))
+                                if (!FindLerpAndMs(lerpms, ms, false))
                                 {
                                     DemoScanner_AddWarn("[FAKELAG TYPE 1.2] at (" + CurrentTime +
-                                                        "):" + CurrentTimeString,false, true, false, true);
+                                                        "):" + CurrentTimeString, false, true, false, true);
                                 }
                             }
                         }
