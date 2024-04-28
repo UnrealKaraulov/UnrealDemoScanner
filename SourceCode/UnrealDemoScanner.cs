@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.69.5";
+        public const string PROGRAMVERSION = "1.69.5fix";
 
         public enum AngleDirection
         {
@@ -4031,7 +4031,7 @@ namespace DemoScanner.DG
                                     if (eframe.EventArguments.Iparam1 == 0 && eframe.EventArguments.Iparam2 == 0)
                                     {
                                         if (AngleBetween(CDFRAME_ViewAngles.Y, eframe.EventArguments.Angles.Y) > EPSILON
-                                        || AngleBetween(CDFRAME_ViewAngles.X, eframe.EventArguments.Angles.X) > EPSILON)
+                                       /* || AngleBetween(CDFRAME_ViewAngles.X, eframe.EventArguments.Angles.X) > EPSILON*/)
                                         {
                                             DemoScanner_AddWarn(
                                                        "[BETA][AIM TYPE 10 " + CurrentWeapon.ToString() + "] at (" + DemoScanner.IsAttackLastTime +
