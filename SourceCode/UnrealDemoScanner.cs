@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.69.5fix";
+        public const string PROGRAMVERSION = "1.69.6fix";
 
         public enum AngleDirection
         {
@@ -239,6 +239,7 @@ namespace DemoScanner.DG
 
         public static int KreedzHacksCount = 0;
         public static int FakeLagAim = 0;
+        public static int FakeLag2Aim = -2;
 
         public static List<int> FakeLagsValus = new List<int>();
 
@@ -4028,7 +4029,8 @@ namespace DemoScanner.DG
 
                                 if (abs(CurrentTime - LastClientDataTime) < EPSILON && abs(CurrentTime - LastAttackCmdTime) < EPSILON)
                                 {
-                                    if (eframe.EventArguments.Iparam1 == 0 && eframe.EventArguments.Iparam2 == 0)
+                                    if (eframe.EventArguments.Iparam1 == 0 && eframe.EventArguments.Iparam2 == 0 &&
+                                        abs(CurrentNetMsgFrame.RParms.Punchangle.Y) < EPSILON)
                                     {
                                         if (AngleBetween(CDFRAME_ViewAngles.Y, eframe.EventArguments.Angles.Y) > EPSILON
                                        /* || AngleBetween(CDFRAME_ViewAngles.X, eframe.EventArguments.Angles.X) > EPSILON*/)
@@ -9346,8 +9348,12 @@ namespace DemoScanner.DG
                             {
                                 if (!FindLerpAndMs(lerpms, ms, false))
                                 {
-                                    DemoScanner_AddWarn("[FAKELAG TYPE 1.2] at (" + CurrentTime +
-                                                        "):" + CurrentTimeString, false, true, false, true);
+                                    FakeLag2Aim++;
+                                    if (FakeLag2Aim > 0)
+                                    {
+                                        DemoScanner_AddWarn("[FAKELAG TYPE 1.2] at (" + CurrentTime +
+                                                            "):" + CurrentTimeString, false, true, false, true);
+                                    }
                                 }
                             }
                         }
