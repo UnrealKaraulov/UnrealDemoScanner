@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.69.7fix";
+        public const string PROGRAMVERSION = "1.69.7";
 
         public enum AngleDirection
         {
@@ -387,6 +387,7 @@ namespace DemoScanner.DG
 
         public static int SkipAimType22 = 2;
 
+        public static int demo_skipped_frames = 0;
 
         public static bool NeedCheckAttack = false;
 
@@ -854,6 +855,9 @@ namespace DemoScanner.DG
         public static float CmdHack10_origY = 0.0f;
         public static float CmdHack10_origZ = 0.0f;
         public static float CmdHack10_detecttime = 0.0f;
+
+        public static bool FoundNextClientPattern = false;
+        public static bool FoundNextClient = false;
 
         public static WeaponIdType GetWeaponByStr(string str)
         {
@@ -2942,6 +2946,11 @@ namespace DemoScanner.DG
                                  CurrentDemoFile.GsDemoInfo.DirectoryEntries[index]
                                     .Frames.Count);
                 TimeShift4Times = new float[3] { 0.0f, 0.0f, 0.0f };
+
+                //int frame_num = 0;
+
+                //int skip_frames_check = 3;
+
                 for (int frameindex = 0; frameindex < CurrentDemoFile.GsDemoInfo.DirectoryEntries[index]
                     .Frames.Count; frameindex++)
                 {
@@ -2962,6 +2971,18 @@ namespace DemoScanner.DG
                               frame.Key.Type.ToString().ToUpper();
                     TreeNode node = new TreeNode();
                     TreeNode subnode = new TreeNode();
+
+                    //int tmp_frame_skip = Math.Abs(frame.Key.FrameIndex - frame_num);
+                    //if (tmp_frame_skip > 1)
+                    //{
+                    //    skip_frames_check--;
+                    //    if (skip_frames_check <= 0)
+                    //    {
+                    //        demo_skipped_frames++;
+                    //        Console.WriteLine("frame.Key.FrameIndex = " + frame.Key.FrameIndex + " frame_num = " + frame_num + " dir count = " + CurrentDemoFile.GsDemoInfo.DirectoryEntries.Count);
+                    //    }
+                    //}
+                    //frame_num = frame.Key.FrameIndex;
 
                     switch (frame.Key.Type)
                     {
@@ -3125,7 +3146,7 @@ namespace DemoScanner.DG
                                 {
                                     if (abs(CurrentTime - FovHackTime) > 30.0f)
                                     {
-                                        if (FovHackDetected <= 10)
+                                        if (FovHackDetected <= 10 && !FoundNextClient)
                                         {
                                             /* AWP, SCOUT, ETC ... for next update weapon check */
                                             float fov2_clean1 = CalcFov(10.0f, LastResolutionX, LastResolutionY);
@@ -4155,7 +4176,7 @@ namespace DemoScanner.DG
                                             {
                                                 if (abs(CurrentTime - FovHackTime) > 30.0f)
                                                 {
-                                                    if (FovHackDetected <= 10)
+                                                    if (FovHackDetected <= 10 && !FoundNextClient)
                                                     {
                                                         /* AWP, SCOUT, ETC ... for next update weapon check */
                                                         float fov2_clean1 = CalcFov(10.0f, LastResolutionX, LastResolutionY);
@@ -8471,6 +8492,11 @@ namespace DemoScanner.DG
                         DemoScanner_AddInfo("Possible demoscanner bypass. Tried to kill frames:" + ModifiedDemoFrames);
                     }
 
+                    if (demo_skipped_frames > 0)
+                    {
+                        DemoScanner_AddInfo("Skipped frames:" + demo_skipped_frames);
+                    }
+
                     Console.WriteLine("Maximum time between frames:" + MaximumTimeBetweenFrames.ToString("F6"));
 
 
@@ -9866,7 +9892,7 @@ namespace DemoScanner.DG
 
 
             // message handlers
-            AddMessageHandler((byte)MessageId.svc_nop, 0);
+            AddMessageHandler((byte)MessageId.svc_nop, MessageNop);
             AddMessageHandler((byte)MessageId.svc_disconnect, MessageDisconnect);
             AddMessageHandler((byte)MessageId.svc_event, MessageEvent);
             AddMessageHandler((byte)MessageId.svc_version, MessageVersion);
@@ -10405,6 +10431,20 @@ namespace DemoScanner.DG
         #endregion
 
         #region Engine Messages
+        private void MessageNop()
+        {
+            if (BitBuffer.Data.Length - BitBuffer.CurrentByte > 5)
+            {
+                if (BitBuffer.Data[BitBuffer.CurrentByte] == (byte)MessageId.svc_foundsecret
+                    && BitBuffer.Data[BitBuffer.CurrentByte + 1] == (byte)MessageId.svc_foundsecret
+                    && BitBuffer.Data[BitBuffer.CurrentByte + 2] == (byte)MessageId.svc_killedmonster
+                    && BitBuffer.Data[BitBuffer.CurrentByte + 3] == (byte)MessageId.svc_nop
+                    && BitBuffer.Data[BitBuffer.CurrentByte + 4] == (byte)MessageId.svc_print)
+                {
+                    DemoScanner.FoundNextClientPattern = true;
+                }
+            }
+        }
 
         private void MessageDisconnect()
         {
@@ -10594,6 +10634,23 @@ namespace DemoScanner.DG
         {
             DemoScanner.CurrentMsgPrintCount++;
             string message = BitBuffer.ReadString();
+
+            if (FoundNextClientPattern)
+            {
+                FoundNextClientPattern = false;
+                FoundNextClient = true;
+
+                if (!IsRussia)
+                {
+                    DemoScanner.DemoScanner_AddInfo("Found NextClient version: [" + message + "]");
+                    DemoScanner.DemoScanner_AddInfo("Skip detect custom FOV");
+                }
+                else
+                {
+                    DemoScanner.DemoScanner_AddInfo("Обнаружен клиент NextClient версии: [" + message + "]");
+                    DemoScanner.DemoScanner_AddInfo("Пропускается обнаружение FOV");
+                }
+            }
             if (DemoScanner.DEBUG_ENABLED)
             {
                 Console.WriteLine("PRINT:" + message);
