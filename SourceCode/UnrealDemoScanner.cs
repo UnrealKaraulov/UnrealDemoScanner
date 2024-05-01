@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.69.6fix";
+        public const string PROGRAMVERSION = "1.69.7fix";
 
         public enum AngleDirection
         {
@@ -4032,12 +4032,17 @@ namespace DemoScanner.DG
                                     if (eframe.EventArguments.Iparam1 == 0 && eframe.EventArguments.Iparam2 == 0 &&
                                         abs(CurrentNetMsgFrame.RParms.Punchangle.Y) < EPSILON)
                                     {
-                                        if (AngleBetween(CDFRAME_ViewAngles.Y, eframe.EventArguments.Angles.Y) > EPSILON
-                                       /* || AngleBetween(CDFRAME_ViewAngles.X, eframe.EventArguments.Angles.X) > EPSILON*/)
+                                        if (abs(eframe.EventArguments.Origin.X) > EPSILON ||
+                                            abs(eframe.EventArguments.Origin.Y) > EPSILON ||
+                                            abs(eframe.EventArguments.Origin.Z) > EPSILON)
                                         {
-                                            DemoScanner_AddWarn(
-                                                       "[BETA][AIM TYPE 10 " + CurrentWeapon.ToString() + "] at (" + DemoScanner.IsAttackLastTime +
-                                                       "):" + DemoScanner.CurrentTimeString, false);
+                                            if (AngleBetween(CDFRAME_ViewAngles.Y, eframe.EventArguments.Angles.Y) > EPSILON
+                                           /* || AngleBetween(CDFRAME_ViewAngles.X, eframe.EventArguments.Angles.X) > EPSILON*/)
+                                            {
+                                                DemoScanner_AddWarn(
+                                                           "[BETA] [AIM TYPE 10 " + CurrentWeapon.ToString() + "] at (" + DemoScanner.IsAttackLastTime +
+                                                           "):" + DemoScanner.CurrentTimeString, false);
+                                            }
                                         }
                                     }
                                 }
@@ -5403,7 +5408,7 @@ namespace DemoScanner.DG
                                             {
                                                 if (abs(CurrentTime - LastJumpBtnTime) > 0.2)
                                                 {
-                                                    //KreedzHacksCount++;
+                                                    KreedzHacksCount++;
                                                     DemoScanner_AddWarn("[BETA] [JUMPHACK HPP] at (" + CurrentTime + ") : " + CurrentTimeString, false);
                                                 }
                                             }
@@ -5449,7 +5454,7 @@ namespace DemoScanner.DG
                                                 if (AirStuckWarnTimes > 50)
                                                 {
                                                     KreedzHacksCount++;
-                                                    DemoScanner_AddWarn("[BETA][AIRSTUCK HACK] at (" + CurrentTime + ") : " + CurrentTimeString, true);
+                                                    DemoScanner_AddWarn("[BETA] [AIRSTUCK HACK] at (" + CurrentTime + ") : " + CurrentTimeString, true);
                                                     AirStuckWarnTimes = 0;
                                                 }
                                             }
@@ -5588,14 +5593,14 @@ namespace DemoScanner.DG
                                 else if (PunchWarnings > 2)
                                 {
                                     PunchWarnings = 0;
-                                    DemoScanner_AddWarn("[BETA AIM TYPE 9.1 " + CurrentWeapon + "] at (" + LastAnglePunchSearchTime +
+                                    DemoScanner_AddWarn("[BETA] [AIM TYPE 9.1 " + CurrentWeapon + "] at (" + LastAnglePunchSearchTime +
                                     "):" + GetTimeString(LastAnglePunchSearchTime), false);
                                     angleSearchersPunch = new List<AngleSearcher>(); ;
                                 }
                                 else if (LostAngleWarnings > 2)
                                 {
                                     LostAngleWarnings = 0;
-                                    // DemoScanner.DemoScanner_AddWarn("[BETA AIM TYPE 9.2 " + DemoScanner.CurrentWeapon.ToString() + "] at (" + LastAnglePunchSearchTime +
+                                    // DemoScanner.DemoScanner_AddWarn("[BETA] [AIM TYPE 9.2 " + DemoScanner.CurrentWeapon.ToString() + "] at (" + LastAnglePunchSearchTime +
                                     // "):" + DemoScanner.CurrentTimeString, false);
                                     NewViewAngleSearcherAngle = 0.0f;
                                 }
@@ -9260,6 +9265,7 @@ namespace DemoScanner.DG
                         else if (cmdList[1] == "JMP")
                         {
                             int id = int.Parse(cmdList[2]);
+
                             if (IsUserAlive())
                             {
                                 JumpCount6++;
