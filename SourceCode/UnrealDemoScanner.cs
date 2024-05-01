@@ -8644,7 +8644,7 @@ namespace DemoScanner.DG
 
         private static void AddLerpAndMs(int lerpMsec, byte msec)
         {
-            while (historyUcmdLerpAndMs.Count > 100)
+            while (historyUcmdLerpAndMs.Count > 15)
             {
                 historyUcmdLerpAndMs.RemoveAt(0);
             }
@@ -8671,7 +8671,7 @@ namespace DemoScanner.DG
 
             foreach (UcmdLerpAndMs v in historyUcmdLerpAndMs)
             {
-                if (v.lerp < 0 || (v.lerp == lerpMsec && (v.msec == msec || v.msec == Convert.ToByte(msec * 2))))
+                if (v.lerp < 0 || v.lerp == lerpMsec /* && (v.msec == msec || v.msec == Convert.ToByte(msec * 2))*/)
                 {
                     return true;
                 }
@@ -9412,23 +9412,15 @@ namespace DemoScanner.DG
                             }
                             else
                             {
-                                //if (!FindLerpAndMs(lerpms, ms, false))
-                                //{
-                                //    FakeLag2Aim++;
-                                //    if (FakeLag2Aim > 0)
-                                //    {
-                                //        DemoScanner_AddWarn("[FAKELAG TYPE 1.2] at (" + CurrentTime +
-                                //                            "):" + CurrentTimeString, false, true, false, true);
-
-
-                                //        //Console.WriteLine("lerpms:" + lerpms + ", ms:" + ms);
-                                //        //foreach (UcmdLerpAndMs v in historyUcmdLerpAndMs)
-                                //        //{
-                                //        //    Console.WriteLine("v.lerpms:" + v.lerp + ", v.ms:" + v.msec);
-                                //        //}
-                                //        //Console.ReadKey();
-                                //    }
-                                //}
+                                if (!FindLerpAndMs(lerpms, ms, false))
+                                {
+                                    FakeLag2Aim++;
+                                    if (FakeLag2Aim > 0)
+                                    {
+                                        DemoScanner_AddWarn("[FAKELAG TYPE 1.2] at (" + CurrentTime +
+                                                            "):" + CurrentTimeString, false, true, false, true);
+                                    }
+                                }
                             }
                         }
                         else if (cmdList[1] == "EVENTS" && !DisableJump5AndAim16)
