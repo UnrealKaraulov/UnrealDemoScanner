@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.69.8";
+        public const string PROGRAMVERSION = "1.69.9fix";
 
         public enum AngleDirection
         {
@@ -8644,7 +8644,7 @@ namespace DemoScanner.DG
 
         private static void AddLerpAndMs(int lerpMsec, byte msec)
         {
-            while (historyUcmdLerpAndMs.Count > 20)
+            while (historyUcmdLerpAndMs.Count > 100)
             {
                 historyUcmdLerpAndMs.RemoveAt(0);
             }
@@ -8654,6 +8654,8 @@ namespace DemoScanner.DG
                 lerp = lerpMsec,
                 msec = msec
             };
+
+            //Console.WriteLine("add.lerpms:" + lerpMsec + ", add.ms:" + msec);
             historyUcmdLerpAndMs.Add(tmpUcmdLerpAndMs);
         }
 
@@ -9410,15 +9412,23 @@ namespace DemoScanner.DG
                             }
                             else
                             {
-                                if (!FindLerpAndMs(lerpms, ms, false))
-                                {
-                                    FakeLag2Aim++;
-                                    if (FakeLag2Aim > 0)
-                                    {
-                                        DemoScanner_AddWarn("[FAKELAG TYPE 1.2] at (" + CurrentTime +
-                                                            "):" + CurrentTimeString, false, true, false, true);
-                                    }
-                                }
+                                //if (!FindLerpAndMs(lerpms, ms, false))
+                                //{
+                                //    FakeLag2Aim++;
+                                //    if (FakeLag2Aim > 0)
+                                //    {
+                                //        DemoScanner_AddWarn("[FAKELAG TYPE 1.2] at (" + CurrentTime +
+                                //                            "):" + CurrentTimeString, false, true, false, true);
+
+
+                                //        //Console.WriteLine("lerpms:" + lerpms + ", ms:" + ms);
+                                //        //foreach (UcmdLerpAndMs v in historyUcmdLerpAndMs)
+                                //        //{
+                                //        //    Console.WriteLine("v.lerpms:" + v.lerp + ", v.ms:" + v.msec);
+                                //        //}
+                                //        //Console.ReadKey();
+                                //    }
+                                //}
                             }
                         }
                         else if (cmdList[1] == "EVENTS" && !DisableJump5AndAim16)
@@ -14131,7 +14141,7 @@ namespace DemoScanner.DG
                                             }
                                             else if (!DemoScanner.IsRealWeapon())
                                             {
-                                                
+
                                             }
                                             else if (DemoScanner.CurrentWeapon == DemoScanner.WeaponIdType.WEAPON_NONE
                                                      || DemoScanner.CurrentWeapon == DemoScanner.WeaponIdType.WEAPON_BAD
@@ -14141,7 +14151,7 @@ namespace DemoScanner.DG
                                                      || DemoScanner.CurrentWeapon == DemoScanner.WeaponIdType.WEAPON_SMOKEGRENADE
                                                      || DemoScanner.CurrentWeapon == DemoScanner.WeaponIdType.WEAPON_FLASHBANG)
                                             {
-                                                
+
                                             }
                                             else
                                             {
@@ -14155,7 +14165,7 @@ namespace DemoScanner.DG
                                         }
                                     }
 
-                                    if ( DemoScanner.NeedCheckAttack && entryList[index].Name == "m_iClip")
+                                    if (DemoScanner.NeedCheckAttack && entryList[index].Name == "m_iClip")
                                     {
                                         DemoScanner.NeedCheckAttack = false;
                                         int ammocount = value != null ? (int)value : 0;
