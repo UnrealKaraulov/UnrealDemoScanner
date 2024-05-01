@@ -14150,7 +14150,7 @@ namespace DemoScanner.DG
                                                 if (!CurrentFrameAttacked && !PreviousFrameAttacked && !IsPlayerAttackedPressed())
                                                 {
                                                     DemoScanner_AddWarn(
-                                                              "[BETA] [AIM TYPE 11 " + LastAttackPressed + " " + LastAttackCmdTime + " " + CurrentWeapon.ToString() + "] at (" + CurrentTime +
+                                                              "[BETA] [AIM TYPE 11 " + CurrentWeapon.ToString() + "] at (" + CurrentTime +
                                                               "):" + DemoScanner.CurrentTimeString, true);
                                                 }
                                             }
