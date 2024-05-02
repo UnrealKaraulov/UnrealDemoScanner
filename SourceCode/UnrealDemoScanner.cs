@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.69.9fix";
+        public const string PROGRAMVERSION = "1.69.10";
 
         public enum AngleDirection
         {
@@ -330,6 +330,8 @@ namespace DemoScanner.DG
         public static float LastTimeDesync = 0.0f;
 
         public static bool SecondFound = false;
+        public static string LastSecondString = "";
+
         public static int CurrentFps = 0;
         public static int RealFpsMin = int.MaxValue;
         public static int RealFpsMax = int.MinValue;
@@ -481,6 +483,7 @@ namespace DemoScanner.DG
         public static int ShotFound = -1;
         public static int AttackFloodTimes = 0;
         public static float ChangeWeaponTime = 0.0f;
+        public static float ChangeWeaponTime2 = 0.0f;
 
         public static float ReloadKeyPressTime = 0.0f;
         public static float ReloadKeyUnPressTime = 0.0f;
@@ -883,9 +886,14 @@ namespace DemoScanner.DG
             return WeaponIdType.WEAPON_NONE;
         }
 
-        public static bool IsChangeWeapon()
+        public static bool IsCmdChangeWeapon()
         {
             float retvar = abs(CurrentTime - ChangeWeaponTime);
+            return retvar < 0.3f && retvar >= 0;
+        }
+        public static bool IsRealChangeWeapon()
+        {
+            float retvar = abs(CurrentTime - ChangeWeaponTime2);
             return retvar < 0.3f && retvar >= 0;
         }
 
@@ -3491,9 +3499,9 @@ namespace DemoScanner.DG
                                             }*/
                                             DemoScanner_AddWarn(
                                                 "[AIM TYPE 5.1 " + CurrentWeapon + "] at (" + LastAim5DetectedReal +
-                                                "):" + GetTimeString(LastAim5DetectedReal), !IsTakeDamage() && !IsPlayerLossConnection() && !IsAngleEditByEngine() && !IsChangeWeapon());
+                                                "):" + GetTimeString(LastAim5DetectedReal), !IsTakeDamage() && !IsPlayerLossConnection() && !IsAngleEditByEngine() && !IsCmdChangeWeapon());
 
-                                            if (!IsTakeDamage() && !IsPlayerLossConnection() && !IsAngleEditByEngine() && !IsChangeWeapon())
+                                            if (!IsTakeDamage() && !IsPlayerLossConnection() && !IsAngleEditByEngine() && !IsCmdChangeWeapon())
                                             {
                                                 TotalAimBotDetected++;
                                             }
@@ -3511,8 +3519,8 @@ namespace DemoScanner.DG
                                             }*/
                                             DemoScanner_AddWarn(
                                                 "[AIM TYPE 5.9 " + CurrentWeapon + "] at (" + LastAim5DetectedReal +
-                                                "):" + GetTimeString(LastAim5DetectedReal), !IsTakeDamage() && !IsPlayerLossConnection() && !IsAngleEditByEngine() && !IsChangeWeapon());
-                                            if (!IsTakeDamage() && !IsPlayerLossConnection() && !IsAngleEditByEngine() && !IsChangeWeapon())
+                                                "):" + GetTimeString(LastAim5DetectedReal), !IsTakeDamage() && !IsPlayerLossConnection() && !IsAngleEditByEngine() && !IsCmdChangeWeapon());
+                                            if (!IsTakeDamage() && !IsPlayerLossConnection() && !IsAngleEditByEngine() && !IsCmdChangeWeapon())
                                             {
                                                 TotalAimBotDetected++;
                                             }
@@ -3523,7 +3531,7 @@ namespace DemoScanner.DG
                                         else if (PlayerSensitivityWarning == 0 && abs(LastAim5Detected) > EPSILON &&
                                            abs(CurrentTime - LastAim5Detected) < 0.5f)
                                         {
-                                            if (!IsAngleEditByEngine() && !IsTakeDamage() && !IsChangeWeapon())
+                                            if (!IsAngleEditByEngine() && !IsTakeDamage() && !IsCmdChangeWeapon())
                                             {
                                                 /* if (AUTO_LEARN_HACK_DB)
                                                  {
@@ -3677,7 +3685,7 @@ namespace DemoScanner.DG
                                         else
                                         {
                                             if (CurrentFrameAttacked
-                                                    || PreviousFrameAttacked || BadPunchAngle || IsTakeDamage() || IsPlayerLossConnection() || IsAngleEditByEngine() || IsChangeWeapon())
+                                                    || PreviousFrameAttacked || BadPunchAngle || IsTakeDamage() || IsPlayerLossConnection() || IsAngleEditByEngine() || IsCmdChangeWeapon())
                                             {
                                                 LastAim5Detected = CurrentTime;
                                                 PlayerSensitivityWarning = 1;
@@ -3749,10 +3757,11 @@ namespace DemoScanner.DG
                                         LastSensWeapon = CurrentWeapon.ToString();
                                     }
 
-                                    if (SecondFound)
+                                    if (SecondFound && LastSecondString != CurrentTimeString)
                                     {
                                         if (abs(CurrentSensitivity) > EPSILON)
                                         {
+                                            LastSecondString = CurrentTimeString;
                                             if (AngleLength > EPSILON && abs(CurrentTime - AngleLengthStartTime) > 0.5)
                                             {
                                                 PlayerAngleLenHistory.Add(AngleLength / abs(CurrentTime - AngleLengthStartTime));
@@ -3761,6 +3770,7 @@ namespace DemoScanner.DG
                                             else
                                                 PlayerAngleLenHistory.Add(0.0f);
 
+                                            
                                             PlayerSensitivityHistory.Add(
                                                 (float)CurrentSensitivity);
                                             PlayerSensitivityHistoryStrTime.Add(
@@ -3827,7 +3837,7 @@ namespace DemoScanner.DG
 
                                                             DemoScanner_AddWarn(Aim7str
                                                                                 + " at (" + OldAimType7Time +
-                                                                                "):" + GetTimeString(OldAimType7Time), Aim7detected && Aim7var3 > 50 && Aim7var1 >= 20 && Aim7var2 >= 20 && !IsChangeWeapon());
+                                                                                "):" + GetTimeString(OldAimType7Time), Aim7detected && Aim7var3 > 50 && Aim7var1 >= 20 && Aim7var2 >= 20 && !IsCmdChangeWeapon());
                                                         }
                                                     }
                                                     else if (AimType7Event != 4)
@@ -3850,7 +3860,7 @@ namespace DemoScanner.DG
                                                         {
                                                             DemoScanner_AddWarn(Aim7str
                                                                 + " at (" + OldAimType7Time +
-                                                                "):" + GetTimeString(OldAimType7Time), Aim7detected && Aim7var3 > 50 && Aim7var1 >= 20 && Aim7var2 >= 20 && !IsChangeWeapon());
+                                                                "):" + GetTimeString(OldAimType7Time), Aim7detected && Aim7var3 > 50 && Aim7var1 >= 20 && Aim7var2 >= 20 && !IsCmdChangeWeapon());
                                                         }
                                                     }
                                                 }
@@ -3881,7 +3891,7 @@ namespace DemoScanner.DG
                                                 {
                                                     DemoScanner_AddWarn(Aim7str
                                                                         + " at (" + OldAimType7Time +
-                                                                        "):" + GetTimeString(OldAimType7Time), Aim7detected && !IsPlayerLossConnection() && Aim7var3 > 50 && Aim7var1 >= 20 && Aim7var2 >= 20 && !IsChangeWeapon());
+                                                                        "):" + GetTimeString(OldAimType7Time), Aim7detected && !IsPlayerLossConnection() && Aim7var3 > 50 && Aim7var1 >= 20 && Aim7var2 >= 20 && !IsCmdChangeWeapon());
                                                 }
                                             }
 
@@ -4676,7 +4686,7 @@ namespace DemoScanner.DG
                                     //Console.WriteLine("+IN_ATTACK + " + CurrentTimeString);
 
 
-                                    if (IsUserAlive() && !IsChangeWeapon() && abs(LastPrimaryAttackTime) > EPSILON && abs(LastPrevPrimaryAttackTime) > EPSILON
+                                    if (IsUserAlive() && !IsCmdChangeWeapon() && abs(LastPrimaryAttackTime) > EPSILON && abs(LastPrevPrimaryAttackTime) > EPSILON
                                         && abs(CurrentTime - LastPrevPrimaryAttackTime) <= abs(PrimaryAttackHistory[3]))
                                     {
                                         if (abs(IsAttackLastTime - LastAttackCmdTime) < EPSILON &&
@@ -4695,7 +4705,7 @@ namespace DemoScanner.DG
                                             {
                                                 DemoScanner_AddWarn(
                                                              "[AIM TYPE 2.2 " + CurrentWeapon + "] at (" + CurrentTime +
-                                                             ") " + CurrentTimeString, SkipAimType22-- <= 0 && !IsPlayerLossConnection() && !IsChangeWeapon() && !IsAngleEditByEngine());
+                                                             ") " + CurrentTimeString, SkipAimType22-- <= 0 && !IsPlayerLossConnection() && !IsCmdChangeWeapon() && !IsAngleEditByEngine());
                                                 AutoPistolStrikes = 0;
                                             }
                                         }
@@ -4724,7 +4734,7 @@ namespace DemoScanner.DG
                                 {
                                     DemoScanner_AddWarn(
                                           "[AUTORELOAD TYPE 1 " + CurrentWeapon + "] at (" + ReloadHackTime +
-                                          ") " + GetTimeString(ReloadHackTime), !IsChangeWeapon() && !IsAngleEditByEngine());
+                                          ") " + GetTimeString(ReloadHackTime), !IsCmdChangeWeapon() && !IsAngleEditByEngine());
                                     ReloadHackTime = 0.0f;
                                 }
 
@@ -4768,7 +4778,7 @@ namespace DemoScanner.DG
                                                  }*/
                                                 DemoScanner_AddWarn(
                                                     "[AIM TYPE 4.2 " + CurrentWeapon + "] at (" + IsAttackLastTime +
-                                                    "):" + GetTimeString(IsAttackLastTime), !IsChangeWeapon() && !IsAngleEditByEngine() && !IsReload && SelectSlot <= 0 && !IsPlayerLossConnection() && !IsForceCenterView());
+                                                    "):" + GetTimeString(IsAttackLastTime), !IsCmdChangeWeapon() && !IsAngleEditByEngine() && !IsReload && SelectSlot <= 0 && !IsPlayerLossConnection() && !IsForceCenterView());
                                                 TotalAimBotDetected++;
                                                 InitAimMissingSearch = 0;
                                             }
@@ -5882,8 +5892,8 @@ namespace DemoScanner.DG
                                         {
                                             DemoScanner_AddWarn(
                                                 "[AIM TYPE 8.1 " + CurrentWeapon + "] at (" + AimType8WarnTime +
-                                                "):" + GetTimeString(AimType8WarnTime), !AimType8False && !IsChangeWeapon());
-                                            if (!AimType8False && !IsChangeWeapon())
+                                                "):" + GetTimeString(AimType8WarnTime), !AimType8False && !IsCmdChangeWeapon());
+                                            if (!AimType8False && !IsCmdChangeWeapon())
                                             {
                                                 TotalAimBotDetected++;
                                             }
@@ -5896,8 +5906,8 @@ namespace DemoScanner.DG
                                             DemoScanner_AddWarn(
                                                 "[AIM TYPE 8.2 " + CurrentWeapon + "] at (" + AimType8WarnTime2 +
                                                 "):" + GetTimeString(AimType8WarnTime2), /*DemoScanner.CurrentWeapon != WeaponIdType.WEAPON_AWP
-                                    && DemoScanner.CurrentWeapon != WeaponIdType.WEAPON_SCOUT &&*/ !AimType8False && !IsChangeWeapon());
-                                            if (!AimType8False && !IsChangeWeapon())
+                                    && DemoScanner.CurrentWeapon != WeaponIdType.WEAPON_SCOUT &&*/ !AimType8False && !IsCmdChangeWeapon());
+                                            if (!AimType8False && !IsCmdChangeWeapon())
                                             {
                                                 TotalAimBotDetected++;
                                             }
@@ -6034,7 +6044,7 @@ namespace DemoScanner.DG
                                                     AimType8False = CurrentWeapon == WeaponIdType.WEAPON_C4
                                                                     || CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE
                                                                     || CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE
-                                                                    || CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG || !CurrentFrameOnGround || IsAngleEditByEngine() || IsPlayerLossConnection() || IsChangeWeapon();
+                                                                    || CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG || !CurrentFrameOnGround || IsAngleEditByEngine() || IsPlayerLossConnection() || IsCmdChangeWeapon();
                                                 }
                                             }
                                         }
@@ -6069,7 +6079,7 @@ namespace DemoScanner.DG
                                                     AimType8False = CurrentWeapon == WeaponIdType.WEAPON_C4
                                                                     || CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE
                                                                     || CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE
-                                                                    || CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG || !CurrentFrameOnGround || IsAngleEditByEngine() || IsPlayerLossConnection() || IsChangeWeapon();
+                                                                    || CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG || !CurrentFrameOnGround || IsAngleEditByEngine() || IsPlayerLossConnection() || IsCmdChangeWeapon();
                                                 }
                                                 //AimType8Warn = -1;
                                             }
@@ -6247,7 +6257,7 @@ namespace DemoScanner.DG
                                                 {
                                                     DemoScanner_AddWarn(
                                                         "[AIM TYPE 4.1 " + CurrentWeapon + "] at (" +
-                                                        CurrentTime + "):" + CurrentTimeString, !IsPlayerLossConnection() && !IsChangeWeapon());
+                                                        CurrentTime + "):" + CurrentTimeString, !IsPlayerLossConnection() && !IsCmdChangeWeapon());
                                                     TotalAimBotDetected++;
                                                 }
                                             }
@@ -6822,8 +6832,8 @@ namespace DemoScanner.DG
                                                  }*/
                                                 DemoScanner_AddWarn(
                                                     "[AIM TYPE 2.1 " + CurrentWeapon + "] at (" + CurrentTime +
-                                                    "):" + CurrentTimeString, !IsPlayerLossConnection() && !IsChangeWeapon()/* && !IsForceCenterView() */&& !IsAngleEditByEngine());
-                                                if (!IsPlayerLossConnection() && !IsChangeWeapon() && !IsAngleEditByEngine())
+                                                    "):" + CurrentTimeString, !IsPlayerLossConnection() && !IsCmdChangeWeapon()/* && !IsForceCenterView() */&& !IsAngleEditByEngine());
+                                                if (!IsPlayerLossConnection() && !IsCmdChangeWeapon() && !IsAngleEditByEngine())
                                                 {
                                                     TotalAimBotDetected++;
                                                 }
@@ -6927,7 +6937,7 @@ namespace DemoScanner.DG
                                     {
                                         DemoScanner_AddWarn(
                                           "[TRIGGER TYPE 1 " + CurrentWeapon + "] at (" + LastTriggerAttack +
-                                          ") " + GetTimeString(LastTriggerAttack), !IsChangeWeapon() && !IsAngleEditByEngine());
+                                          ") " + GetTimeString(LastTriggerAttack), !IsCmdChangeWeapon() && !IsAngleEditByEngine());
 
                                         TriggerAimAttackCount++;
                                     }
@@ -6940,7 +6950,7 @@ namespace DemoScanner.DG
                                     {
                                         DemoScanner_AddWarn(
                                             "[KNIFEBOT TYPE 1 " + CurrentWeapon + "] at (" + LastTriggerAttack +
-                                            ") " + GetTimeString(LastTriggerAttack), !IsChangeWeapon() && !IsAngleEditByEngine());
+                                            ") " + GetTimeString(LastTriggerAttack), !IsCmdChangeWeapon() && !IsAngleEditByEngine());
 
                                         TriggerAimAttackCount++;
                                     }
@@ -6989,7 +6999,7 @@ namespace DemoScanner.DG
                                                   }*/
                                                 DemoScanner_AddWarn(
                                                     "[AIM TYPE 1.2 " + CurrentWeapon + "] at (" + NeedWriteAimTime +
-                                                    "):" + GetTimeString(NeedWriteAimTime), NeedWriteAim == 2 && !IsChangeWeapon() && !IsPlayerLossConnection() && !IsForceCenterView());
+                                                    "):" + GetTimeString(NeedWriteAimTime), NeedWriteAim == 2 && !IsCmdChangeWeapon() && !IsPlayerLossConnection() && !IsForceCenterView());
                                                 TotalAimBotDetected++;
                                             }
                                             else
@@ -7016,8 +7026,8 @@ namespace DemoScanner.DG
                                              }*/
                                             DemoScanner_AddWarn(
                                                 "[AIM TYPE 1.1 " + CurrentWeapon + "] at (" + NeedWriteAimTime +
-                                                "):" + GetTimeString(NeedWriteAim), NeedWriteAim == 2 && !IsChangeWeapon() && !IsPlayerLossConnection() && !IsForceCenterView() && !IsAngleEditByEngine());
-                                            if (!IsChangeWeapon() && !IsPlayerLossConnection() && !IsForceCenterView() && !IsAngleEditByEngine())
+                                                "):" + GetTimeString(NeedWriteAim), NeedWriteAim == 2 && !IsCmdChangeWeapon() && !IsPlayerLossConnection() && !IsForceCenterView() && !IsAngleEditByEngine());
+                                            if (!IsCmdChangeWeapon() && !IsPlayerLossConnection() && !IsForceCenterView() && !IsAngleEditByEngine())
                                             {
                                                 TotalAimBotDetected++;
                                             }
@@ -9360,7 +9370,7 @@ namespace DemoScanner.DG
                                  }*/
                                 DemoScanner_AddWarn(
                                     "[AIM TYPE 1.6 " + CurrentWeapon + "] at (" + CurrentTime +
-                                    "):" + CurrentTimeString, !IsChangeWeapon() && !IsAngleEditByEngine() && !IsPlayerLossConnection() && !IsForceCenterView());
+                                    "):" + CurrentTimeString, !IsCmdChangeWeapon() && !IsAngleEditByEngine() && !IsPlayerLossConnection() && !IsForceCenterView());
                                 TotalAimBotDetected++;
                             }
 
@@ -12303,6 +12313,8 @@ namespace DemoScanner.DG
 
                 DemoScanner.SelectSlot = 0;
                 DemoScanner.WeaponChanged = true;
+
+                DemoScanner.ChangeWeaponTime2 = CurrentTime;
                 DemoScanner.AmmoCount = 0;
 
                 // DemoScanner.IsAttackSkipTimes = 0;
@@ -12335,6 +12347,8 @@ namespace DemoScanner.DG
                 DemoScanner.ShotFound = -1;
                 DemoScanner.SelectSlot = 0;
                 DemoScanner.WeaponChanged = true;
+
+                DemoScanner.ChangeWeaponTime2 = CurrentTime;
                 DemoScanner.AmmoCount = 0;
                 // DemoScanner.IsAttackSkipTimes = 0;
                 //if (DemoScanner.CurrentWeapon != DemoScanner.WeaponIdType.WEAPON_NONE) DemoScanner.SkipNextAttack = 2;
@@ -12562,7 +12576,7 @@ namespace DemoScanner.DG
                 DemoScanner.KillsCount++;
                 if (DemoScanner.LastAttackForTrigger == DemoScanner.NewAttackForTrigger)
                 {
-                    if (DemoScanner.LastAttackForTriggerFrame != DemoScanner.CurrentFrameIdAll && !DemoScanner.IsPlayerAttackedPressed() && DemoScanner.IsUserAlive() && !DemoScanner.IsChangeWeapon() && !DemoScanner.IsPlayerLossConnection())
+                    if (DemoScanner.LastAttackForTriggerFrame != DemoScanner.CurrentFrameIdAll && !DemoScanner.IsPlayerAttackedPressed() && DemoScanner.IsUserAlive() && !DemoScanner.IsCmdChangeWeapon() && !DemoScanner.IsPlayerLossConnection())
                     {
                         DemoScanner.WeaponIdType wpntype = DemoScanner.GetWeaponByStr(weapon);
                         if (wpntype == DemoScanner.WeaponIdType.WEAPON_NONE
@@ -14063,6 +14077,7 @@ namespace DemoScanner.DG
 
                                             DemoScanner.SelectSlot = 0;
                                             DemoScanner.WeaponChanged = true;
+                                            DemoScanner.ChangeWeaponTime2 = CurrentTime;
                                             DemoScanner.AmmoCount = 0;
                                             // DemoScanner.IsAttackSkipTimes = 0;
                                             if (DemoScanner.CurrentWeapon !=
@@ -14119,9 +14134,6 @@ namespace DemoScanner.DG
                                             else if (abs(DemoScanner.CurrentTime - DemoScanner.LastLookDisabled) < 0.75f)
                                             {
                                             }
-                                            else if (DemoScanner.IsPlayerLossConnection())
-                                            {
-                                            }
                                             else if (DemoScanner.IsRoundEnd())
                                             {
                                             }
@@ -14132,6 +14144,10 @@ namespace DemoScanner.DG
                                             {
                                             }
                                             else if (!DemoScanner.IsRealWeapon())
+                                            {
+
+                                            }
+                                            else if (DemoScanner.IsRealChangeWeapon())
                                             {
 
                                             }
@@ -14151,7 +14167,7 @@ namespace DemoScanner.DG
                                                 {
                                                     DemoScanner_AddWarn(
                                                               "[BETA] [AIM TYPE 11 " + CurrentWeapon.ToString() + "] at (" + CurrentTime +
-                                                              "):" + DemoScanner.CurrentTimeString, true);
+                                                              "):" + DemoScanner.CurrentTimeString, !DemoScanner.IsCmdChangeWeapon() && !DemoScanner.IsPlayerLossConnection());
                                                 }
                                             }
                                         }
