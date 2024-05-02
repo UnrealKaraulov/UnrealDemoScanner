@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.69.10";
+        public const string PROGRAMVERSION = "1.69.11";
 
         public enum AngleDirection
         {
@@ -12232,16 +12232,16 @@ namespace DemoScanner.DG
         private void MessageRoomType()
         {
             BitBuffer.ReadUInt16();
-            if (DemoScanner.DEBUG_ENABLED)
-            {
-                Console.WriteLine("Alive 10 at " + DemoScanner.CurrentTimeString);
-            }
+            //if (DemoScanner.DEBUG_ENABLED)
+            //{
+            //    Console.WriteLine("Alive 10 at " + DemoScanner.CurrentTimeString);
+            //}
 
-            if (!DemoScanner.UserAlive)
-                DemoScanner.DemoScanner_AddTextMessage("Respawn", "USER_INFO", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
-            DemoScanner.UserAlive = true;
-            DemoScanner.LastAliveTime = DemoScanner.CurrentTime;
-            DemoScanner.FirstUserAlive = false;
+            //if (!DemoScanner.UserAlive)
+            //    DemoScanner.DemoScanner_AddTextMessage("Respawn", "USER_INFO", DemoScanner.CurrentTime, DemoScanner.CurrentTimeString);
+            //DemoScanner.UserAlive = true;
+            //DemoScanner.LastAliveTime = DemoScanner.CurrentTime;
+            //DemoScanner.FirstUserAlive = false;
         }
 
 
