@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.69.11";
+        public const string PROGRAMVERSION = "1.69.12b";
 
         public enum AngleDirection
         {
@@ -585,6 +585,8 @@ namespace DemoScanner.DG
         public static float MaximumTimeBetweenFrames = 0.0f;
         public static bool GameEnd = false;
         public static int LostStopAttackButton = 0;
+        public static float LastLostAttackTime = 0.0f;
+        public static float LastLostAttackTime2 = 0.0f;
         public static int ModifiedDemoFrames = 0;
         public static int TimeShiftCount = -5;
         public static float LastAliveTime = 0.0f;
@@ -822,6 +824,8 @@ namespace DemoScanner.DG
         public static int PluginEvents = -1;
         public static int BadEvents = 0;
         public static uint CurrentEvents = 0;
+        public static uint Event7Hack = 0;
+
         public static bool IsRussia = false;
         public static bool FirstMap = true;
         public static float LastAttackPressed = 0.0f;
@@ -1653,6 +1657,8 @@ namespace DemoScanner.DG
 
                     ShotFound = -1;
                     WeaponChanged = false;
+
+                    LastLostAttackTime = 0.0f;
                 }
                 else if (sLower.IndexOf("-attack") > -1)
                 {
@@ -1665,6 +1671,14 @@ namespace DemoScanner.DG
                         LerpBeforeStopAttack = CurrentFrameLerp;
                         LerpSearchFramesCount = 9;
                     }
+
+                    if (abs(LastLostAttackTime) > EPSILON)
+                    {
+                        LastLostAttackTime = 0.0f;
+                        if (LostStopAttackButton > 0)
+                            LostStopAttackButton--;
+                    }
+
                     LastAttackCmdTime = CurrentTime;
                     NeedSearchViewAnglesAfterAttack = 0;
 
@@ -1675,7 +1689,7 @@ namespace DemoScanner.DG
                     }
 
                     // Если игрок жив, атакует, время атаки больше чем 150мс, атака остановлена на 2 кадра раньше чем нажат -attack
-                    if (IsUserAlive() && abs(CurrentTime) > EPSILON &&
+                    if (IsUserAlive() && !IsCmdChangeWeapon() && !IsRealChangeWeapon() && abs(CurrentTime) > EPSILON &&
                       abs(CurrentTime - IsAttackLastTime) > 0.15 &&
                         abs(CurrentTime - IsNoAttackLastTime) > 0.15 && abs(IsAttackLastTime - CurrentTime) > EPSILON
                         && IsAttack &&
@@ -3770,7 +3784,7 @@ namespace DemoScanner.DG
                                             else
                                                 PlayerAngleLenHistory.Add(0.0f);
 
-                                            
+
                                             PlayerSensitivityHistory.Add(
                                                 (float)CurrentSensitivity);
                                             PlayerSensitivityHistoryStrTime.Add(
@@ -4638,7 +4652,7 @@ namespace DemoScanner.DG
                                 }
 
 
-                                if (NeedIgnoreAttackFlag == 4)
+                                if (NeedIgnoreAttackFlag == 3)
                                 {
                                     NeedIgnoreAttackFlagCount++;
                                 }
@@ -5132,8 +5146,10 @@ namespace DemoScanner.DG
                                             {
                                                 if (tmpframeattacked > 2)
                                                 {
-                                                    LostStopAttackButton += 1;
                                                     CheckConsoleCommand("-attack(PROGRAM)", true);
+                                                    LastLostAttackTime = CurrentTime;
+                                                    LastLostAttackTime2 = CurrentTime;
+                                                    LostStopAttackButton += 1;
                                                 }
                                                 break;
                                             }
@@ -5161,9 +5177,12 @@ namespace DemoScanner.DG
                                                     GoldSource.NetMsgFrame tmpnetmsgframe1 = (GoldSource.NetMsgFrame)tmpframe.Value;
                                                     if (tmpnetmsgframe1 != nf)
                                                     {
-                                                        if (tmpnetmsgframe1.UCmd.Buttons.HasFlag(GoldSource.UCMD_BUTTONS.IN_ATTACK))
+                                                        if (tmpnetmsgframe1.UCmd.Buttons.HasFlag(GoldSource.UCMD_BUTTONS.IN_ATTACK)
+                                                            || IsCmdChangeWeapon())
                                                         {
                                                             tmpframeattacked = -1;
+                                                            if (IsCmdChangeWeapon())
+                                                                NeedSearchAim3 = false;
                                                             break;
                                                         }
 
@@ -8519,7 +8538,7 @@ namespace DemoScanner.DG
                         }
                     }
 
-                    if (LostStopAttackButton > 5)
+                    if (LostStopAttackButton > 4)
                     {
                         DemoScanner_AddInfo("Lost -attack commands: " + LostStopAttackButton + ".");
                     }
@@ -9361,7 +9380,7 @@ namespace DemoScanner.DG
                             byte ms = Convert.ToByte(int.Parse(cmdList[3]));
                             int incomingframenum = int.Parse(cmdList[4]);
 
-                            if (!IsPlayerBtnAttackedPressed() && FirstAttack && IsUserAlive() && !DisableJump5AndAim16)
+                            if (!IsPlayerBtnAttackedPressed() && abs(CurrentTime - LastLostAttackTime2) < 1.0f && FirstAttack && IsUserAlive() && !DisableJump5AndAim16)
                             {
                                 /* if (AUTO_LEARN_HACK_DB)
                                  {
@@ -9369,9 +9388,9 @@ namespace DemoScanner.DG
                                      ENABLE_LEARN_HACK_DEMO_FORCE_SAVE = true;
                                  }*/
                                 DemoScanner_AddWarn(
-                                    "[AIM TYPE 1.6 " + CurrentWeapon + "] at (" + CurrentTime +
-                                    "):" + CurrentTimeString, !IsCmdChangeWeapon() && !IsAngleEditByEngine() && !IsPlayerLossConnection() && !IsForceCenterView());
-                                TotalAimBotDetected++;
+                                "[AIM TYPE 1.6 " + CurrentWeapon + "] at (" + CurrentTime +
+                                "):" + CurrentTimeString, !IsCmdChangeWeapon() && !IsAngleEditByEngine() && !IsPlayerLossConnection() && !IsForceCenterView());
+                                    TotalAimBotDetected++;
                             }
 
                             if (IsUserAlive() && FirstJump && abs(CurrentTime) > EPSILON)
@@ -9453,8 +9472,12 @@ namespace DemoScanner.DG
                                 {
                                     if (CurrentEvents != 0)
                                     {
-                                        DemoScanner_AddWarn("[EXPERIMENTAL][CMD HACK TYPE 7] at (" + CurrentTime +
-                                                            "):" + CurrentTimeString, false, true, false, true);
+                                        Event7Hack++;
+                                        if (Event7Hack > 1)
+                                        {
+                                            DemoScanner_AddWarn("[EXPERIMENTAL][CMD HACK TYPE 7] at (" + CurrentTime +
+                                                                "):" + CurrentTimeString, false, true, false, true);
+                                        }
                                     }
                                     else
                                     {
