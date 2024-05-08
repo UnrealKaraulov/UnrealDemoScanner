@@ -1,5 +1,4 @@
-﻿using DemoScanner.DemoStuff.GoldSource.Verify;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -244,14 +243,6 @@ namespace DemoScanner.DemoStuff.GoldSource
             ///     Map ID
             /// </summary>
             public uint MapCrc;
-        }
-
-        public class IncludedBXtData
-        {
-            /// <summary>
-            /// The included objects
-            /// </summary>
-            public List<KeyValuePair<Bxt.RuntimeDataType, Bxt.BXTData>> Objects;
         }
 
         public struct FramesHren
@@ -659,11 +650,6 @@ namespace DemoScanner.DemoStuff.GoldSource
         ///     The header of the demo
         /// </summary>
         public GoldSource.DemoHeader Header;
-
-        /// <summary>
-        /// Data included by BunnymodXT into demos.
-        /// </summary>
-        public List<GoldSource.IncludedBXtData> IncludedBXtData;
     }
 
     /// <summary>
@@ -748,118 +734,6 @@ namespace DemoScanner.DemoStuff.GoldSource
                 }
 
             return res.ToArray();
-        }
-
-        /// <summary>
-        /// Extract the bytes from the frame included into the frame by BXT and formats it into BXTData
-        /// </summary>
-        /// <param name="Bytes">The bytes of the console command frame. (No formating needed)</param>
-        /// <returns>The parsed data.</returns>
-        public static GoldSource.IncludedBXtData FormatBxtData(byte[] bxtdata)
-        {
-            //File.WriteAllBytes(Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "\\extracted\\" + Path.GetRandomFileName() + ".bin",bxtdata);
-            var res = new GoldSource.IncludedBXtData { Objects = new List<KeyValuePair<Bxt.RuntimeDataType, Bxt.BXTData>>() };
-            if (bxtdata.Length == 0) return res;
-
-            var decryptedBxtData = new List<uint>();
-            if (bxtdata.Count() % 8 != 0) bxtdata = bxtdata.Take(bxtdata.Length - bxtdata.Length % 8).ToArray();
-
-            if (bxtdata.Count() % 8 == 0)
-            {
-                foreach (var packedbytes in bxtdata.Select((x, i) => new { Index = i, Value = x }).GroupBy(x => x.Index / 8).Select(x => x.Select(v => v.Value).ToList()).ToList()) decryptedBxtData.AddRange(Tea.Decrypt(packedbytes.ToArray()));
-                var finalbxtdata = decryptedBxtData.SelectMany(BitConverter.GetBytes).ToArray(); //The final data only needs parsing now.
-                using (var br = new BinaryReader(new MemoryStream(finalbxtdata)))
-                {
-                    var objects = br.ReadUInt32();
-                    for (var i = 0; i < objects; i++)
-                    {
-                        if (UnexpectedEof(br, 1)) return res;
-
-                        var type = (Bxt.RuntimeDataType)br.ReadByte();
-                        switch (type)
-                        {
-                            case Bxt.RuntimeDataType.VERSION_INFO:
-                                var vi = new Bxt.VersionInfo();
-                                vi.Read(br);
-                                res.Objects.Add(new KeyValuePair<Bxt.RuntimeDataType, Bxt.BXTData>(Bxt.RuntimeDataType.VERSION_INFO, vi));
-                                break;
-                            case Bxt.RuntimeDataType.CVAR_VALUES:
-                                var cv = new Bxt.CVarValues();
-                                cv.Read(br);
-                                res.Objects.Add(new KeyValuePair<Bxt.RuntimeDataType, Bxt.BXTData>(Bxt.RuntimeDataType.CVAR_VALUES, cv));
-                                break;
-                            case Bxt.RuntimeDataType.TIME:
-                                var ti = new Bxt.Time();
-                                ti.Read(br);
-                                res.Objects.Add(new KeyValuePair<Bxt.RuntimeDataType, Bxt.BXTData>(Bxt.RuntimeDataType.TIME, ti));
-                                break;
-                            case Bxt.RuntimeDataType.BOUND_COMMAND:
-                                var bc = new Bxt.BoundCommand();
-                                bc.Read(br);
-                                res.Objects.Add(new KeyValuePair<Bxt.RuntimeDataType, Bxt.BXTData>(Bxt.RuntimeDataType.BOUND_COMMAND, bc));
-                                break;
-                            case Bxt.RuntimeDataType.ALIAS_EXPANSION:
-                                var ae = new Bxt.AliasExpansion();
-                                ae.Read(br);
-                                res.Objects.Add(new KeyValuePair<Bxt.RuntimeDataType, Bxt.BXTData>(Bxt.RuntimeDataType.ALIAS_EXPANSION, ae));
-                                break;
-                            case Bxt.RuntimeDataType.SCRIPT_EXECUTION:
-                                var se = new Bxt.ScriptExecution();
-                                se.Read(br);
-                                res.Objects.Add(new KeyValuePair<Bxt.RuntimeDataType, Bxt.BXTData>(Bxt.RuntimeDataType.SCRIPT_EXECUTION, se));
-                                break;
-                            case Bxt.RuntimeDataType.COMMAND_EXECUTION:
-                                var ce = new Bxt.CommandExecution();
-                                ce.Read(br);
-                                res.Objects.Add(new KeyValuePair<Bxt.RuntimeDataType, Bxt.BXTData>(Bxt.RuntimeDataType.COMMAND_EXECUTION, ce));
-                                break;
-                            case Bxt.RuntimeDataType.GAME_END_MARKER:
-                                var ge = new Bxt.GameEndMarker();
-                                ge.Read(br);
-                                res.Objects.Add(new KeyValuePair<Bxt.RuntimeDataType, Bxt.BXTData>(Bxt.RuntimeDataType.GAME_END_MARKER, ge));
-                                break;
-                            case Bxt.RuntimeDataType.LOADED_MODULES:
-                                var lm = new Bxt.LoadedModules();
-                                lm.Read(br);
-                                res.Objects.Add(new KeyValuePair<Bxt.RuntimeDataType, Bxt.BXTData>(Bxt.RuntimeDataType.LOADED_MODULES, lm));
-                                break;
-                            case Bxt.RuntimeDataType.CUSTOM_TRIGGER_COMMAND:
-                                var ctc = new Bxt.CustomTriggerCommand();
-                                ctc.Read(br);
-                                res.Objects.Add(new KeyValuePair<Bxt.RuntimeDataType, Bxt.BXTData>(Bxt.RuntimeDataType.CUSTOM_TRIGGER_COMMAND, ctc));
-                                break;
-                            default:
-                                throw new Exception("Invalid bxt data type!");
-                        }
-                    }
-                }
-            }
-            else
-            {
-                throw new Exception("Invalid data! (Invalid number of bytes supplied) | TEA");
-            }
-            return res;
-        }
-
-        /// <summary>
-        /// Packs the frames,trims and groups the included bytes.
-        /// </summary>
-        /// <param name="Gsdemo">The demo to get the data from.</param>
-        /// <returns>List of data with packed bytes.</returns>
-        public static List<byte[]> ParseIncludedBytes(GoldSourceDemoInfo Gsdemo)
-        {
-            var ret = new List<byte[]>();
-            foreach (var entry in Gsdemo.DirectoryEntries)
-            {
-                ret.AddRange(entry.Frames.Where(y => y.Key.Type == GoldSource.DemoFrameType.ConsoleCommand)
-                    .GroupBy(x => x.Key.FrameIndex)
-                    .Select(x => x.Where(y => ((GoldSource.ConsoleCommandFrame)(y.Value)).BxtData.Count() > 0))
-                    .Select(framegroup => UnescapeGoldSourceBytes((framegroup
-                            .SelectMany(y => Tea.TrimBytes(((GoldSource.ConsoleCommandFrame)(y.Value)).BxtData))
-                            .ToArray())))
-                            .ToArray());
-            }
-            return ret;
         }
 
         /// <summary>
@@ -1291,7 +1165,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                         //    Console.WriteLine("Warning!Hacked demo! ");
                         //}
 
-                        if (entryCount > 0 && entryCount <= 1024)
+                        if (entryCount > 0)
                         {
                             for (var i = 0; i < entryCount; i++)
                             {
@@ -1343,6 +1217,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                         var dirid = -1;
 
                         foreach (var entry in gDemo.DirectoryEntries)
+                        {
                             try
                             {
                                 dirid++;
@@ -1767,8 +1642,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                             {
                                 Console.WriteLine("Fatal error:" + ex.Message);
                             }
-
-                        gDemo.IncludedBXtData = ParseIncludedBytes(gDemo).Select(FormatBxtData).ToList();
+                        }
                     }
                     else
                     {

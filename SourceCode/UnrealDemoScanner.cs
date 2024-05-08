@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.69.12b";
+        public const string PROGRAMVERSION = "1.69.13";
 
         public enum AngleDirection
         {
@@ -576,6 +576,7 @@ namespace DemoScanner.DG
         public static float AimType8WarnTime = 0.0f;
         public static bool AimType8False = false;
         public static float AimType8WarnTime2 = 0.0f;
+        public static int BypassWarn8_2 = 0;
         public static float bAimType8WarnTime = 0.0f;
         public static float bAimType8WarnTime2 = 0.0f;
         public static int AimType8Warn = 0;
@@ -2140,7 +2141,7 @@ namespace DemoScanner.DG
 
         public static float CalcFov(float fov_x, float width, float height)
         {
-            if (width * 3 == 4 * height || width * 4 == height * 5)
+            if (abs(width * 3 - 4 * height) < EPSILON || abs(width * 4 - height * 5) < EPSILON)
             {
                 double v3 = fov_x, v4 = 0.0;
                 if (fov_x < 1.0)
@@ -7610,6 +7611,12 @@ namespace DemoScanner.DG
                 }
             }
 
+            //if (BypassWarn8_2 > 25)
+            //{
+            //    OutTextDetects.Add("[AIM8 BYPASS WITH DOOR]  Warn count:" + FakeLagAim);
+            //    Console.WriteLine("[AIM8 BYPASS WITH DOOR] Warn count:" + BypassWarn8_2);
+            //}
+
             if (KreedzHacksCount > 0)
             {
                 if (IsRussia)
@@ -9470,7 +9477,7 @@ namespace DemoScanner.DG
                                 if (CurrentEvents - PluginEvents > 4
                                     && CurrentEvents - (PluginEvents + events) > 4)
                                 {
-                                    if (CurrentEvents != 0)
+                                    if (PluginEvents != 0)
                                     {
                                         Event7Hack++;
                                         if (Event7Hack > 1)
@@ -9507,7 +9514,7 @@ namespace DemoScanner.DG
                             {
                                 if (CurrentEvents - PluginEvents > 4)
                                 {
-                                    if (CurrentEvents != 0)
+                                    if (PluginEvents != 0)
                                     {
                                         DemoScanner_AddWarn("[EXPERIMENTAL][CMD HACK TYPE 8] at (" + CurrentTime +
                                                             "):" + CurrentTimeString, false, true, false, true);
@@ -12090,7 +12097,7 @@ namespace DemoScanner.DG
 
                 DemoScanner.CurrentMsgHudCount++;
             }
-            else
+            else if (len > 0)
                 ByteArrayToString(BitBuffer.ReadBytes(len - 1));
         }
 
@@ -12248,6 +12255,12 @@ namespace DemoScanner.DG
         private void MessageAddAngle()
         {
             BitBuffer.ReadUInt16();
+
+            if (abs(DemoScanner.AimType8WarnTime2) > EPSILON)
+            {
+                DemoScanner.AimType8WarnTime2 = 0.0f;
+                DemoScanner.BypassWarn8_2++;
+            }
             DemoScanner.LastAngleManipulation = DemoScanner.CurrentTime;
             DemoScanner.SVC_ADDANGLEMSGID = DemoScanner.MessageId;
         }
@@ -14135,7 +14148,7 @@ namespace DemoScanner.DG
                                         float damage = value != null ? (float)value : 0;
 
                                         DemoScanner.NeedCheckAttack2 = false;
-                                        if (DemoScanner.IsUserAlive() && DemoScanner.LastAimedTimeDamage != damage)
+                                        if (DemoScanner.IsUserAlive() && abs(DemoScanner.LastAimedTimeDamage - damage) > EPSILON)
                                         {
                                             DemoScanner.LastAimedTimeDamage = damage;
 

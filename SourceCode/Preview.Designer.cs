@@ -60,6 +60,7 @@
             this.NextTimeBtn.TabIndex = 1;
             this.NextTimeBtn.Text = ">>";
             this.NextTimeBtn.UseVisualStyleBackColor = true;
+            this.NextTimeBtn.Click += new System.EventHandler(this.NextTimeBtn_Click);
             // 
             // PrevTimeBtn
             // 
@@ -69,6 +70,7 @@
             this.PrevTimeBtn.TabIndex = 1;
             this.PrevTimeBtn.Text = "<<";
             this.PrevTimeBtn.UseVisualStyleBackColor = true;
+            this.PrevTimeBtn.Click += new System.EventHandler(this.PrevTimeBtn_Click);
             // 
             // drawGraphBox
             // 

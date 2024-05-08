@@ -140,5 +140,15 @@ namespace DemoScanner
                 }
             }
         }
+
+        private void PrevTimeBtn_Click(object sender, EventArgs e)
+        {
+
+        }
+
+        private void NextTimeBtn_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 }
