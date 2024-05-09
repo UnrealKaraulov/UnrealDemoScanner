@@ -79,15 +79,15 @@ namespace DemoScanner.DemoStuff.GoldSource
             public int IncomingReliableSequence;
             public int IncomingSequence;
             public int LastReliableSequence;
-            public Point3D LocalViewAngles;
-            public Point3D LocalViewAngles2;
+            public FPoint3D LocalViewAngles;
+            public FPoint3D LocalViewAngles2;
             public string Msg;
             public int OutgoingSequence;
             public int ReliableSequence;
-            public Point3D ViewAngles;
-            public Point3D ViewAngles2;
-            public Point3D ViewOrigin2;
-            public Point3D ViewOrigins;
+            public FPoint3D ViewAngles;
+            public FPoint3D ViewAngles2;
+            public FPoint3D ViewOrigin2;
+            public FPoint3D ViewOrigins;
         }
 
         /// <summary>
@@ -306,7 +306,7 @@ namespace DemoScanner.DemoStuff.GoldSource
         public struct ClientDataFrame : IFrame
         {
             public float Fov;
-            public Point3D Origin;
+            public FPoint3D Origin;
             public FPoint3D Viewangles;
             public int WeaponBits;
             public int ErrAngles;
@@ -334,8 +334,8 @@ namespace DemoScanner.DemoStuff.GoldSource
                 public float Fparam2;
                 public int Iparam1;
                 public int Iparam2;
-                public Point3D Origin;
-                public Point3D Velocity;
+                public FPoint3D Origin;
+                public FPoint3D Velocity;
             }
         }
 
@@ -379,7 +379,7 @@ namespace DemoScanner.DemoStuff.GoldSource
             public RefParams RParms;
             public float Timestamp;
             public UserCmd UCmd;
-            public Point3D View;
+            public FPoint3D View;
             public int Viewmodel;
 
             public override bool Equals(object obj)
@@ -387,7 +387,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                 return obj is NetMsgFrame frame &&
                        EqualityComparer<RefParams>.Default.Equals(RParms, frame.RParms) &&
                        EqualityComparer<UserCmd>.Default.Equals(UCmd, frame.UCmd) &&
-                       EqualityComparer<Point3D>.Default.Equals(View, frame.View);
+                       EqualityComparer<FPoint3D>.Default.Equals(View, frame.View);
             }
 
             public override int GetHashCode()
@@ -414,9 +414,9 @@ namespace DemoScanner.DemoStuff.GoldSource
             public struct RefParams
             {
                 public FPoint3D ClViewangles;
-                public Point3D Crosshairangle;
+                public FPoint3D Crosshairangle;
                 public int Demoplayback;
-                public Point3D Forward;
+                public FPoint3D Forward;
                 public float Frametime;
                 public int Hardware;
                 public int Health;
@@ -431,18 +431,18 @@ namespace DemoScanner.DemoStuff.GoldSource
                 public int Playernum;
                 public int PtrCmd;
                 public int PtrMovevars;
-                public Point3D Punchangle;
-                public Point3D Right;
-                public Point3D Simorg;
-                public Point3D Simvel;
+                public FPoint3D Punchangle;
+                public FPoint3D Right;
+                public FPoint3D Simorg;
+                public FPoint3D Simvel;
                 public int Smoothing;
                 public int Spectator;
                 public float Time;
-                public Point3D Up;
+                public FPoint3D Up;
                 public FPoint3D Viewangles;
                 public int Viewentity;
-                public Point3D Viewheight;
-                public Point3D Vieworg;
+                public FPoint3D Viewheight;
+                public FPoint3D Vieworg;
                 public Point4D Viewport;
                 public float Viewsize;
                 public int Waterlevel;
@@ -461,9 +461,9 @@ namespace DemoScanner.DemoStuff.GoldSource
                 {
                     return obj is RefParams @params &&
                            EqualityComparer<FPoint3D>.Default.Equals(ClViewangles, @params.ClViewangles) &&
-                           EqualityComparer<Point3D>.Default.Equals(Crosshairangle, @params.Crosshairangle) &&
+                           EqualityComparer<FPoint3D>.Default.Equals(Crosshairangle, @params.Crosshairangle) &&
                            Demoplayback == @params.Demoplayback &&
-                           EqualityComparer<Point3D>.Default.Equals(Forward, @params.Forward) &&
+                           EqualityComparer<FPoint3D>.Default.Equals(Forward, @params.Forward) &&
                            Hardware == @params.Hardware &&
                            Health == @params.Health &&
                            Math.Abs(Idealpitch - @params.Idealpitch) < 0.00001f &&
@@ -477,18 +477,18 @@ namespace DemoScanner.DemoStuff.GoldSource
                            Playernum == @params.Playernum &&
                            PtrCmd == @params.PtrCmd &&
                            PtrMovevars == @params.PtrMovevars &&
-                           EqualityComparer<Point3D>.Default.Equals(Punchangle, @params.Punchangle) &&
-                           EqualityComparer<Point3D>.Default.Equals(Right, @params.Right) &&
-                           EqualityComparer<Point3D>.Default.Equals(Simorg, @params.Simorg) &&
-                           EqualityComparer<Point3D>.Default.Equals(Simvel, @params.Simvel) &&
+                           EqualityComparer<FPoint3D>.Default.Equals(Punchangle, @params.Punchangle) &&
+                           EqualityComparer<FPoint3D>.Default.Equals(Right, @params.Right) &&
+                           EqualityComparer<FPoint3D>.Default.Equals(Simorg, @params.Simorg) &&
+                           EqualityComparer<FPoint3D>.Default.Equals(Simvel, @params.Simvel) &&
                            Smoothing == @params.Smoothing &&
                            Spectator == @params.Spectator &&
                             Math.Abs(Time - @params.Time) < 0.00001f &&
-                           EqualityComparer<Point3D>.Default.Equals(Up, @params.Up) &&
+                           EqualityComparer<FPoint3D>.Default.Equals(Up, @params.Up) &&
                            EqualityComparer<FPoint3D>.Default.Equals(Viewangles, @params.Viewangles) &&
                            Viewentity == @params.Viewentity &&
-                           EqualityComparer<Point3D>.Default.Equals(Viewheight, @params.Viewheight) &&
-                           EqualityComparer<Point3D>.Default.Equals(Vieworg, @params.Vieworg) &&
+                           EqualityComparer<FPoint3D>.Default.Equals(Viewheight, @params.Viewheight) &&
+                           EqualityComparer<FPoint3D>.Default.Equals(Vieworg, @params.Vieworg) &&
                            EqualityComparer<Point4D>.Default.Equals(Viewport, @params.Viewport) &&
                            Math.Abs(Viewsize - @params.Viewsize) < 0.00001f &&
                            Waterlevel == @params.Waterlevel;
@@ -544,7 +544,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                 public UCMD_BUTTONS Buttons;
                 public float Forwardmove;
                 public int ImpactIndex;
-                public Point3D ImpactPosition;
+                public FPoint3D ImpactPosition;
                 public sbyte Impulse;
                 public int LerpMsec;
                 public byte Lightlevel;
@@ -564,7 +564,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                            Buttons == cmd.Buttons &&
                            Math.Abs(Forwardmove - cmd.Forwardmove) < 0.00001f &&
                            ImpactIndex == cmd.ImpactIndex &&
-                           EqualityComparer<Point3D>.Default.Equals(ImpactPosition, cmd.ImpactPosition) &&
+                           EqualityComparer<FPoint3D>.Default.Equals(ImpactPosition, cmd.ImpactPosition) &&
                            Impulse == cmd.Impulse &&
                            LerpMsec == cmd.LerpMsec &&
                            Lightlevel == cmd.Lightlevel &&
@@ -859,17 +859,17 @@ namespace DemoScanner.DemoStuff.GoldSource
                                         {
                                             Flags = br.ReadInt32(),
                                             ViewOrigins =
-                                                new Point3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
+                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
                                             ViewAngles =
-                                                new Point3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
+                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
                                             LocalViewAngles =
-                                                new Point3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
+                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
                                             ViewOrigin2 =
-                                                new Point3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
+                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
                                             ViewAngles2 =
-                                                new Point3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
+                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
                                             LocalViewAngles2 =
-                                                new Point3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
+                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
                                             IncomingSequence = br.ReadInt32(),
                                             IncomingAcknowledged = br.ReadInt32(),
                                             IncomingReliableAcknowledged = br.ReadInt32(),
@@ -892,17 +892,17 @@ namespace DemoScanner.DemoStuff.GoldSource
                                         {
                                             Flags = br.ReadInt32(),
                                             ViewOrigins =
-                                                new Point3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
+                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
                                             ViewAngles =
-                                                new Point3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
+                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
                                             LocalViewAngles =
-                                                new Point3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
+                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
                                             ViewAngles2 =
-                                                new Point3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
+                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
                                             LocalViewAngles2 =
-                                                new Point3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
+                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
                                             ViewOrigin2 =
-                                                new Point3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
+                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
                                             IncomingSequence = br.ReadInt32(),
                                             IncomingAcknowledged = br.ReadInt32(),
                                             IncomingReliableAcknowledged = br.ReadInt32(),
@@ -1019,17 +1019,17 @@ namespace DemoScanner.DemoStuff.GoldSource
                                         {
                                             Flags = br.ReadInt32(),
                                             ViewOrigins =
-                                                new Point3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
+                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
                                             ViewAngles =
-                                                new Point3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
+                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
                                             LocalViewAngles =
-                                                new Point3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
+                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
                                             ViewOrigin2 =
-                                                new Point3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
+                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
                                             ViewAngles2 =
-                                                new Point3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
+                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
                                             LocalViewAngles2 =
-                                                new Point3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
+                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
                                             IncomingSequence = br.ReadInt32(),
                                             IncomingAcknowledged = br.ReadInt32(),
                                             IncomingReliableAcknowledged = br.ReadInt32(),
