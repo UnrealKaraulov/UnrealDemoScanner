@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.70.0b";
+        public const string PROGRAMVERSION = "1.70.1b";
 
         public enum AngleDirection
         {
@@ -3154,19 +3154,19 @@ namespace DemoScanner.DG
                                                     if (abs(CmdHack10_origX) > 0.001f && abs(CmdHack10_origX - cdframe.Origin.X) > 0.001f)
                                                     {
                                                         DemoScanner_AddWarn(
-                                                                       "[CMD HACK TYPE 10] at (" + CurrentTime +
+                                                                       "[THIRD PERSON TYPE 2] at (" + CurrentTime +
                                                                        "):" + CurrentTimeString, false/*!IsAngleEditByEngine() && !IsPlayerLossConnection()*/);
                                                     }
                                                     if (abs(CmdHack10_origY) > 0.001f && abs(CmdHack10_origY - cdframe.Origin.Y) > 0.001f)
                                                     {
                                                         DemoScanner_AddWarn(
-                                                                       "[CMD HACK TYPE 10] at (" + CurrentTime +
+                                                                       "[THIRD PERSON TYPE 2] at (" + CurrentTime +
                                                                        "):" + CurrentTimeString, false /*!IsAngleEditByEngine() && !IsPlayerLossConnection()*/);
                                                     }
                                                     if (abs(CmdHack10_origZ) > 0.001f && abs(CmdHack10_origZ - cdframe.Origin.Z) > 0.001f)
                                                     {
                                                         DemoScanner_AddWarn(
-                                                                       "[CMD HACK TYPE 10] at (" + CurrentTime +
+                                                                       "[THIRD PERSON TYPE 2] at (" + CurrentTime +
                                                                        "):" + CurrentTimeString, false /*!IsAngleEditByEngine() && !IsPlayerLossConnection()*/);
                                                     }
                                                 }
@@ -5471,7 +5471,7 @@ namespace DemoScanner.DG
                                 //    }
                                 //}
 
-                                if (!PreviousFrameOnGround && !CurrentFrameOnGround && RealAlive)
+                                if (!PreviousFrameOnGround && !CurrentFrameOnGround && RealAlive && nf.RParms.Waterlevel == 0)
                                 {
                                     if (CurrentFrameDuplicated == 0)
                                     {
@@ -5732,8 +5732,8 @@ namespace DemoScanner.DG
                                         SearchNextJumpStrike = false;
                                         if (abs(IdealJmpTmpTime1 - LastUnJumpTime) > EPSILON &&
                                             abs(IdealJmpTmpTime2 - LastJumpTime) > EPSILON &&
-                                            PreviousFrameOnGround && !CurrentFrameOnGround && (abs(CurrentTime - LastUnJumpTime) < 0.25f
-                                            || abs(CurrentTime - LastJumpTime) < 0.25f))
+                                            PreviousFrameOnGround && !CurrentFrameOnGround && (abs(CurrentTime - LastUnJumpTime) < 0.15f
+                                            || abs(CurrentTime - LastJumpTime) < 0.15f))
                                         {
                                             IdealJmpTmpTime1 = LastUnJumpTime;
                                             IdealJmpTmpTime2 = LastJumpTime;
@@ -5785,7 +5785,7 @@ namespace DemoScanner.DG
                                     else if (ThirdPersonHackDetectionTimeout == 0)
                                     {
                                         DemoScanner_AddWarn(
-                                            "[THIRD PERSON HACK] at (" +
+                                            "[THIRD PERSON TYPE 1] at (" +
                                             CurrentTime + "):" + CurrentTimeString);
                                         ThirdHackDetected += 1;
                                         NeedDetectThirdPersonHack = false;
@@ -5795,12 +5795,12 @@ namespace DemoScanner.DG
                                             if (IsRussia)
                                             {
                                                 DemoScanner_AddInfo("Внимание. Обнаружен вид от третьего лица.");
-                                                DemoScanner_AddInfo("Отключаются ложные обнаружение : NO SPREAD TYPE X и CMD HACK TYPE 10.");
+                                                DemoScanner_AddInfo("Отключаются ложные обнаружение : NO SPREAD TYPE X и THIRD PERSON TYPE 2.");
                                             }
                                             else
                                             {
-                                                DemoScanner_AddInfo("WARNING! Detecetd 'third person'");
-                                                DemoScanner_AddInfo("False NO SPREAD TYPE X and CMD HACK TYPE 10 detection is disabled.");
+                                                DemoScanner_AddInfo("WARNING! Deteceted 'THIRD PERSON'");
+                                                DemoScanner_AddInfo("False NO SPREAD TYPE X and THIRD PERSON TYPE 2 detection is disabled.");
                                             }
                                         }
                                     }
@@ -6747,7 +6747,7 @@ namespace DemoScanner.DG
                                        abs(CurrentTime - LastUseTime) > 60)
                                     {
                                         DemoScannerBypassDetected = true;
-                                        DemoScanner_AddWarn("ERROR [DEMO SCANER BYPASS] ??? VERY STRANGE ISSUE AT " + CurrentTimeString, false, false);
+                                        DemoScanner_AddWarn("ERROR [CHANGE VIEW TO ANOTHER ENTITY?!] " + CurrentTimeString, false, false);
                                     }
                                 }
 
@@ -7858,13 +7858,17 @@ namespace DemoScanner.DG
                 Console.ForegroundColor = ConsoleColor.Red;
                 if (IsRussia)
                 {
-                    Console.WriteLine();
-                    Console.WriteLine("Выберите команду '8' для получения помощи.");
+                    Console.WriteLine("ВАЖНО!");
+                    Console.WriteLine("Введите команду '8' что бы получить помощь.");
+                    Console.WriteLine("Введите команду '11' для получения информации о детектах!");
+                    Console.WriteLine("ВАЖНО!");
                 }
                 else
                 {
-                    Console.WriteLine();
+                    Console.WriteLine("IMPORTANT!");
                     Console.WriteLine("Enter command '8' for get help!");
+                    Console.WriteLine("Enter command '11' for get info about detections and warnings!");
+                    Console.WriteLine("IMPORTANT!");
                 }
                 Console.WriteLine();
 
@@ -7922,7 +7926,6 @@ namespace DemoScanner.DG
                         DemoScanner_AddInfo("[CMD HACK TYPE 4] - Генератор фейк лагов, часть аимбота");
                         DemoScanner_AddInfo("[CMD HACK TYPE 6] - Фейк лаг, часть аим бота, подделка данных");
                         DemoScanner_AddInfo("[CMD HACK TYPE 9] - Часть аим бота, подделка данных");
-                        DemoScanner_AddInfo("[CMD HACK TYPE 10] - Чит вид от третьего лица, или anti-noflash плагин сервера");
                         DemoScanner_AddInfo("[DUCK FLOOD TYPE X] - Обход сканера, читы");
                         DemoScanner_AddInfo("[DUCK HACK TYPE 1] - Приседание без команды, читы");
                         DemoScanner_AddInfo("[DUCK HACK TYPE 2] - Приседание без кнопок, читы");
@@ -7936,7 +7939,7 @@ namespace DemoScanner.DG
                         DemoScanner_AddInfo("[FPS HACK TYPE 1] ");
                         DemoScanner_AddInfo("[FPS HACK TYPE 2] - ФПС бустер, может быть читом");
                         DemoScanner_AddInfo("[FPS HACK TYPE 3] - Очень высокий фпс, может быть читом");
-                        DemoScanner_AddInfo("[IDEALJUMP] - Идеальный прыжок, может быть читом");
+                        DemoScanner_AddInfo("[IDEALJUMP] - Идеальный прыжок, может быть читом(или сервер плагин)");
                         DemoScanner_AddInfo("[JUMPHACK XTREME] - Чит XTREME");
                         DemoScanner_AddInfo("[JUMPHACK HPP] - Чит HPP (Или из-за экстремальных настроек сервера)");
                         DemoScanner_AddInfo("[JUMPHACK TYPE X] - Остальные читы на прыжки");
@@ -7948,9 +7951,9 @@ namespace DemoScanner.DG
                         DemoScanner_AddInfo("['RETURN TO GAME' FEATURE] - Автовозврат к игре (чит или функция кастом клиентов)");
                         DemoScanner_AddInfo("[STRAFE OPTIMIZER] - Чит [strafe_optimizer.exe] и подобные");
                         DemoScanner_AddInfo("[TIMESHIFT] - Чит спидхак, если много срабатываний");
-                        DemoScanner_AddInfo("[THIRD PERSON HACK] - Вид от третьего лица, может быть читом, или сервер-плагином");
+                        DemoScanner_AddInfo("[THIRD PERSON TYPE X] - Вид от третьего лица, может быть читом, или сервер-плагином");
                         DemoScanner_AddInfo("[TRIGGER TYPE X] - Триггер бот");
-                        DemoScanner_AddInfo("[BETA] - Чит детект находится на бета тестировании.");
+                        DemoScanner_AddInfo("[BETA] - Находится на бета тестировании, проверять в игре!");
                     }
                     else
                     {
@@ -7974,7 +7977,6 @@ namespace DemoScanner.DG
                         DemoScanner_AddInfo("[CMD HACK TYPE 4] - Fakelag generation, part of aimbot");
                         DemoScanner_AddInfo("[CMD HACK TYPE 6] - Fakelag, fake cmd, part of aimbot");
                         DemoScanner_AddInfo("[CMD HACK TYPE 9] - Fake data, part of aimbot");
-                        DemoScanner_AddInfo("[CMD HACK TYPE 10] - Third person hack, or anti-noflash server plugin");
                         DemoScanner_AddInfo("[DUCK FLOOD TYPE X] - Scanner bypass, part of hack");
                         DemoScanner_AddInfo("[DUCK HACK TYPE 1] - No duck, part of hack");
                         DemoScanner_AddInfo("[DUCK HACK TYPE 2] - Duck no button, part of hack");
@@ -7988,7 +7990,7 @@ namespace DemoScanner.DG
                         DemoScanner_AddInfo("[FPS HACK TYPE 1]");
                         DemoScanner_AddInfo("[FPS HACK TYPE 2] - FPS-booster, can be part of hack");
                         DemoScanner_AddInfo("[FPS HACK TYPE 3] - Really big FPS, can be part of hack");
-                        DemoScanner_AddInfo("[IDEALJUMP] - One-Frame ideal jump, can be part of hack");
+                        DemoScanner_AddInfo("[IDEALJUMP] - One-Frame ideal jump, can be part of hack (or server plugin)");
                         DemoScanner_AddInfo("[JUMPHACK XTREME] - XTREME Jump");
                         DemoScanner_AddInfo("[JUMPHACK HPP] - HPP JumpHack (Or extreme server settings like accelerate)");
                         DemoScanner_AddInfo("[JUMPHACK TYPE X] - Other jump hacks");
@@ -8000,9 +8002,9 @@ namespace DemoScanner.DG
                         DemoScanner_AddInfo("['RETURN TO GAME' FEATURE] - Part of aimbot features, or another CS-1.6 client feature");
                         DemoScanner_AddInfo("[STRAFE OPTIMIZER] - strafe_optimizer.exe (and same hacks)");
                         DemoScanner_AddInfo("[TIMESHIFT] - Speedhack (if multiple times)");
-                        DemoScanner_AddInfo("[THIRD PERSON HACK] - Third person hack, can be part of hack, or server plugin");
+                        DemoScanner_AddInfo("[THIRD PERSON TYPE X] - Third person hack, can be part of hack, or server plugin");
                         DemoScanner_AddInfo("[TRIGGER TYPE X] - Trigger bot");
-                        DemoScanner_AddInfo("[BETA] - This warn in beta test mode.");
+                        DemoScanner_AddInfo("[BETA] - This warn in beta test mode. Please check it ingame!");
                     }
                 }
 
