@@ -154,6 +154,12 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="EntitiesPreviewWindow.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="EntitiesPreviewWindow.Designer.cs">
+      <DependentUpon>EntitiesPreviewWindow.cs</DependentUpon>
+    </Compile>
     <Compile Include="Helpers\GlobalSuppressions.cs" />
     <Compile Include="Helpers\ConsoleHelper.cs" />
     <Compile Include="Helpers\ConsoleTable.cs" />
@@ -177,6 +183,9 @@
     <Compile Include="UnrealDemoScanner.cs" />
     <Compile Include="Parser\ValvePak\Utilities\Crc32.cs" />
     <Compile Include="Parser\ValvePak\Utilities\StreamHelpers.cs" />
+    <EmbeddedResource Include="EntitiesPreviewWindow.resx">
+      <DependentUpon>EntitiesPreviewWindow.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Preview.resx">
       <DependentUpon>Preview.cs</DependentUpon>
     </EmbeddedResource>

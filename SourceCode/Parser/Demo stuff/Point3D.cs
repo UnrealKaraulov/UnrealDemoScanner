@@ -32,6 +32,11 @@ namespace DemoScanner
             return hashCode;
         }
 
+        public override string ToString()
+        {
+            return X + "/" + Y + "/" + Z;
+        }
+
         public static bool operator ==(FPoint3D per1, FPoint3D per2)
         {
             return !(per1 != per2);
