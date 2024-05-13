@@ -12,10 +12,9 @@ namespace DemoScanner.DemoStuff.GoldSource
     /// </summary>
     public class Hlsooe
     {
-
-
         public enum DemoFrameType : sbyte
         {
+            None = 0,
             StartupPacket = 1,
             NetworkPacket = 2,
             Jumptime = 3,
@@ -153,8 +152,10 @@ namespace DemoScanner.DemoStuff.GoldSource
             IN_ALT1 = 1 << 14,
             IN_SCORE = 1 << 15,
         };
+
         public enum DemoFrameType
         {
+            None = 0,
             NetMsg = 1,
             DemoStart = 2,
             ConsoleCommand = 3,
@@ -255,11 +256,11 @@ namespace DemoScanner.DemoStuff.GoldSource
         public struct EventFrame : IFrame
         {
             public float Delay;
-            public EventArgs EventArguments;
+            public EventParams EventArguments;
             public int Flags;
             public int Index;
 
-            public struct EventArgs
+            public struct EventParams
             {
                 public FPoint3D Angles;
                 public int Bparam1;

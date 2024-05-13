@@ -16,6 +16,7 @@ using System.Windows.Forms;
 using ConsoleTables;
 using DemoScanner.DemoStuff;
 using DemoScanner.DemoStuff.GoldSource;
+using Windows;
 using static DemoScanner.DG.DemoScanner;
 
 namespace DemoScanner.DG
@@ -23,7 +24,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.71.0b";
+        public const string PROGRAMVERSION = "1.71.1b";
 
         public enum AngleDirection
         {
@@ -34,6 +35,7 @@ namespace DemoScanner.DG
 
         public enum TEXTMSG_Type
         {
+            TEXT_NONE = 0,
             TEXT_PRINTNOTIFY = 1,
             TEXT_PRINTCONSOLE = 2,
             TEXT_PRINTTALK = 3,
@@ -128,6 +130,8 @@ namespace DemoScanner.DG
         public static int MouseJumps = -1;
         public static int JumpWithAlias = -1;
         public static int LocalPlayerId = -1;
+        public static int LocalPlayerUserId = -1;
+        public static int LocalPlayerUserId2 = -1;
         public static int LocalPlayerEntity = -1;
         public static int UserId = -1;
         public static int UserId2 = -1;
@@ -1809,11 +1813,11 @@ namespace DemoScanner.DG
         {
             try
             {
-                ConsoleHelper.CenterConsole();
+                NativeConsoleMethods.CenterConsole();
                 Console.SetWindowSize(114, 32);
                 Console.SetBufferSize(114, 5555);
                 Console.SetWindowSize(115, 32);
-                ConsoleHelper.CenterConsole();
+                NativeConsoleMethods.CenterConsole();
             }
             catch
             {
@@ -3203,25 +3207,6 @@ namespace DemoScanner.DG
                         case GoldSource.DemoFrameType.NextSection:
                             {
                                 NewDirectory = true;
-
-                                FrameErrors = LastOutgoingSequence = LastIncomingAcknowledged = LastIncomingSequence = 0;
-                                LASTFRAMEISCLIENTDATA = false;
-                                if (DUMP_ALL_FRAMES) subnode.Text += @"End of the DirectoryEntry!";
-
-                                if (UserAlive)
-                                    FirstUserAlive = false;
-
-                                UserAlive = false;
-                                RealAlive = false;
-                                //FirstBypassKill = true;
-                                BypassCount = 0;
-                                FirstDuck = false;
-                                FirstJump = false;
-                                FirstAttack = false;
-                                SearchJumpBug = false;
-
-                                LocalPlayerId = -1;
-                                playerList.Clear();
                                 break;
                             }
 
@@ -3441,6 +3426,29 @@ namespace DemoScanner.DG
                         case GoldSource.DemoFrameType.NetMsg:
                         default:
                             {
+                                if (NewDirectory)
+                                {
+                                    FrameErrors = LastOutgoingSequence = LastIncomingAcknowledged = LastIncomingSequence = 0;
+                                    LASTFRAMEISCLIENTDATA = false;
+                                    if (DUMP_ALL_FRAMES) subnode.Text += @"End of the DirectoryEntry!";
+
+                                    if (UserAlive)
+                                        FirstUserAlive = false;
+
+                                    UserAlive = false;
+                                    RealAlive = false;
+                                    //FirstBypassKill = true;
+                                    BypassCount = 0;
+                                    FirstDuck = false;
+                                    FirstJump = false;
+                                    FirstAttack = false;
+                                    SearchJumpBug = false;
+
+                                    LocalPlayerId = -1;
+                                    fullPlayerList.AddRange(playerList);
+                                    playerList.Clear();
+                                }
+
                                 LASTFRAMEISCLIENTDATA = false;
                                 MessageId = 0;
                                 NewViewAngleSearcherAngle = 0.0f;
@@ -4844,8 +4852,8 @@ namespace DemoScanner.DG
                                                 }
                                         }
 
-                                        FPoint3D tmpClAngles;
-                                        VectorsToAngles(nf.RParms.Forward, nf.RParms.Right, nf.RParms.Up, out tmpClAngles);
+                                        FPoint3D tmpClAngles = new FPoint3D();
+                                        VectorsToAngles(nf.RParms.Forward, nf.RParms.Right, nf.RParms.Up, ref tmpClAngles);
                                         var normCD_Angles1 = CDFRAME_ViewAngles;
                                         if (normCD_Angles1.Y > 180.0f)
                                             normCD_Angles1.Y -= 360.0f;
@@ -5899,6 +5907,8 @@ namespace DemoScanner.DG
                                 PreviousFrameOnGround = CurrentFrameOnGround;
                                 PreviousFramePunchangleZ = CurrentFramePunchangleZ;
                                 PreviousFrameForward = CurrentFrameForward;
+
+
                                 NewDirectory = false;
                                 SecondFound = false;
                                 SecondFound2 = false;
@@ -6512,7 +6522,7 @@ namespace DemoScanner.DG
                                     {
                                         lock (sync)
                                         {
-                                            ConsoleHelper.ClearCurrentConsoleLine();
+                                            NativeConsoleMethods.ClearCurrentConsoleLine();
                                             Console.Write("\rDownload \"" + s + "\" " + sum + " of " +
                                                           DownloadResources.Count + ". In " +
                                                           GetActiveDownloadThreads() + " of " +
@@ -6541,7 +6551,7 @@ namespace DemoScanner.DG
                                         {
                                             lock (sync)
                                             {
-                                                ConsoleHelper.ClearCurrentConsoleLine();
+                                                NativeConsoleMethods.ClearCurrentConsoleLine();
                                                 var dwnerrorstr = "\rFailed to download \"" + s + "\" file.";
                                                 Console.Write(dwnerrorstr);
                                                 Thread.Sleep(50);
@@ -7171,12 +7181,13 @@ namespace DemoScanner.DG
                 return 0.0f;
             return retval;
         }
-
+#pragma warning disable CA1024
         public static string GetSourceCodeString()
         {
             usagesrccode++;
             return SourceCode.Length != 51 ? throw new Exception("ANAL ERROR") : SourceCode;
         }
+#pragma warning restore CA1024
 
         private static void ParseGameData(HalfLifeDemoParser halfLifeDemoParser, byte[] msgBytes)
         {
@@ -7405,7 +7416,7 @@ namespace DemoScanner.DG
                      abs(CurrentTime - HorAngleTime) < 0.15);
         }
 
-        public static void VectorsToAngles(FPoint3D fwd, FPoint3D right, FPoint3D up, out FPoint3D angles)
+        public static void VectorsToAngles(FPoint3D fwd, FPoint3D right, FPoint3D up, ref FPoint3D angles)
         {
             var sp = -fwd.Z;
             angles.X = (float)(Math.Asin(sp) * (180.0 / Math.PI));
@@ -7736,7 +7747,7 @@ namespace DemoScanner.DG
             public int x, y;
         }
 
-        public class Player : IDisposable
+        public class Player
         {
             public Dictionary<string, string> InfoKeys;
             public string UserName;
@@ -7759,12 +7770,6 @@ namespace DemoScanner.DG
                 UserSteamId = "";
             }
 
-            void IDisposable.Dispose()
-            {
-                voicedata.Close();
-                voicedata_stream.Close();
-            }
-
             public void WriteVoice(int len, byte[] data)
             {
                 if (len > 0)
@@ -7772,6 +7777,11 @@ namespace DemoScanner.DG
                     voicedata.Write(len);
                     voicedata.Write(data);
                 }
+            }
+
+            public override string ToString()
+            {
+                return "Username:" + UserName + "|Steam:" + UserSteamId + "|Slot:" + iSlot + "|UserID:" + ServerUserIdLong + "|PID" + iStructCounter;
             }
         }
     }
@@ -7879,6 +7889,7 @@ namespace DemoScanner.DG
     {
         public enum MessageId : byte
         {
+            svc_bad = 0,
             svc_nop = 1,
             svc_disconnect = 2,
             svc_event = 3,
@@ -7957,13 +7968,13 @@ namespace DemoScanner.DG
             deltaDecoderTable = new Hashtable();
             var deltaDescription = new HalfLifeDeltaStructure("delta_description_t");
             AddDeltaStructure(deltaDescription);
-            deltaDescription.AddEntry("flags", 32, 1.0f, 1.0f, HalfLifeDeltaStructure.EntryFlags.Integer);
-            deltaDescription.AddEntry("name", 8, 1.0f, 1.0f, HalfLifeDeltaStructure.EntryFlags.String);
-            deltaDescription.AddEntry("offset", 16, 1.0f, 1.0f, HalfLifeDeltaStructure.EntryFlags.Integer);
-            deltaDescription.AddEntry("size", 8, 1.0f, 1.0f, HalfLifeDeltaStructure.EntryFlags.Integer);
-            deltaDescription.AddEntry("nBits", 8, 1.0f, 1.0f, HalfLifeDeltaStructure.EntryFlags.Integer);
-            deltaDescription.AddEntry("divisor", 32, 4000.0f, 1.0f, HalfLifeDeltaStructure.EntryFlags.Float);
-            deltaDescription.AddEntry("preMultiplier", 32, 4000.0f, 1.0f, HalfLifeDeltaStructure.EntryFlags.Float);
+            deltaDescription.AddEntry("flags", 32, 1.0f, 1.0f, HalfLifeDeltaStructure.ENTRY_TYPES.Integer);
+            deltaDescription.AddEntry("name", 8, 1.0f, 1.0f, HalfLifeDeltaStructure.ENTRY_TYPES.String);
+            deltaDescription.AddEntry("offset", 16, 1.0f, 1.0f, HalfLifeDeltaStructure.ENTRY_TYPES.Integer);
+            deltaDescription.AddEntry("size", 8, 1.0f, 1.0f, HalfLifeDeltaStructure.ENTRY_TYPES.Integer);
+            deltaDescription.AddEntry("nBits", 8, 1.0f, 1.0f, HalfLifeDeltaStructure.ENTRY_TYPES.Integer);
+            deltaDescription.AddEntry("divisor", 32, 4000.0f, 1.0f, HalfLifeDeltaStructure.ENTRY_TYPES.Float);
+            deltaDescription.AddEntry("preMultiplier", 32, 4000.0f, 1.0f, HalfLifeDeltaStructure.ENTRY_TYPES.Float);
             // message handlers
             AddMessageHandler((byte)MessageId.svc_nop, MessageNop);
             AddMessageHandler((byte)MessageId.svc_disconnect, MessageDisconnect);
@@ -8487,9 +8498,11 @@ namespace DemoScanner.DG
 
         private unsafe void MessageServerInfo()
         {
+            NewDirectory = true;
+
             BitBuffer.ReadInt32();
             BitBuffer.ReadInt32();
-            var mapcrc32 = BitBuffer.ReadInt32();
+            var mapcrc32 = BitBuffer.ReadUInt32();
             COM_UnMunge3((byte*)&mapcrc32, 4, (-1 - StartPlayerID) & 0xFF);
             BitBuffer.ReadBytes(16);
             demo.MaxClients = BitBuffer.ReadByte();
@@ -8500,18 +8513,17 @@ namespace DemoScanner.DG
                 ServerName = BitBuffer.ReadString(); // server name                
 
             var tmpMapName = BitBuffer.ReadString();
+
+            GameEnd = false;
+            Console.WriteLine("---------- [Начало новой игры / Start new game ( END: " + CurrentTimeString +
+                              ")] ----------");
+
             if (tmpMapName != MapName)
             {
-                GameEnd = false;
-                Console.WriteLine("---------- [Начало новой игры / Start new game (" + CurrentTimeString +
-                                  ")] ----------");
                 if (IsRussia)
-                    DemoScanner_AddInfo("Смена уровня на \"" + tmpMapName + "\"( CRC " + mapcrc32 + " ) время: " +
-                                        CurrentTimeString);
+                    DemoScanner_AddInfo("Смена уровня на \"" + tmpMapName + "\"( CRC " + mapcrc32 + " )" );
                 else
-                    DemoScanner_AddInfo("Changelevel to \"" + tmpMapName + "\"( CRC " + mapcrc32 + " ) at " +
-                                        CurrentTimeString);
-
+                    DemoScanner_AddInfo("Changelevel to \"" + tmpMapName + "\"( CRC " + mapcrc32 + " )" );
                 MapName = tmpMapName;
             }
 
@@ -8630,42 +8642,57 @@ namespace DemoScanner.DG
                         if (newname.Length > 0)
                         {
                             player.UserName = infoKeyTokens[n + 1];
-                            if (LocalPlayerId != -1 && slot == LocalPlayerId && player.UserName != LastUsername)
+
+                            if (LocalPlayerId != -1 && slot == LocalPlayerId)
                             {
-                                if (LastUsername.Length != 0 && LastUsername.IndexOf(player.UserName) != 0 &&
-                                   player.UserName.IndexOf(LastUsername) != 0)
-                                {
-                                    if (IsRussia)
-                                        DemoScanner_AddInfo("Игрок сменил никнейм с [" + LastUsername + "] на [" + player.UserName + "] на " + CurrentTimeString);
-                                    else
-                                        DemoScanner_AddInfo("Player changes nickname from [" + LastUsername + "] to [" + player.UserName + "] at " + CurrentTimeString);
-                                }
+                            //    Console.WriteLine("Old name:" + LastUsername);
+                            //    Console.WriteLine("LocalPlayerId = " + LocalPlayerId);
+                            //    Console.WriteLine("User1 = " + UserId);
+                            //    Console.WriteLine("User2 = " + UserId2);
+                            //    Console.WriteLine(player.ToString());
 
-                                if (!SKIP_RESULTS)
+                                if (player.UserName != LastUsername)
                                 {
-                                    if (LastUsername.Length == 0 ||
-                                        (LastUsername.IndexOf(player.UserName) != 0
-                                        && player.UserName.IndexOf(LastUsername) != 0))
+                                    if (LastUsername.Length != 0 && LastUsername.IndexOf(player.UserName) != 0 &&
+                                       player.UserName.IndexOf(LastUsername) != 0 &&
+                                       LocalPlayerUserId == player.ServerUserIdLong)
                                     {
-                                        var tmpcursortop = Console.CursorTop;
-                                        var tmpcursorleft = Console.CursorLeft;
-                                        Console.CursorTop = UserNameAndSteamIDField;
-                                        Console.CursorLeft = UserNameAndSteamIDField2;
-                                        var tmpconsolecolor = Console.ForegroundColor;
-                                        Console.ForegroundColor = ConsoleColor.Red;
-                                        for (var i = 0; i < 64; i++) Console.Write(" ");
+                                        if (IsRussia)
+                                            DemoScanner_AddInfo("Игрок сменил никнейм с [" + LastUsername + "] на [" + player.UserName + "] на " + CurrentTimeString);
+                                        else
+                                            DemoScanner_AddInfo("Player changes nickname from [" + LastUsername + "] to [" + player.UserName + "] at " + CurrentTimeString);
 
-                                        Console.CursorLeft = UserNameAndSteamIDField2;
-                                        Console.Write(player.UserName.TrimBad().Trim());
-                                        Console.ForegroundColor = ConsoleColor.Cyan;
-                                        Console.WriteLine(" [" + LastSteam + "]");
-                                        Console.ForegroundColor = tmpconsolecolor;
-                                        Console.CursorTop = tmpcursortop;
-                                        Console.CursorLeft = tmpcursorleft;
                                     }
+
+                                    if (!SKIP_RESULTS)
+                                    {
+                                        if (LastUsername.Length == 0 ||
+                                            (LastUsername.IndexOf(player.UserName) != 0
+                                            && player.UserName.IndexOf(LastUsername) != 0)
+                                            || player.UserName.Length < LastUsername.Length)
+                                        {
+                                            var tmpcursortop = Console.CursorTop;
+                                            var tmpcursorleft = Console.CursorLeft;
+                                            Console.CursorTop = UserNameAndSteamIDField;
+                                            Console.CursorLeft = UserNameAndSteamIDField2;
+                                            var tmpconsolecolor = Console.ForegroundColor;
+                                            Console.ForegroundColor = ConsoleColor.Red;
+                                            for (var i = 0; i < 64; i++) Console.Write(" ");
+
+                                            Console.CursorLeft = UserNameAndSteamIDField2;
+                                            Console.Write(player.UserName.TrimBad().Trim());
+                                            Console.ForegroundColor = ConsoleColor.Cyan;
+                                            Console.WriteLine(" [" + LastSteam + "]");
+                                            Console.ForegroundColor = tmpconsolecolor;
+                                            Console.CursorTop = tmpcursortop;
+                                            Console.CursorLeft = tmpcursorleft;
+                                        }
+                                    }
+
+                                    LastUsername = player.UserName;
                                 }
 
-                                LastUsername = player.UserName;
+                                LocalPlayerUserId = player.ServerUserIdLong;
                             }
                         }
                     }
@@ -8679,33 +8706,37 @@ namespace DemoScanner.DG
                         {
                             infoKeyTokens[n + 1] = CalculateSteamId(infoKeyTokens[n + 1]);
                             player.UserSteamId = infoKeyTokens[n + 1];
-                            if (LocalPlayerId != -1 && slot == LocalPlayerId && player.UserSteamId != LastSteam)
+                            if (LocalPlayerId != -1 && slot == LocalPlayerId)
                             {
-                                if (LastSteam.Length != 0 && LastSteam != player.UserSteamId)
+                                if (LastSteam.Length != 0 && LastSteam != player.UserSteamId
+                                    && LocalPlayerUserId2 == player.ServerUserIdLong)
                                 {
                                     DemoScanner_AddWarn("[STEAMID HACK] FROM [" + LastSteam + "] TO [" + player.UserSteamId +
                                         "] at (" + CurrentTime + ") " + CurrentTimeString, true, true, true);
                                 }
-
-                                if (!SKIP_RESULTS)
+                                if (player.UserSteamId != LastSteam)
                                 {
-                                    var tmpcursortop = Console.CursorTop;
-                                    var tmpcursorleft = Console.CursorLeft;
-                                    Console.CursorTop = UserNameAndSteamIDField;
-                                    Console.CursorLeft = UserNameAndSteamIDField2;
-                                    var tmpconsolecolor = Console.ForegroundColor;
-                                    Console.ForegroundColor = ConsoleColor.Red;
-                                    for (var i = 0; i < 64; i++) Console.Write(" ");
+                                    if (!SKIP_RESULTS)
+                                    {
+                                        var tmpcursortop = Console.CursorTop;
+                                        var tmpcursorleft = Console.CursorLeft;
+                                        Console.CursorTop = UserNameAndSteamIDField;
+                                        Console.CursorLeft = UserNameAndSteamIDField2;
+                                        var tmpconsolecolor = Console.ForegroundColor;
+                                        Console.ForegroundColor = ConsoleColor.Red;
+                                        for (var i = 0; i < 64; i++) Console.Write(" ");
 
-                                    Console.CursorLeft = UserNameAndSteamIDField2;
-                                    Console.Write(player.UserName.TrimBad().Trim());
-                                    Console.ForegroundColor = ConsoleColor.Cyan;
-                                    Console.WriteLine(" [" + player.UserSteamId + "]");
-                                    Console.ForegroundColor = tmpconsolecolor;
-                                    Console.CursorTop = tmpcursortop;
-                                    Console.CursorLeft = tmpcursorleft;
+                                        Console.CursorLeft = UserNameAndSteamIDField2;
+                                        Console.Write(player.UserName.TrimBad().Trim());
+                                        Console.ForegroundColor = ConsoleColor.Cyan;
+                                        Console.WriteLine(" [" + player.UserSteamId + "]");
+                                        Console.ForegroundColor = tmpconsolecolor;
+                                        Console.CursorTop = tmpcursortop;
+                                        Console.CursorLeft = tmpcursorleft;
+                                    }
+                                    LastSteam = player.UserSteamId;
                                 }
-                                LastSteam = player.UserSteamId;
+                                LocalPlayerUserId2 = player.ServerUserIdLong;
                             }
                         }
                     }
@@ -10442,18 +10473,18 @@ namespace DemoScanner.DG
     public class HalfLifeDeltaStructure
     {
         [Flags]
-        public enum EntryFlags
+        public enum ENTRY_TYPES : uint
         {
-            Byte = 1 << 0,
-            Short = 1 << 1,
-            Float = 1 << 2,
-            Integer = 1 << 3,
-            Angle = 1 << 4,
-            TimeWindow8 = 1 << 5,
-            TimeWindowBig = 1 << 6,
-            String = 1 << 7,
-            Signed = 1 << 31
-        }
+            Byte = 1u << 0,
+            Short = 1u << 1,
+            Float = 1u << 2,
+            Integer = 1u << 3,
+            Angle = 1u << 4,
+            TimeWindow8 = 1u << 5,
+            TimeWindowBig = 1u << 6,
+            String = 1u << 7,
+            Signed = 1u << 31,
+        };
 
         public List<Entry> entryList;
 
@@ -10475,11 +10506,17 @@ namespace DemoScanner.DG
             var name = delta.FindEntryValue("name");
             var nBits = delta.FindEntryValue("nBits");
             var divisor = delta.FindEntryValue("divisor");
-            var flags = delta.FindEntryValue("flags");
             var preMultiplier = delta.FindEntryValue("preMultiplier");
-            AddEntry(name != null ? (string)name : "unnamed", nBits != null ? (uint)nBits : 0,
-                divisor != null ? (float)divisor : 0.0f, preMultiplier != null ? (float)preMultiplier : 1.0f,
-                flags != null ? (EntryFlags)(uint)flags : EntryFlags.Integer);
+            var flags = delta.FindEntryValue("flags");
+
+            name = name != null ? (string)name : "unnamed";
+            nBits = nBits != null ? (uint)nBits : 0;
+            divisor = divisor != null ? (float)divisor : 0.0f;
+            preMultiplier = preMultiplier != null ? (float)preMultiplier : 1.0f;
+            flags = flags != null ? (ENTRY_TYPES)(uint)flags : ENTRY_TYPES.Integer;
+
+            AddEntry(name as string, (uint)nBits, (float)divisor, (float)preMultiplier,
+               (ENTRY_TYPES)flags);
         }
 
         /// <summary>
@@ -10489,7 +10526,7 @@ namespace DemoScanner.DG
         /// <param name="nBits"></param>
         /// <param name="divisor"></param>
         /// <param name="flags"></param>
-        public void AddEntry(string name, uint nBits, float divisor, float preMultiplier, EntryFlags flags)
+        public void AddEntry(string name, uint nBits, float divisor, float preMultiplier, ENTRY_TYPES flags)
         {
             var entry = new Entry
             { Name = name, nBits = nBits, Divisor = divisor, Flags = flags, PreMultiplier = preMultiplier };
@@ -10507,10 +10544,11 @@ namespace DemoScanner.DG
 
         public void ReadDelta(BitBuffer bitBuffer, HalfLifeDelta delta)
         {
-            ReadDelta(bitBuffer, delta, out _);
+            byte[] mask = new byte[0];
+            ReadDelta(bitBuffer, delta, ref mask);
         }
 
-        public void ReadDelta(BitBuffer bitBuffer, HalfLifeDelta delta, out byte[] bitmaskBytes)
+        public void ReadDelta(BitBuffer bitBuffer, HalfLifeDelta delta, ref byte[] bitmaskBytes)
         {
             // read bitmask
             var nBitmaskBytes = bitBuffer.ReadUnsignedBits(3);
@@ -11197,8 +11235,8 @@ namespace DemoScanner.DG
 
         private object ParseEntry(BitBuffer bitBuffer, Entry e)
         {
-            var signed = (e.Flags & EntryFlags.Signed) != 0;
-            if ((e.Flags & EntryFlags.Byte) != 0)
+            var signed = (e.Flags & ENTRY_TYPES.Signed) != 0;
+            if ((e.Flags & ENTRY_TYPES.Byte) != 0)
             {
                 if (signed)
                 {
@@ -11216,7 +11254,7 @@ namespace DemoScanner.DG
                 }
             }
 
-            if ((e.Flags & EntryFlags.Short) != 0)
+            if ((e.Flags & ENTRY_TYPES.Short) != 0)
             {
                 if (signed)
                 {
@@ -11234,7 +11272,7 @@ namespace DemoScanner.DG
                 }
             }
 
-            if ((e.Flags & EntryFlags.Integer) != 0)
+            if ((e.Flags & ENTRY_TYPES.Integer) != 0)
             {
                 if (signed)
                     try
@@ -11264,8 +11302,8 @@ namespace DemoScanner.DG
 
             try
             {
-                if ((e.Flags & EntryFlags.Float) != 0 || (e.Flags & EntryFlags.TimeWindow8) != 0 ||
-                    (e.Flags & EntryFlags.TimeWindowBig) != 0)
+                if ((e.Flags & ENTRY_TYPES.Float) != 0 || (e.Flags & ENTRY_TYPES.TimeWindow8) != 0 ||
+                    (e.Flags & ENTRY_TYPES.TimeWindowBig) != 0)
                 {
                     var negative = false;
                     var bitsToRead = (int)e.nBits;
@@ -11281,7 +11319,7 @@ namespace DemoScanner.DG
                     return retval;
                 }
 
-                if ((e.Flags & EntryFlags.Angle) != 0)
+                if ((e.Flags & ENTRY_TYPES.Angle) != 0)
                 {
                     var retval = bitBuffer.ReadUnsignedBits((int)e.nBits) * (360.0f / (1 << (int)e.nBits));
                     if (DUMP_ALL_FRAMES) OutDumpString += retval + "(Float)";
@@ -11294,7 +11332,7 @@ namespace DemoScanner.DG
                 return 0.0f;
             }
 
-            if ((e.Flags & EntryFlags.String) != 0)
+            if ((e.Flags & ENTRY_TYPES.String) != 0)
             {
                 var retval = bitBuffer.ReadString();
                 if (DUMP_ALL_FRAMES) OutDumpString += retval + "(String)";
@@ -11319,7 +11357,7 @@ namespace DemoScanner.DG
         public class Entry
         {
             public float Divisor;
-            public EntryFlags Flags;
+            public ENTRY_TYPES Flags;
             public string Name;
             public uint nBits;
             public float PreMultiplier;
@@ -11328,9 +11366,9 @@ namespace DemoScanner.DG
 
     public class DownloadWebClient : WebClient
     {
-        protected override WebRequest GetWebRequest(Uri uri)
+        protected override WebRequest GetWebRequest(Uri address)
         {
-            var w = base.GetWebRequest(uri);
+            var w = base.GetWebRequest(address);
             w.Timeout = 1000 * 180;
             return w;
         }
