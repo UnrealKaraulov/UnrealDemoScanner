@@ -7,6 +7,11 @@ namespace Windows
 {
     public static class NativeConsoleMethods
     {
+        public delegate bool ConsoleCtrlHandler(int ctrlType);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        public static extern bool SetConsoleCtrlHandler(ConsoleCtrlHandler handler, bool add);
+
         public static void ClearCurrentConsoleLine()
         {
             int currentLineCursor = Console.CursorTop;
@@ -25,12 +30,12 @@ namespace Windows
             MoveWindow(hWin, x, y, rc.right - rc.left, rc.bottom - rc.top, false);
         }
         [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern IntPtr GetConsoleWindow();
+        public static extern IntPtr GetConsoleWindow();
         [DllImport("user32.dll", SetLastError = true)]
-        private static extern bool GetWindowRect(IntPtr hWnd, out RECT rc);
+        public static extern bool GetWindowRect(IntPtr hWnd, out RECT rc);
         [DllImport("user32.dll", SetLastError = true)]
-        private static extern bool MoveWindow(IntPtr hWnd, int x, int y, int w, int h, bool repaint);
+        public static extern bool MoveWindow(IntPtr hWnd, int x, int y, int w, int h, bool repaint);
 
-        private struct RECT { public int left, top, right, bottom; }
+        public struct RECT { public int left, top, right, bottom; }
     }
 }

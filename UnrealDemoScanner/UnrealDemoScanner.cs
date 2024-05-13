@@ -24,7 +24,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.71.1b";
+        public const string PROGRAMVERSION = "1.71.2";
 
         public enum AngleDirection
         {
@@ -1808,6 +1808,22 @@ namespace DemoScanner.DG
             return "00h:00m:00s";
         }
 
+        private static bool ConsoleCtrlHandler(int ctrlType)
+        {
+            if (ctrlType == 2)
+            {
+                try
+                {
+                    Process.GetCurrentProcess().Kill();
+                }
+                catch
+                {
+
+                }
+            }
+            return false;
+        }
+
         [STAThread]
         private static void Main(string[] args)
         {
@@ -1837,6 +1853,8 @@ namespace DemoScanner.DG
                 Console.WriteLine("Error Fatal");
                 return;
             }
+
+            NativeConsoleMethods.SetConsoleCtrlHandler(ConsoleCtrlHandler, true);
 
             var CurrentDemoFilePath = "";
             var filefound = false;
@@ -8521,9 +8539,9 @@ namespace DemoScanner.DG
             if (tmpMapName != MapName)
             {
                 if (IsRussia)
-                    DemoScanner_AddInfo("Смена уровня на \"" + tmpMapName + "\"( CRC " + mapcrc32 + " )" );
+                    DemoScanner_AddInfo("Смена уровня на \"" + tmpMapName + "\"( CRC " + mapcrc32 + " )");
                 else
-                    DemoScanner_AddInfo("Changelevel to \"" + tmpMapName + "\"( CRC " + mapcrc32 + " )" );
+                    DemoScanner_AddInfo("Changelevel to \"" + tmpMapName + "\"( CRC " + mapcrc32 + " )");
                 MapName = tmpMapName;
             }
 
@@ -8645,11 +8663,11 @@ namespace DemoScanner.DG
 
                             if (LocalPlayerId != -1 && slot == LocalPlayerId)
                             {
-                            //    Console.WriteLine("Old name:" + LastUsername);
-                            //    Console.WriteLine("LocalPlayerId = " + LocalPlayerId);
-                            //    Console.WriteLine("User1 = " + UserId);
-                            //    Console.WriteLine("User2 = " + UserId2);
-                            //    Console.WriteLine(player.ToString());
+                                //    Console.WriteLine("Old name:" + LastUsername);
+                                //    Console.WriteLine("LocalPlayerId = " + LocalPlayerId);
+                                //    Console.WriteLine("User1 = " + UserId);
+                                //    Console.WriteLine("User2 = " + UserId2);
+                                //    Console.WriteLine(player.ToString());
 
                                 if (player.UserName != LastUsername)
                                 {
