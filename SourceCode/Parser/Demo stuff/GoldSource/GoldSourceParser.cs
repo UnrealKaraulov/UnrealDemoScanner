@@ -166,69 +166,6 @@ namespace DemoScanner.DemoStuff.GoldSource
             DemoBuffer = 9
         }
 
-        public enum EngineVersions
-        {
-            Unknown,
-            HalfLife1104,
-            HalfLife1106,
-            HalfLife1107,
-            HalfLife1108,
-            HalfLife1109,
-            HalfLife1108Or1109,
-            HalfLife1110,
-            HalfLife1111, // Steam
-            HalfLife1110Or1111
-        }
-
-        public string EngineName(int name)
-        {
-            var s = "Half-Life v";
-
-            switch ((EngineVersions)name)
-            {
-                case EngineVersions.HalfLife1104:
-                    s += "1.1.0.4";
-                    break;
-
-                case EngineVersions.HalfLife1106:
-                    s += "1.1.0.6";
-                    break;
-
-                case EngineVersions.HalfLife1107:
-                    s += "1.1.0.7";
-                    break;
-
-                case EngineVersions.HalfLife1108:
-                    s += "1.1.0.8";
-                    break;
-
-                case EngineVersions.HalfLife1109:
-                    s += "1.1.0.9";
-                    break;
-
-                case EngineVersions.HalfLife1108Or1109:
-                    s += "1.1.0.8 or v1.1.0.9";
-                    break;
-
-                case EngineVersions.HalfLife1110:
-                    s += "1.1.1.0";
-                    break;
-
-                case EngineVersions.HalfLife1111:
-                    s += "1.1.1.1";
-                    break;
-
-                case EngineVersions.HalfLife1110Or1111:
-                    s += "1.1.1.0 or v1.1.1.1";
-                    break;
-
-                default:
-                    return "Half-Life Unknown Version";
-            }
-
-            return s;
-        }
-
         /// <summary>
         ///     The header of the GoldSource demo
         /// </summary>
@@ -570,7 +507,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                            Lightlevel == cmd.Lightlevel &&
                            Msec == cmd.Msec &&
                            Math.Abs(Sidemove - cmd.Sidemove) < 0.00001f &&
-                            Math.Abs(Upmove - cmd.Upmove) < 0.00001f &&
+                           Math.Abs(Upmove - cmd.Upmove) < 0.00001f &&
                            EqualityComparer<FPoint3D>.Default.Equals(Viewangles, cmd.Viewangles) &&
                            Weaponselect == cmd.Weaponselect;
                 }
@@ -1214,13 +1151,10 @@ namespace DemoScanner.DemoStuff.GoldSource
                         //s2.Start();
                         //Demo directory entries parsed... now we parse the frames.
 
-                        var dirid = -1;
-
                         foreach (var entry in gDemo.DirectoryEntries)
                         {
                             try
                             {
-                                dirid++;
                                 if (entry.Offset != 0)
                                 {
                                     if (UnexpectedEof(br, entry.Offset - br.BaseStream.Position))
