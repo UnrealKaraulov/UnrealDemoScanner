@@ -50,7 +50,7 @@ bool VoiceEncoder_Speex::Init(int quality, int &rawFrameSize, int &encodedFrameS
 	postfilter = 1;
 	speex_decoder_ctl(m_DecoderState, SPEEX_SET_ENH, &postfilter);
 
-	samplerate = 8000;
+	samplerate = 48000;
 	speex_decoder_ctl(m_DecoderState, SPEEX_SET_SAMPLING_RATE, &samplerate);
 	speex_encoder_ctl(m_EncoderState, SPEEX_SET_SAMPLING_RATE, &samplerate);
 

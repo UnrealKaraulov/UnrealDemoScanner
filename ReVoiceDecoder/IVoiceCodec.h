@@ -4,7 +4,7 @@
 class IVoiceCodec {
 protected:
 	virtual	~IVoiceCodec() {}
-	static const int BYTES_PER_SAMPLE = 2;
+	const int BYTES_PER_SAMPLE = 2;
 
 public:
 	// Initialize the object. The uncompressed format is always 8-bit signed mono.

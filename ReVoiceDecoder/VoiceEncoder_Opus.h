@@ -15,6 +15,8 @@ private:
 	OpusDecoder *m_pDecoder;
 	CUtlBuffer m_bufOverflowBytes;
 
+	int m_MaxframeSize;
+	int m_frameSize;
 	int m_samplerate;
 	int m_bitrate;
 

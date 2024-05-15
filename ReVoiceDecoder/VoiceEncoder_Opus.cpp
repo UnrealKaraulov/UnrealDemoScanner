@@ -1,6 +1,6 @@
 #include "header.h"
 
-VoiceEncoder_Opus::VoiceEncoder_Opus() : m_bitrate(44000), m_samplerate(8000)
+VoiceEncoder_Opus::VoiceEncoder_Opus() : m_bitrate(44000), m_samplerate(48000)
 {
 	m_nEncodeSeq = 0;
 	m_nDecodeSeq = 0;
@@ -26,6 +26,8 @@ bool VoiceEncoder_Opus::Init(int quality)
 	m_nEncodeSeq = 0;
 	m_nDecodeSeq = 0;
 	m_PacketLossConcealment = true;
+	m_frameSize = m_samplerate / 1000 * 20;
+	m_MaxframeSize = m_frameSize * 2;
 
 	int encSizeBytes = opus_encoder_get_size(MAX_CHANNELS);
 	m_pEncoder = (OpusEncoder *)malloc(encSizeBytes);
@@ -129,7 +131,7 @@ int VoiceEncoder_Opus::Compress(const char *pUncompressedIn, int nSamplesIn, cha
 			int nBytes = ((pWritePosMax - pWritePos) < 0x7FFF) ? (pWritePosMax - pWritePos) : 0x7FFF;
 			int nWriteBytes = opus_encode(m_pEncoder, (const opus_int16 *)psRead, FRAME_SIZE, (unsigned char *)pWritePos, nBytes);
 
-			psRead += MAX_FRAME_SIZE;
+			psRead += m_MaxframeSize;
 			pWritePos += nWriteBytes;
 
 			nRemainingSamples--;
@@ -200,13 +202,13 @@ int VoiceEncoder_Opus::Decompress(const char *pCompressed, int compressedBytes, 
 
 				for (int i = 0; i < nPacketLoss; i++)
 				{
-					if ((pWritePos + MAX_FRAME_SIZE) >= pWritePosMax)
+					if ((pWritePos + m_MaxframeSize) >= pWritePosMax)
 					{
 						return 0;
 						break;
 					}
 
-					int nBytes = opus_decode(m_pDecoder, 0, 0, (opus_int16 *)pWritePos, FRAME_SIZE, 0);
+					int nBytes = opus_decode(m_pDecoder, 0, 0, (opus_int16 *)pWritePos, m_frameSize, 0);
 					if (nBytes <= 0)
 					{
 						return 0;
@@ -225,22 +227,22 @@ int VoiceEncoder_Opus::Decompress(const char *pCompressed, int compressedBytes, 
 			break;
 		}
 
-		if ((pWritePos + MAX_FRAME_SIZE) > pWritePosMax)
+		if ((pWritePos + m_MaxframeSize) > pWritePosMax)
 		{
 			return 0;
 			break;
 		}
 
-		memset(pWritePos, 0, MAX_FRAME_SIZE);
+		memset(pWritePos, 0, m_MaxframeSize);
 
 		if (nPayloadSize == 0)
 		{
 			// DTX (discontinued transmission)
-			pWritePos += MAX_FRAME_SIZE;
+			pWritePos += m_MaxframeSize;
 			continue;
 		}
 
-		int nBytes = opus_decode(m_pDecoder, (const unsigned char *)pReadPos, nPayloadSize, (opus_int16 *)pWritePos, FRAME_SIZE, 0);
+		int nBytes = opus_decode(m_pDecoder, (const unsigned char *)pReadPos, nPayloadSize, (opus_int16 *)pWritePos, m_frameSize, 0);
 		if (nBytes <= 0)
 		{
 			return 0;

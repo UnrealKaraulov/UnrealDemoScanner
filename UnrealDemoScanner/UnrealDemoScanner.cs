@@ -24,7 +24,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.71.2";
+        public const string PROGRAMVERSION = "1.71.3fix";
 
         public enum AngleDirection
         {
@@ -571,7 +571,6 @@ namespace DemoScanner.DG
         public static string KnownSkyName = string.Empty;
         public static DateTime StartScanTime;
         public static float HorAngleTime;
-        public static string codecname = "";
         public static int WarnsAfterGameEnd;
         public static bool SKIP_RESULTS;
         public static int EmptyFrames;
@@ -622,7 +621,10 @@ namespace DemoScanner.DG
         public static int MaxStuffCmdMsgPerSecond;
         public static int MaxPrintCmdMsgPerSecond;
         public static int SkipChangeWeapon;
+
+        public static string VoiceCodec = "";
         public static byte VoiceQuality = 5;
+
         public static int SearchJumpHack5;
         public static int SearchJumpHack51;
         public static bool NeedSearchCMDHACK4;
@@ -1947,20 +1949,23 @@ namespace DemoScanner.DG
                 }
             }
 
-            var CurrentDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+            var CurrentDir = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName).Replace("\\","/");
+            if (CurrentDir.Length > 0 && (CurrentDir.EndsWith("\\") || CurrentDir.EndsWith("/")))
+                CurrentDir.Remove(CurrentDir.Length - 1);
+
             if (!SKIP_RESULTS)
             {
-                if (!File.Exists(CurrentDir + @"\lang.ru") && !File.Exists(CurrentDir + @"\lang.en"))
+                if (!File.Exists(CurrentDir + "/lang.ru") && !File.Exists(CurrentDir + "/lang.en"))
                 {
                     Console.Write("Enter language EN - Engish / RU - Russian:");
                     var lang = Console.ReadLine();
                     if (lang.ToLower() == "en")
-                        File.Create(CurrentDir + @"\lang.en").Close();
+                        File.Create(CurrentDir + "/lang.en").Close();
                     else
-                        File.Create(CurrentDir + @"\lang.ru").Close();
+                        File.Create(CurrentDir + "/lang.ru").Close();
                 }
 
-                IsRussia = !File.Exists(CurrentDir + @"\lang.en");
+                IsRussia = !File.Exists(CurrentDir + "/lang.en");
             }
             else
             {
@@ -2163,10 +2168,10 @@ namespace DemoScanner.DG
             {
                 if (DUMP_ALL_FRAMES)
                 {
-                    File.Delete(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) + @"_Frames.txt");
-                    File.Create(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) + @"_Frames.txt").Close();
-                    if (File.Exists(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) + @"_Frames.txt"))
-                        File.AppendAllText(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) + @"_Frames.txt",
+                    File.Delete(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) + "_Frames.txt");
+                    File.Create(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) + "_Frames.txt").Close();
+                    if (File.Exists(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) + "_Frames.txt"))
+                        File.AppendAllText(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) + "_Frames.txt",
                             "Полный дамп демо в текстовом формате\n");
                 }
             }
@@ -2483,14 +2488,14 @@ namespace DemoScanner.DG
 
                                 if (DUMP_ALL_FRAMES)
                                 {
-                                    subnode.Text += @"Origin.X = " + cdframe.Origin.X + "\n";
-                                    subnode.Text += @"Origin.Y = " + cdframe.Origin.Y + "\n";
-                                    subnode.Text += @"Origin.Z = " + cdframe.Origin.Z + "\n";
-                                    subnode.Text += @"Viewangles.X = " + cdframe.Viewangles.X + "\n";
-                                    subnode.Text += @"Viewangles.Y = " + cdframe.Viewangles.Y + "\n";
-                                    subnode.Text += @"Viewangles.Z = " + cdframe.Viewangles.Z + "\n";
-                                    subnode.Text += @"WeaponBits = " + cdframe.WeaponBits + "\n";
-                                    subnode.Text += @"Fov = " + cdframe.Fov + "\n";
+                                    subnode.Text += "Origin.X = " + cdframe.Origin.X + "\n";
+                                    subnode.Text += "Origin.Y = " + cdframe.Origin.Y + "\n";
+                                    subnode.Text += "Origin.Z = " + cdframe.Origin.Z + "\n";
+                                    subnode.Text += "Viewangles.X = " + cdframe.Viewangles.X + "\n";
+                                    subnode.Text += "Viewangles.Y = " + cdframe.Viewangles.Y + "\n";
+                                    subnode.Text += "Viewangles.Z = " + cdframe.Viewangles.Z + "\n";
+                                    subnode.Text += "WeaponBits = " + cdframe.WeaponBits + "\n";
+                                    subnode.Text += "Fov = " + cdframe.Fov + "\n";
                                     subnode.Text += "}\n";
                                 }
 
@@ -3207,7 +3212,6 @@ namespace DemoScanner.DG
                                     LastAim5Detected = 0.0f;
                                     AimType7Event = 0;
                                     AimType7Frames = 0;
-                                    SecondFrameTime = 0;
                                 }
 
                                 //Console.Write(RealAlive);
@@ -3237,27 +3241,27 @@ namespace DemoScanner.DG
                                 var eframe = (GoldSource.EventFrame)frame.Value;
                                 if (DUMP_ALL_FRAMES)
                                 {
-                                    subnode.Text += @"Flags = " + eframe.Flags + "\n";
-                                    subnode.Text += @"Index = " + eframe.Index + "\n";
-                                    subnode.Text += @"Delay = " + eframe.Delay + "\n";
-                                    subnode.Text += @"EventArgumentsFlags = " + eframe.EventArguments.Flags + "\n";
-                                    subnode.Text += @"EntityIndex = " + eframe.EventArguments.EntityIndex + "\n";
-                                    subnode.Text += @"Origin.X = " + eframe.EventArguments.Origin.X + "\n";
-                                    subnode.Text += @"Origin.Y = " + eframe.EventArguments.Origin.Y + "\n";
-                                    subnode.Text += @"Origin.Z = " + eframe.EventArguments.Origin.Z + "\n";
-                                    subnode.Text += @"Angles.X = " + eframe.EventArguments.Angles.X + "\n";
-                                    subnode.Text += @"Angles.Y = " + eframe.EventArguments.Angles.Y + "\n";
-                                    subnode.Text += @"Angles.Z = " + eframe.EventArguments.Angles.Z + "\n";
-                                    subnode.Text += @"Velocity.X = " + eframe.EventArguments.Velocity.X + "\n";
-                                    subnode.Text += @"Velocity.Y = " + eframe.EventArguments.Velocity.Y + "\n";
-                                    subnode.Text += @"Velocity.Z = " + eframe.EventArguments.Velocity.Z + "\n";
-                                    subnode.Text += @"Ducking = " + eframe.EventArguments.Ducking + "\n";
-                                    subnode.Text += @"Fparam1 = " + eframe.EventArguments.Fparam1 + "\n";
-                                    subnode.Text += @"Fparam2 = " + eframe.EventArguments.Fparam2 + "\n";
-                                    subnode.Text += @"Iparam1 = " + eframe.EventArguments.Iparam1 + "\n";
-                                    subnode.Text += @"Iparam2 = " + eframe.EventArguments.Iparam2 + "\n";
-                                    subnode.Text += @"Bparam1 = " + eframe.EventArguments.Bparam1 + "\n";
-                                    subnode.Text += @"Bparam2 = " + eframe.EventArguments.Bparam2 + "\n";
+                                    subnode.Text += "Flags = " + eframe.Flags + "\n";
+                                    subnode.Text += "Index = " + eframe.Index + "\n";
+                                    subnode.Text += "Delay = " + eframe.Delay + "\n";
+                                    subnode.Text += "EventArgumentsFlags = " + eframe.EventArguments.Flags + "\n";
+                                    subnode.Text += "EntityIndex = " + eframe.EventArguments.EntityIndex + "\n";
+                                    subnode.Text += "Origin.X = " + eframe.EventArguments.Origin.X + "\n";
+                                    subnode.Text += "Origin.Y = " + eframe.EventArguments.Origin.Y + "\n";
+                                    subnode.Text += "Origin.Z = " + eframe.EventArguments.Origin.Z + "\n";
+                                    subnode.Text += "Angles.X = " + eframe.EventArguments.Angles.X + "\n";
+                                    subnode.Text += "Angles.Y = " + eframe.EventArguments.Angles.Y + "\n";
+                                    subnode.Text += "Angles.Z = " + eframe.EventArguments.Angles.Z + "\n";
+                                    subnode.Text += "Velocity.X = " + eframe.EventArguments.Velocity.X + "\n";
+                                    subnode.Text += "Velocity.Y = " + eframe.EventArguments.Velocity.Y + "\n";
+                                    subnode.Text += "Velocity.Z = " + eframe.EventArguments.Velocity.Z + "\n";
+                                    subnode.Text += "Ducking = " + eframe.EventArguments.Ducking + "\n";
+                                    subnode.Text += "Fparam1 = " + eframe.EventArguments.Fparam1 + "\n";
+                                    subnode.Text += "Fparam2 = " + eframe.EventArguments.Fparam2 + "\n";
+                                    subnode.Text += "Iparam1 = " + eframe.EventArguments.Iparam1 + "\n";
+                                    subnode.Text += "Iparam2 = " + eframe.EventArguments.Iparam2 + "\n";
+                                    subnode.Text += "Bparam1 = " + eframe.EventArguments.Bparam1 + "\n";
+                                    subnode.Text += "Bparam2 = " + eframe.EventArguments.Bparam2 + "\n";
                                     subnode.Text += "}\n";
                                 }
 
@@ -3286,8 +3290,8 @@ namespace DemoScanner.DG
                                 var waframe = (GoldSource.WeaponAnimFrame)frame.Value;
                                 if (DUMP_ALL_FRAMES)
                                 {
-                                    subnode.Text += @"Anim = " + waframe.Anim + "\n";
-                                    subnode.Text += @"Body = " + waframe.Body + "\n";
+                                    subnode.Text += "Anim = " + waframe.Anim + "\n";
+                                    subnode.Text += "Body = " + waframe.Body + "\n";
                                     subnode.Text += "}\n";
                                 }
 
@@ -3343,12 +3347,12 @@ namespace DemoScanner.DG
                                 var sframe = (GoldSource.SoundFrame)frame.Value;
                                 if (DUMP_ALL_FRAMES)
                                 {
-                                    subnode.Text += @"Channel = " + sframe.Channel + "\n";
-                                    subnode.Text += @"Sample = " + sframe.Sample + "\n";
-                                    subnode.Text += @"Attenuation = " + sframe.Attenuation + "\n";
-                                    subnode.Text += @"Volume = " + sframe.Volume + "\n";
-                                    subnode.Text += @"Flags = " + sframe.Flags + "\n";
-                                    subnode.Text += @"Pitch = " + sframe.Pitch + "\n";
+                                    subnode.Text += "Channel = " + sframe.Channel + "\n";
+                                    subnode.Text += "Sample = " + sframe.Sample + "\n";
+                                    subnode.Text += "Attenuation = " + sframe.Attenuation + "\n";
+                                    subnode.Text += "Volume = " + sframe.Volume + "\n";
+                                    subnode.Text += "Flags = " + sframe.Flags + "\n";
+                                    subnode.Text += "Pitch = " + sframe.Pitch + "\n";
                                     subnode.Text += "}\n";
                                 }
 
@@ -3448,7 +3452,7 @@ namespace DemoScanner.DG
                                 {
                                     FrameErrors = LastOutgoingSequence = LastIncomingAcknowledged = LastIncomingSequence = 0;
                                     LASTFRAMEISCLIENTDATA = false;
-                                    if (DUMP_ALL_FRAMES) subnode.Text += @"End of the DirectoryEntry!";
+                                    if (DUMP_ALL_FRAMES) subnode.Text += "End of the DirectoryEntry!";
 
                                     if (UserAlive)
                                         FirstUserAlive = false;
@@ -3695,7 +3699,10 @@ namespace DemoScanner.DG
                                     FrameDuplicates++;
                                 }
 
-                                SecondFrameTime += nf.RParms.Frametime;
+
+                                if (CurrentFrameDuplicated < 2)
+                                    SecondFrameTime += nf.RParms.Frametime;
+
                                 CurrentFrameAlive = UserAlive;
                                 RealAlive = CurrentFrameAlive && PreviousFrameAlive;
                                 if (SkipNextAttack == 2) SkipNextAttack = 1;
@@ -5356,27 +5363,27 @@ namespace DemoScanner.DG
                                 if (DUMP_ALL_FRAMES)
                                 {
                                     subnode.Text += "{\n";
-                                    subnode.Text += @"RParms.Time  = " + nf.RParms.Time + "(" + CurrentTimeString + ")\n";
-                                    subnode.Text += @"RParms.Vieworg.X  = " + nf.RParms.Vieworg.X + "\n";
-                                    subnode.Text += @"RParms.Vieworg.Y  = " + nf.RParms.Vieworg.Y + "\n";
-                                    subnode.Text += @"RParms.Vieworg.Z  = " + nf.RParms.Vieworg.Z + "\n";
-                                    subnode.Text += @"RParms.Viewangles.X  = " + nf.RParms.Viewangles.X + "\n";
-                                    subnode.Text += @"RParms.Viewangles.Y  = " + nf.RParms.Viewangles.Y + "\n";
-                                    subnode.Text += @"RParms.Viewangles.Z  = " + nf.RParms.Viewangles.Z + "\n";
-                                    subnode.Text += @"RParms.Forward.X  = " + nf.RParms.Forward.X + "\n";
-                                    subnode.Text += @"RParms.Forward.Y  = " + nf.RParms.Forward.Y + "\n";
-                                    subnode.Text += @"RParms.Forward.Z  = " + nf.RParms.Forward.Z + "\n";
-                                    subnode.Text += @"RParms.Right.X  = " + nf.RParms.Right.X + "\n";
-                                    subnode.Text += @"RParms.Right.Y  = " + nf.RParms.Right.Y + "\n";
-                                    subnode.Text += @"RParms.Right.Z  = " + nf.RParms.Right.Z + "\n";
-                                    subnode.Text += @"RParms.Up.X  = " + nf.RParms.Up.X + "\n";
-                                    subnode.Text += @"RParms.Up.Y  = " + nf.RParms.Up.Y + "\n";
-                                    subnode.Text += @"RParms.Up.Z  = " + nf.RParms.Up.Z + "\n";
-                                    subnode.Text += @"RParms.Frametime  = " + nf.RParms.Frametime + "\n";
-                                    subnode.Text += @"RParms.Intermission  = " + nf.RParms.Intermission + "\n";
-                                    subnode.Text += @"RParms.Paused  = " + nf.RParms.Paused + "\n";
-                                    subnode.Text += @"RParms.Spectator  = " + nf.RParms.Spectator + "\n";
-                                    subnode.Text += @"RParms.Onground  = " + nf.RParms.Onground + "\n";
+                                    subnode.Text += "RParms.Time  = " + nf.RParms.Time + "(" + CurrentTimeString + ")\n";
+                                    subnode.Text += "RParms.Vieworg.X  = " + nf.RParms.Vieworg.X + "\n";
+                                    subnode.Text += "RParms.Vieworg.Y  = " + nf.RParms.Vieworg.Y + "\n";
+                                    subnode.Text += "RParms.Vieworg.Z  = " + nf.RParms.Vieworg.Z + "\n";
+                                    subnode.Text += "RParms.Viewangles.X  = " + nf.RParms.Viewangles.X + "\n";
+                                    subnode.Text += "RParms.Viewangles.Y  = " + nf.RParms.Viewangles.Y + "\n";
+                                    subnode.Text += "RParms.Viewangles.Z  = " + nf.RParms.Viewangles.Z + "\n";
+                                    subnode.Text += "RParms.Forward.X  = " + nf.RParms.Forward.X + "\n";
+                                    subnode.Text += "RParms.Forward.Y  = " + nf.RParms.Forward.Y + "\n";
+                                    subnode.Text += "RParms.Forward.Z  = " + nf.RParms.Forward.Z + "\n";
+                                    subnode.Text += "RParms.Right.X  = " + nf.RParms.Right.X + "\n";
+                                    subnode.Text += "RParms.Right.Y  = " + nf.RParms.Right.Y + "\n";
+                                    subnode.Text += "RParms.Right.Z  = " + nf.RParms.Right.Z + "\n";
+                                    subnode.Text += "RParms.Up.X  = " + nf.RParms.Up.X + "\n";
+                                    subnode.Text += "RParms.Up.Y  = " + nf.RParms.Up.Y + "\n";
+                                    subnode.Text += "RParms.Up.Z  = " + nf.RParms.Up.Z + "\n";
+                                    subnode.Text += "RParms.Frametime  = " + nf.RParms.Frametime + "\n";
+                                    subnode.Text += "RParms.Intermission  = " + nf.RParms.Intermission + "\n";
+                                    subnode.Text += "RParms.Paused  = " + nf.RParms.Paused + "\n";
+                                    subnode.Text += "RParms.Spectator  = " + nf.RParms.Spectator + "\n";
+                                    subnode.Text += "RParms.Onground  = " + nf.RParms.Onground + "\n";
                                 }
 
                                 if (nf.RParms.Intermission != 0)
@@ -5385,31 +5392,31 @@ namespace DemoScanner.DG
 
                                 if (DUMP_ALL_FRAMES)
                                 {
-                                    subnode.Text += @"RParms.Waterlevel  = " + nf.RParms.Waterlevel + "\n";
-                                    subnode.Text += @"RParms.Simvel.X  = " + nf.RParms.Simvel.X + "\n";
-                                    subnode.Text += @"RParms.Simvel.Y  = " + nf.RParms.Simvel.Y + "\n";
-                                    subnode.Text += @"RParms.Simvel.Z  = " + nf.RParms.Simvel.Z + "\n";
-                                    subnode.Text += @"RParms.Simorg.X  = " + nf.RParms.Simorg.X + "\n";
-                                    subnode.Text += @"RParms.Simorg.Y  = " + nf.RParms.Simorg.Y + "\n";
-                                    subnode.Text += @"RParms.Simorg.Z  = " + nf.RParms.Simorg.Z + "\n";
-                                    subnode.Text += @"RParms.Viewheight.X  = " + nf.RParms.Viewheight.X + "\n";
-                                    subnode.Text += @"RParms.Viewheight.Y  = " + nf.RParms.Viewheight.Y + "\n";
-                                    subnode.Text += @"RParms.Viewheight.Z  = " + nf.RParms.Viewheight.Z + "\n";
-                                    subnode.Text += @"RParms.Idealpitch  = " + nf.RParms.Idealpitch + "\n";
-                                    subnode.Text += @"RParms.ClViewangles.X  = " + nf.RParms.ClViewangles.X + "\n";
-                                    subnode.Text += @"RParms.ClViewangles.Y  = " + nf.RParms.ClViewangles.Y + "\n";
-                                    subnode.Text += @"RParms.ClViewangles.Z  = " + nf.RParms.ClViewangles.Z + "\n";
-                                    subnode.Text += @"RParms.Health  = " + nf.RParms.Health + "\n";
-                                    subnode.Text += @"RParms.Crosshairangle.X  = " + nf.RParms.Crosshairangle.X + "\n";
-                                    subnode.Text += @"RParms.Crosshairangle.Y  = " + nf.RParms.Crosshairangle.Y + "\n";
-                                    subnode.Text += @"RParms.Crosshairangle.Z  = " + nf.RParms.Crosshairangle.Z + "\n";
-                                    subnode.Text += @"RParms.Viewsize  = " + nf.RParms.Viewsize + "\n";
-                                    subnode.Text += @"RParms.Punchangle.X  = " + nf.RParms.Punchangle.X + "\n";
-                                    subnode.Text += @"RParms.Punchangle.Y  = " + nf.RParms.Punchangle.Y + "\n";
-                                    subnode.Text += @"RParms.Punchangle.Z  = " + nf.RParms.Punchangle.Z + "\n";
-                                    subnode.Text += @"RParms.Maxclients  = " + nf.RParms.Maxclients + "\n";
-                                    subnode.Text += @"RParms.Viewentity  = " + nf.RParms.Viewentity + "\n";
-                                    subnode.Text += @"RParms.Playernum  = " + nf.RParms.Playernum + "\n";
+                                    subnode.Text += "RParms.Waterlevel  = " + nf.RParms.Waterlevel + "\n";
+                                    subnode.Text += "RParms.Simvel.X  = " + nf.RParms.Simvel.X + "\n";
+                                    subnode.Text += "RParms.Simvel.Y  = " + nf.RParms.Simvel.Y + "\n";
+                                    subnode.Text += "RParms.Simvel.Z  = " + nf.RParms.Simvel.Z + "\n";
+                                    subnode.Text += "RParms.Simorg.X  = " + nf.RParms.Simorg.X + "\n";
+                                    subnode.Text += "RParms.Simorg.Y  = " + nf.RParms.Simorg.Y + "\n";
+                                    subnode.Text += "RParms.Simorg.Z  = " + nf.RParms.Simorg.Z + "\n";
+                                    subnode.Text += "RParms.Viewheight.X  = " + nf.RParms.Viewheight.X + "\n";
+                                    subnode.Text += "RParms.Viewheight.Y  = " + nf.RParms.Viewheight.Y + "\n";
+                                    subnode.Text += "RParms.Viewheight.Z  = " + nf.RParms.Viewheight.Z + "\n";
+                                    subnode.Text += "RParms.Idealpitch  = " + nf.RParms.Idealpitch + "\n";
+                                    subnode.Text += "RParms.ClViewangles.X  = " + nf.RParms.ClViewangles.X + "\n";
+                                    subnode.Text += "RParms.ClViewangles.Y  = " + nf.RParms.ClViewangles.Y + "\n";
+                                    subnode.Text += "RParms.ClViewangles.Z  = " + nf.RParms.ClViewangles.Z + "\n";
+                                    subnode.Text += "RParms.Health  = " + nf.RParms.Health + "\n";
+                                    subnode.Text += "RParms.Crosshairangle.X  = " + nf.RParms.Crosshairangle.X + "\n";
+                                    subnode.Text += "RParms.Crosshairangle.Y  = " + nf.RParms.Crosshairangle.Y + "\n";
+                                    subnode.Text += "RParms.Crosshairangle.Z  = " + nf.RParms.Crosshairangle.Z + "\n";
+                                    subnode.Text += "RParms.Viewsize  = " + nf.RParms.Viewsize + "\n";
+                                    subnode.Text += "RParms.Punchangle.X  = " + nf.RParms.Punchangle.X + "\n";
+                                    subnode.Text += "RParms.Punchangle.Y  = " + nf.RParms.Punchangle.Y + "\n";
+                                    subnode.Text += "RParms.Punchangle.Z  = " + nf.RParms.Punchangle.Z + "\n";
+                                    subnode.Text += "RParms.Maxclients  = " + nf.RParms.Maxclients + "\n";
+                                    subnode.Text += "RParms.Viewentity  = " + nf.RParms.Viewentity + "\n";
+                                    subnode.Text += "RParms.Playernum  = " + nf.RParms.Playernum + "\n";
                                 }
 
                                 UserId = nf.RParms.Playernum;
@@ -5435,27 +5442,27 @@ namespace DemoScanner.DG
                                 AddResolution(nf.RParms.Viewport.Z, nf.RParms.Viewport.W);
                                 if (DUMP_ALL_FRAMES)
                                 {
-                                    subnode.Text += @"RParms.MaxEntities  = " + nf.RParms.MaxEntities + "\n";
-                                    subnode.Text += @"RParms.Demoplayback  = " + nf.RParms.Demoplayback + "\n";
-                                    subnode.Text += @"RParms.Hardware  = " + nf.RParms.Hardware + "\n";
-                                    subnode.Text += @"RParms.Smoothing  = " + nf.RParms.Smoothing + "\n";
-                                    subnode.Text += @"RParms.PtrCmd  = " + nf.RParms.PtrCmd + "\n";
-                                    subnode.Text += @"RParms.PtrMovevars  = " + nf.RParms.PtrMovevars + "\n";
-                                    subnode.Text += @"RParms.Viewport.X  = " + nf.RParms.Viewport.X + "\n";
-                                    subnode.Text += @"RParms.Viewport.Y  = " + nf.RParms.Viewport.Y + "\n";
-                                    subnode.Text += @"RParms.Viewport.Z  = " + nf.RParms.Viewport.Z + "\n";
-                                    subnode.Text += @"RParms.Viewport.W  = " + nf.RParms.Viewport.W + "\n";
-                                    subnode.Text += @"RParms.NextView  = " + nf.RParms.NextView + "\n";
-                                    subnode.Text += @"RParms.OnlyClientDraw  = " + nf.RParms.OnlyClientDraw + "\n";
-                                    subnode.Text += @"UCmd.LerpMsec  = " + nf.UCmd.LerpMsec + "\n";
-                                    subnode.Text += @"UCmd.Msec  = " + nf.UCmd.Msec + "\n";
-                                    subnode.Text += @"UCmd.Align1  = " + nf.UCmd.Align1 + "\n";
-                                    subnode.Text += @"UCmd.Forwardmove  = " + nf.UCmd.Forwardmove + "\n";
-                                    subnode.Text += @"UCmd.Sidemove  = " + nf.UCmd.Sidemove + "\n";
-                                    subnode.Text += @"UCmd.Upmove  = " + nf.UCmd.Upmove + "\n";
-                                    subnode.Text += @"UCmd.Lightlevel  = " + nf.UCmd.Lightlevel + "\n";
-                                    subnode.Text += @"UCmd.Align2  = " + nf.UCmd.Align2 + "\n";
-                                    subnode.Text += @"UCmd.Buttons  = " + nf.UCmd.Buttons + "\n";
+                                    subnode.Text += "RParms.MaxEntities  = " + nf.RParms.MaxEntities + "\n";
+                                    subnode.Text += "RParms.Demoplayback  = " + nf.RParms.Demoplayback + "\n";
+                                    subnode.Text += "RParms.Hardware  = " + nf.RParms.Hardware + "\n";
+                                    subnode.Text += "RParms.Smoothing  = " + nf.RParms.Smoothing + "\n";
+                                    subnode.Text += "RParms.PtrCmd  = " + nf.RParms.PtrCmd + "\n";
+                                    subnode.Text += "RParms.PtrMovevars  = " + nf.RParms.PtrMovevars + "\n";
+                                    subnode.Text += "RParms.Viewport.X  = " + nf.RParms.Viewport.X + "\n";
+                                    subnode.Text += "RParms.Viewport.Y  = " + nf.RParms.Viewport.Y + "\n";
+                                    subnode.Text += "RParms.Viewport.Z  = " + nf.RParms.Viewport.Z + "\n";
+                                    subnode.Text += "RParms.Viewport.W  = " + nf.RParms.Viewport.W + "\n";
+                                    subnode.Text += "RParms.NextView  = " + nf.RParms.NextView + "\n";
+                                    subnode.Text += "RParms.OnlyClientDraw  = " + nf.RParms.OnlyClientDraw + "\n";
+                                    subnode.Text += "UCmd.LerpMsec  = " + nf.UCmd.LerpMsec + "\n";
+                                    subnode.Text += "UCmd.Msec  = " + nf.UCmd.Msec + "\n";
+                                    subnode.Text += "UCmd.Align1  = " + nf.UCmd.Align1 + "\n";
+                                    subnode.Text += "UCmd.Forwardmove  = " + nf.UCmd.Forwardmove + "\n";
+                                    subnode.Text += "UCmd.Sidemove  = " + nf.UCmd.Sidemove + "\n";
+                                    subnode.Text += "UCmd.Upmove  = " + nf.UCmd.Upmove + "\n";
+                                    subnode.Text += "UCmd.Lightlevel  = " + nf.UCmd.Lightlevel + "\n";
+                                    subnode.Text += "UCmd.Align2  = " + nf.UCmd.Align2 + "\n";
+                                    subnode.Text += "UCmd.Buttons  = " + nf.UCmd.Buttons + "\n";
                                 }
 
                                 if (IsUserAlive() && FirstJump && abs(CurrentTime) > EPSILON)
@@ -5775,61 +5782,61 @@ namespace DemoScanner.DG
 
                                 if (DUMP_ALL_FRAMES)
                                 {
-                                    subnode.Text += @"UCmd.Impulse  = " + nf.UCmd.Impulse + "\n";
-                                    subnode.Text += @"UCmd.Weaponselect  = " + nf.UCmd.Weaponselect + "\n";
-                                    subnode.Text += @"UCmd.Align3  = " + nf.UCmd.Align3 + "\n";
-                                    subnode.Text += @"UCmd.Align4  = " + nf.UCmd.Align4 + "\n";
-                                    subnode.Text += @"UCmd.ImpactIndex  = " + nf.UCmd.ImpactIndex + "\n";
-                                    subnode.Text += @"UCmd.ImpactPosition.X  = " + nf.UCmd.ImpactPosition.X + "\n";
-                                    subnode.Text += @"UCmd.ImpactPosition.Y  = " + nf.UCmd.ImpactPosition.Y + "\n";
-                                    subnode.Text += @"UCmd.ImpactPosition.Z  = " + nf.UCmd.ImpactPosition.Z + "\n";
-                                    subnode.Text += @"MVars.Gravity  = " + nf.MVars.Gravity + "\n";
-                                    subnode.Text += @"MVars.Stopspeed  = " + nf.MVars.Stopspeed + "\n";
-                                    subnode.Text += @"MVars.Maxspeed  = " + nf.MVars.Maxspeed + "\n";
-                                    subnode.Text += @"MVars.Spectatormaxspeed  = " + nf.MVars.Spectatormaxspeed + "\n";
-                                    subnode.Text += @"MVars.Accelerate  = " + nf.MVars.Accelerate + "\n";
-                                    subnode.Text += @"MVars.Airaccelerate  = " + nf.MVars.Airaccelerate + "\n";
-                                    subnode.Text += @"MVars.Wateraccelerate  = " + nf.MVars.Wateraccelerate + "\n";
-                                    subnode.Text += @"MVars.Friction  = " + nf.MVars.Friction + "\n";
-                                    subnode.Text += @"MVars.Edgefriction  = " + nf.MVars.Edgefriction + "\n";
-                                    subnode.Text += @"MVars.Waterfriction  = " + nf.MVars.Waterfriction + "\n";
-                                    subnode.Text += @"MVars.Entgravity  = " + nf.MVars.Entgravity + "\n";
-                                    subnode.Text += @"MVars.Bounce  = " + nf.MVars.Bounce + "\n";
-                                    subnode.Text += @"MVars.Stepsize  = " + nf.MVars.Stepsize + "\n";
-                                    subnode.Text += @"MVars.Maxvelocity  = " + nf.MVars.Maxvelocity + "\n";
-                                    subnode.Text += @"MVars.Zmax  = " + nf.MVars.Zmax + "\n";
-                                    subnode.Text += @"MVars.WaveHeight  = " + nf.MVars.WaveHeight + "\n";
-                                    subnode.Text += @"MVars.Footsteps  = " + nf.MVars.Footsteps + "\n";
-                                    subnode.Text += @"MVars.SkyName  = " + nf.MVars.SkyName + "\n";
-                                    subnode.Text += @"MVars.Rollangle  = " + nf.MVars.Rollangle + "\n";
-                                    subnode.Text += @"MVars.Rollspeed  = " + nf.MVars.Rollspeed + "\n";
-                                    subnode.Text += @"MVars.SkycolorR  = " + nf.MVars.SkycolorR + "\n";
-                                    subnode.Text += @"MVars.SkycolorG  = " + nf.MVars.SkycolorG + "\n";
-                                    subnode.Text += @"MVars.SkycolorB  = " + nf.MVars.SkycolorB + "\n";
-                                    subnode.Text += @"MVars.SkyvecX  = " + nf.MVars.SkyvecX + "\n";
-                                    subnode.Text += @"MVars.SkyvecY  = " + nf.MVars.SkyvecY + "\n";
-                                    subnode.Text += @"MVars.SkyvecZ  = " + nf.MVars.SkyvecZ + "\n";
-                                    subnode.Text += @"View.X  = " + nf.View.X + "\n";
-                                    subnode.Text += @"View.Y  = " + nf.View.Y + "\n";
-                                    subnode.Text += @"View.Z  = " + nf.View.Z + "\n";
-                                    subnode.Text += @"Viewmodel  = " + nf.Viewmodel + "\n";
-                                    subnode.Text += @"IncomingSequence  = " + nf.IncomingSequence + "(" +
+                                    subnode.Text += "UCmd.Impulse  = " + nf.UCmd.Impulse + "\n";
+                                    subnode.Text += "UCmd.Weaponselect  = " + nf.UCmd.Weaponselect + "\n";
+                                    subnode.Text += "UCmd.Align3  = " + nf.UCmd.Align3 + "\n";
+                                    subnode.Text += "UCmd.Align4  = " + nf.UCmd.Align4 + "\n";
+                                    subnode.Text += "UCmd.ImpactIndex  = " + nf.UCmd.ImpactIndex + "\n";
+                                    subnode.Text += "UCmd.ImpactPosition.X  = " + nf.UCmd.ImpactPosition.X + "\n";
+                                    subnode.Text += "UCmd.ImpactPosition.Y  = " + nf.UCmd.ImpactPosition.Y + "\n";
+                                    subnode.Text += "UCmd.ImpactPosition.Z  = " + nf.UCmd.ImpactPosition.Z + "\n";
+                                    subnode.Text += "MVars.Gravity  = " + nf.MVars.Gravity + "\n";
+                                    subnode.Text += "MVars.Stopspeed  = " + nf.MVars.Stopspeed + "\n";
+                                    subnode.Text += "MVars.Maxspeed  = " + nf.MVars.Maxspeed + "\n";
+                                    subnode.Text += "MVars.Spectatormaxspeed  = " + nf.MVars.Spectatormaxspeed + "\n";
+                                    subnode.Text += "MVars.Accelerate  = " + nf.MVars.Accelerate + "\n";
+                                    subnode.Text += "MVars.Airaccelerate  = " + nf.MVars.Airaccelerate + "\n";
+                                    subnode.Text += "MVars.Wateraccelerate  = " + nf.MVars.Wateraccelerate + "\n";
+                                    subnode.Text += "MVars.Friction  = " + nf.MVars.Friction + "\n";
+                                    subnode.Text += "MVars.Edgefriction  = " + nf.MVars.Edgefriction + "\n";
+                                    subnode.Text += "MVars.Waterfriction  = " + nf.MVars.Waterfriction + "\n";
+                                    subnode.Text += "MVars.Entgravity  = " + nf.MVars.Entgravity + "\n";
+                                    subnode.Text += "MVars.Bounce  = " + nf.MVars.Bounce + "\n";
+                                    subnode.Text += "MVars.Stepsize  = " + nf.MVars.Stepsize + "\n";
+                                    subnode.Text += "MVars.Maxvelocity  = " + nf.MVars.Maxvelocity + "\n";
+                                    subnode.Text += "MVars.Zmax  = " + nf.MVars.Zmax + "\n";
+                                    subnode.Text += "MVars.WaveHeight  = " + nf.MVars.WaveHeight + "\n";
+                                    subnode.Text += "MVars.Footsteps  = " + nf.MVars.Footsteps + "\n";
+                                    subnode.Text += "MVars.SkyName  = " + nf.MVars.SkyName + "\n";
+                                    subnode.Text += "MVars.Rollangle  = " + nf.MVars.Rollangle + "\n";
+                                    subnode.Text += "MVars.Rollspeed  = " + nf.MVars.Rollspeed + "\n";
+                                    subnode.Text += "MVars.SkycolorR  = " + nf.MVars.SkycolorR + "\n";
+                                    subnode.Text += "MVars.SkycolorG  = " + nf.MVars.SkycolorG + "\n";
+                                    subnode.Text += "MVars.SkycolorB  = " + nf.MVars.SkycolorB + "\n";
+                                    subnode.Text += "MVars.SkyvecX  = " + nf.MVars.SkyvecX + "\n";
+                                    subnode.Text += "MVars.SkyvecY  = " + nf.MVars.SkyvecY + "\n";
+                                    subnode.Text += "MVars.SkyvecZ  = " + nf.MVars.SkyvecZ + "\n";
+                                    subnode.Text += "View.X  = " + nf.View.X + "\n";
+                                    subnode.Text += "View.Y  = " + nf.View.Y + "\n";
+                                    subnode.Text += "View.Z  = " + nf.View.Z + "\n";
+                                    subnode.Text += "Viewmodel  = " + nf.Viewmodel + "\n";
+                                    subnode.Text += "IncomingSequence  = " + nf.IncomingSequence + "(" +
                                                     nf.IncomingSequence.ToString("X2") + ")\n";
-                                    subnode.Text += @"IncomingAcknowledged  = " + nf.IncomingAcknowledged + "(" +
+                                    subnode.Text += "IncomingAcknowledged  = " + nf.IncomingAcknowledged + "(" +
                                                     nf.IncomingAcknowledged.ToString("X2") + ")\n";
-                                    subnode.Text += @"IncomingReliableAcknowledged  = " + nf.IncomingReliableAcknowledged +
+                                    subnode.Text += "IncomingReliableAcknowledged  = " + nf.IncomingReliableAcknowledged +
                                                     "(" + nf.IncomingReliableAcknowledged.ToString("X2") + ")\n";
-                                    subnode.Text += @"IncomingReliableSequence  = " + nf.IncomingReliableSequence + "(" +
+                                    subnode.Text += "IncomingReliableSequence  = " + nf.IncomingReliableSequence + "(" +
                                                     nf.IncomingReliableSequence.ToString("X2") + ")\n";
-                                    subnode.Text += @"OutgoingSequence  = " + nf.OutgoingSequence + "(" +
+                                    subnode.Text += "OutgoingSequence  = " + nf.OutgoingSequence + "(" +
                                                     nf.OutgoingSequence.ToString("X2") + ")\n";
-                                    subnode.Text += @"ReliableSequence  = " + nf.ReliableSequence + "(" +
+                                    subnode.Text += "ReliableSequence  = " + nf.ReliableSequence + "(" +
                                                     nf.ReliableSequence.ToString("X2") + ")\n";
-                                    subnode.Text += @"LastReliableSequence = " + nf.LastReliableSequence + "(" +
+                                    subnode.Text += "LastReliableSequence = " + nf.LastReliableSequence + "(" +
                                                     nf.LastReliableSequence.ToString("X2") + ")\n";
                                 }
 
-                                //subnode.Text += @"msg = " + nf.Msg + "\n";
+                                //subnode.Text += "msg = " + nf.Msg + "\n";
                                 if (NeedSearchCMDHACK4 && abs(CurrentTime) > 0 && (FirstAttack || FirstJump) &&
                                     !NewDirectory)
                                     if (LastIncomingSequence > 0 &&
@@ -5912,7 +5919,7 @@ namespace DemoScanner.DG
                                 {
                                     subnode.Text += OutDumpString;
                                     OutDumpString = "";
-                                    subnode.Text += 1 / nf.RParms.Frametime + @" FPS";
+                                    subnode.Text += 1 / nf.RParms.Frametime + " FPS";
                                     subnode.Text += "}\n";
                                 }
 
@@ -5948,8 +5955,8 @@ namespace DemoScanner.DG
             try
             {
                 if (DUMP_ALL_FRAMES &&
-                    File.Exists(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) + @"_Frames.txt"))
-                    File.AppendAllLines(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) + @"_Frames.txt",
+                    File.Exists(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) + "_Frames.txt"))
+                    File.AppendAllLines(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) + "_Frames.txt",
                         outFrames.ToArray());
             }
             catch
@@ -6489,7 +6496,7 @@ namespace DemoScanner.DG
                     if (strikedir.EndsWith("/") || strikedir.EndsWith("\\"))
                         strikedir = strikedir.Remove(strikedir.Length - 1);
 
-                    if (File.Exists(strikedir + "\\..\\" + "hw.dll"))
+                    if (File.Exists(strikedir + "/../" + "hw.dll"))
                     {
                         if (!Directory.Exists(strikedir))
                             try
@@ -6506,10 +6513,10 @@ namespace DemoScanner.DG
                             Console.WriteLine("Download " + DownloadResources.Count + " resources with total size: " +
                                               DownloadResourcesSize + " bytes");
                             Console.WriteLine("Download start time:" + DateTime.Now.ToString("HH:mm:ss"));
-                            if (File.Exists(CurrentDir + @"\DownloadError.txt"))
+                            if (File.Exists(CurrentDir + "/DownloadError.txt"))
                                 try
                                 {
-                                    File.Delete(CurrentDir + @"\DownloadError.txt");
+                                    File.Delete(CurrentDir + "/DownloadError.txt");
                                 }
                                 catch
                                 {
@@ -6519,9 +6526,9 @@ namespace DemoScanner.DG
                             var threads = 0;
                             var threadid = 0;
                             Parallel.ForEach(DownloadResources,
-                                new ParallelOptions { MaxDegreeOfParallelism = RESOURCE_DOWNLOAD_THREADS }, s =>
+                                new ParallelOptions { MaxDegreeOfParallelism = RESOURCE_DOWNLOAD_THREADS }, path =>
                                 {
-                                    s = s.Replace("/", "\\");
+                                    string url = path.Replace("/", "\\");
                                     var current_thread_id = 0;
                                     lock (sync)
                                     {
@@ -6534,14 +6541,14 @@ namespace DemoScanner.DG
                                     }
 
                                     Thread.SetData(Thread.GetNamedDataSlot("int"), current_thread_id);
-                                    if (char.IsLetterOrDigit(s[0]) && !File.Exists(strikedir + "\\" + s) &&
-                                        !File.Exists(strikedir + "\\..\\cstrike\\" + s) &&
-                                        !File.Exists(strikedir + "\\..\\valve\\" + s))
+                                    if (char.IsLetterOrDigit(path[0]) && !File.Exists(strikedir + "/" + path) &&
+                                        !File.Exists(strikedir + "/../cstrike/" + path) &&
+                                        !File.Exists(strikedir + "/../valve/" + path))
                                     {
                                         lock (sync)
                                         {
                                             NativeConsoleMethods.ClearCurrentConsoleLine();
-                                            Console.Write("\rDownload \"" + s + "\" " + sum + " of " +
+                                            Console.Write("\rDownload \"" + path + "\" " + sum + " of " +
                                                           DownloadResources.Count + ". In " +
                                                           GetActiveDownloadThreads() + " of " +
                                                           (GetActiveDownloadThreads() > threads
@@ -6553,27 +6560,27 @@ namespace DemoScanner.DG
                                         try
                                         {
                                             myWebClient.DownloadProgressChanged += MyWebClient_DownloadProgressChanged;
-                                            var tmptaskdata = myWebClient.DownloadDataTaskAsync(DownloadLocation + s)
+                                            var tmptaskdata = myWebClient.DownloadDataTaskAsync(DownloadLocation + url)
                                                 .Result;
                                             try
                                             {
-                                                Directory.CreateDirectory(Path.GetDirectoryName(strikedir + "\\" + s));
+                                                Directory.CreateDirectory(Path.GetDirectoryName(strikedir + "/" + path));
                                             }
                                             catch
                                             {
                                             }
 
-                                            File.WriteAllBytes(strikedir + "\\" + s, tmptaskdata);
+                                            File.WriteAllBytes(strikedir + "//" + path, tmptaskdata);
                                         }
                                         catch
                                         {
                                             lock (sync)
                                             {
                                                 NativeConsoleMethods.ClearCurrentConsoleLine();
-                                                var dwnerrorstr = "\rFailed to download \"" + s + "\" file.";
+                                                var dwnerrorstr = "\rFailed to download \"" + path + "\" file.";
                                                 Console.Write(dwnerrorstr);
                                                 Thread.Sleep(50);
-                                                File.AppendAllText(CurrentDir + @"\DownloadError.txt",
+                                                File.AppendAllText(CurrentDir + "/DownloadError.txt",
                                                     dwnerrorstr + "\r\n");
                                             }
                                         }
@@ -6588,8 +6595,14 @@ namespace DemoScanner.DG
                                 });
                             Console.WriteLine();
                             Console.WriteLine("Download end time:" + DateTime.Now.ToString("HH:mm:ss"));
-                            if (File.Exists(CurrentDir + @"\DownloadError.txt"))
-                                Process.Start(CurrentDir + @"\DownloadError.txt");
+                            if (File.Exists(CurrentDir + "/DownloadError.txt"))
+                            {
+                                Process.Start(new ProcessStartInfo
+                                {
+                                    FileName = CurrentDir + "/DownloadError.txt",
+                                    UseShellExecute = true
+                                });
+                            }
                         }
                         else
                         {
@@ -6670,8 +6683,12 @@ namespace DemoScanner.DG
                     try
                     {
                         CommandsDump.Insert(0, "This file created by Unreal Demo Scanner\n\n");
-                        File.WriteAllLines(CurrentDir + @"\Commands.txt", CommandsDump.ToArray());
-                        Process.Start(CurrentDir + @"\Commands.txt");
+                        File.WriteAllLines(CurrentDir + "/Commands.txt", CommandsDump.ToArray());
+                        Process.Start(new ProcessStartInfo
+                        {
+                            FileName = CurrentDir + "/Commands.txt",
+                            UseShellExecute = true
+                        });
                     }
                     catch
                     {
@@ -6689,8 +6706,12 @@ namespace DemoScanner.DG
                     table.Write(Format.Alternative);
                     try
                     {
-                        File.WriteAllText(CurrentDir + @"\SensHistory.txt", table.ToStringAlternative());
-                        Process.Start(CurrentDir + @"\SensHistory.txt");
+                        File.WriteAllText(CurrentDir + "/SensHistory.txt", table.ToStringAlternative());
+                        Process.Start(new ProcessStartInfo
+                        {
+                            FileName = CurrentDir + "/SensHistory.txt",
+                            UseShellExecute = true
+                        });
                     }
                     catch
                     {
@@ -6700,11 +6721,35 @@ namespace DemoScanner.DG
 
                 if (command == "5")
                 {
-                    if (!File.Exists(CurrentDir + @"\revoicedecoder.exe"))
+                    if (!File.Exists(CurrentDir + "/revoicedecoder.exe"))
                     {
+                        Console.ForegroundColor = ConsoleColor.Red;
+                        if (IsRussia)
+                        {
+                            Console.WriteLine("Установите декодер в " + CurrentDir + "/revoicedecoder.exe");
+                        }
+                        else
+                        {
+                            Console.WriteLine("Please install decoder at " + CurrentDir + "/revoicedecoder.exe");
+                        }
                         Console.ForegroundColor = ConsoleColor.Cyan;
-                        Console.WriteLine("No decoder found at path " + CurrentDir + @"\revoicedecoder.exe");
                         continue;
+                    }
+
+                    bool one_file = false;
+
+                    if (IsRussia)
+                    {
+                        Console.Write("Декодировать в один звуковой файл? (Y/N):");
+                    }
+                    else
+                    {
+                        Console.Write("Decode in one voice file? (Y/N):");
+                    }
+
+                    if (Console.ReadLine().ToLower() == "y")
+                    {
+                        one_file = true;
                     }
 
                     Console.ForegroundColor = ConsoleColor.Cyan;
@@ -6712,85 +6757,108 @@ namespace DemoScanner.DG
                     {
                         try
                         {
-                            if (Directory.Exists(CurrentDir + @"\out")) Directory.Delete(CurrentDir + @"\out", true);
+                            if (Directory.Exists(CurrentDir + "/output"))
+                                Directory.Delete(CurrentDir + "/output", true);
                         }
                         catch
                         {
                             Console.WriteLine("Error deleting out folder.");
                         }
 
-                        if (!Directory.Exists(CurrentDir + @"\out")) Directory.CreateDirectory(CurrentDir + @"\out");
+                        try
+                        {
+                            if (Directory.Exists(CurrentDir + "/input"))
+                                Directory.Delete(CurrentDir + "/input", true);
+                        }
+                        catch
+                        {
+                            Console.WriteLine("Error deleting input folder.");
+                        }
 
-                        fullPlayerList.AddRange(playerList);
+                        if (!Directory.Exists(CurrentDir + "/output"))
+                        {
+                            Directory.CreateDirectory(CurrentDir + "/output");
+                        }
 
-                        var offset = 0;
+                        if (!Directory.Exists(CurrentDir + "/input"))
+                        {
+                            Directory.CreateDirectory(CurrentDir + "/input");
+                        }
+
+                        if (playerList.Count > 0)
+                            fullPlayerList.AddRange(playerList);
+                        playerList.Clear();
+
+                        Dictionary<string, string> voice_paths = new Dictionary<string, string>();
+
                         foreach (var player in fullPlayerList)
                         {
-                            if (player.UserName.Length <= 0) continue;
+                            if (player.UserName.Length <= 0)
+                            {
+                                player.UserName = "USER[" + player.iStructCounter + "]";
+                            }
 
                             if (player.voicedata_stream.Length > 0)
                             {
-                                if (File.Exists(CurrentDir + @"\input.wav.enc"))
-                                    try
-                                    {
-                                        File.Delete(CurrentDir + @"\input.wav.enc");
-                                    }
-                                    catch
-                                    {
-                                        Console.WriteLine("Error deleting input.wav.enc");
-                                    }
+                                var filename = Regex.Replace(player.UserName, @"[^\u0000-\u007F]+", "_") + "_[" + player.UserSteamId + "]_" + "(" +
+                                               player.iSlot + ").wav";
+                                foreach (var c in Path.GetInvalidFileNameChars())
+                                    filename = filename.Replace(c, '_');
+
+                                var inputfile = CurrentDir + "/input/" + filename;
+                                var outputfile = CurrentDir + "/output/" + filename;
+
+                                voice_paths[player.UserName + "[" + player.UserSteamId + "]"] = outputfile;
 
                                 var binaryReader = new BinaryReader(player.voicedata_stream);
                                 player.voicedata_stream.Seek(0, SeekOrigin.Begin);
                                 var data2 = new List<byte>(binaryReader.ReadBytes((int)player.voicedata_stream.Length));
-                                data2.Insert(0, VoiceQuality);
-                                File.WriteAllBytes(CurrentDir + @"\input.wav.enc", data2.ToArray());
-                                var process = new Process();
-                                process.StartInfo.FileName = CurrentDir + @"\revoicedecoder.exe";
-                                process.StartInfo.WorkingDirectory = CurrentDir;
-                                process.Start();
-                                process.WaitForExit();
-                                var filename = Regex.Replace(player.UserName, @"[^\u0000-\u007F]+", "_") + "_[" + player.UserSteamId + "]_" + "(" +
-                                               player.iSlot + ").wav";
-                                foreach (var c in Path.GetInvalidFileNameChars()) filename = filename.Replace(c, 'x');
 
-                                if (File.Exists(CurrentDir + @"\output.wav"))
-                                {
-                                    if (File.Exists(CurrentDir + @"\out\" + filename)
-                                        && new FileInfo(CurrentDir + @"\out\" + filename).Length !=
-                                         new FileInfo(CurrentDir + @"\out\" + filename).Length)
-                                    {
-                                        offset++;
-                                        filename = offset + "_" + filename;
-                                    }
+                                // voice quality at 2 byte
+                                data2.Insert(0, (byte)VoiceQuality);
+                                // one file bool at 1 byte
+                                data2.Insert(0, (byte)(one_file ? 1 : 0));
 
-                                    if (!File.Exists(CurrentDir + @"\out\" + filename))
-                                        File.Move(CurrentDir + @"\output.wav", CurrentDir + @"\out\" + filename);
-
-                                    if (File.Exists(CurrentDir + @"\output.wav"))
-                                    {
-                                        try
-                                        {
-                                            File.Delete(CurrentDir + @"\output.wav");
-                                        }
-                                        catch { }
-                                    }
-                                }
+                                File.WriteAllBytes(inputfile, data2.ToArray());
                             }
                         }
 
-                        if (File.Exists(CurrentDir + @"\input.wav.enc"))
-                            try
-                            {
-                                File.Delete(CurrentDir + @"\input.wav.enc");
-                            }
-                            catch
-                            {
-                                Console.WriteLine("Error deleting input.wav.enc");
-                            }
+                        var process = new Process();
+                        process.StartInfo.FileName = CurrentDir + "/revoicedecoder.exe";
+                        process.StartInfo.WorkingDirectory = CurrentDir;
+                        process.Start();
+                        process.WaitForExit();
 
-                        Console.WriteLine("Success players voice decode!");
-                        Process.Start(CurrentDir + @"\out\");
+                        bool found_one = false;
+
+                        foreach (var user in voice_paths)
+                        {
+                            bool found = File.Exists(user.Value);
+
+                            if (found)
+                                found_one = true;
+
+                            var tmpconsolecolor = Console.ForegroundColor;
+                            Console.Write("User \"" + user.Key + "\" :");
+                            Console.ForegroundColor = found ? ConsoleColor.Green : ConsoleColor.Red;
+                            Console.WriteLine(found ? "Success!" : "Failed!");
+                            Console.ForegroundColor = tmpconsolecolor;
+                        }
+
+                        if (found_one)
+                        {
+                            Console.WriteLine("Success players voice decode!");
+
+                            Process.Start(new ProcessStartInfo
+                            {
+                                FileName = CurrentDir + "/output/",
+                                UseShellExecute = true
+                            });
+                        }
+                        else
+                        {
+                            Console.WriteLine("No voice detected!");
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -6801,9 +6869,9 @@ namespace DemoScanner.DG
                 if (command == "4")
                     try
                     {
-                        File.Delete(CurrentDir + @"\players.txt");
-                        File.AppendAllText(CurrentDir + @"\players.txt", "Current players:\n");
-                        File.AppendAllText(CurrentDir + @"\players.txt", "Local player:" + UserId);
+                        File.Delete(CurrentDir + "/players.txt");
+                        File.AppendAllText(CurrentDir + "/players.txt", "Current players:\n");
+                        File.AppendAllText(CurrentDir + "/players.txt", "Local player:" + UserId);
                         foreach (var player in playerList)
                             if (player.UserName.Length > 0)
                             {
@@ -6811,10 +6879,10 @@ namespace DemoScanner.DG
                                 foreach (var keys in player.InfoKeys) table.AddRow(keys.Key + " = " + keys.Value);
 
                                 table.AddRow("SLOTID = " + player.iSlot);
-                                File.AppendAllText(CurrentDir + @"\players.txt", table.ToStringAlternative());
+                                File.AppendAllText(CurrentDir + "/players.txt", table.ToStringAlternative());
                             }
 
-                        File.AppendAllText(CurrentDir + @"\players.txt", "Old players:\n");
+                        File.AppendAllText(CurrentDir + "/players.txt", "Old players:\n");
                         foreach (var player in fullPlayerList)
                             if (player.UserName.Length > 0)
                             {
@@ -6822,11 +6890,15 @@ namespace DemoScanner.DG
                                 foreach (var keys in player.InfoKeys) table.AddRow(keys.Key + " = " + keys.Value);
 
                                 table.AddRow("SLOTID = " + player.iSlot);
-                                File.AppendAllText(CurrentDir + @"\players.txt", table.ToStringAlternative());
+                                File.AppendAllText(CurrentDir + "/players.txt", table.ToStringAlternative());
                             }
 
                         Console.WriteLine("All players saved to players.txt");
-                        Process.Start(CurrentDir + @"\players.txt");
+                        Process.Start(new ProcessStartInfo
+                        {
+                            FileName = CurrentDir + "/players.txt",
+                            UseShellExecute = true
+                        });
                     }
                     catch
                     {
@@ -6894,7 +6966,11 @@ namespace DemoScanner.DG
                                 File.Delete(textdatapath);
                             File.WriteAllLines(textdatapath, OutTextMessages.ToArray());
                             Console.WriteLine("Text comments saved");
-                            Process.Start(textdatapath);
+                            Process.Start(new ProcessStartInfo
+                            {
+                                FileName = textdatapath,
+                                UseShellExecute = true
+                            });
                         }
                         catch
                         {
@@ -6914,7 +6990,12 @@ namespace DemoScanner.DG
                                 File.Delete(textdatapath);
                             File.WriteAllLines(textdatapath, OutTextDetects.ToArray());
                             Console.WriteLine("Text comments saved");
-                            Process.Start(textdatapath);
+
+                            Process.Start(new ProcessStartInfo
+                            {
+                                FileName = textdatapath,
+                                UseShellExecute = true
+                            });
                         }
                         catch
                         {
@@ -7038,7 +7119,7 @@ namespace DemoScanner.DG
                     Console.WriteLine("DealthMatch:" + DealthMatch);
                     if (playerList.Count > 0) Console.WriteLine("Players: " + playerList.Count);
 
-                    Console.WriteLine("Codecname:" + codecname);
+                    Console.WriteLine("Codecname:" + VoiceCodec);
                     if (CheatKey > 0) Console.WriteLine("Possible press cheat key " + CheatKey + " times. (???)");
 
                     if (FrameDuplicates > 0) Console.WriteLine("Duplicate frames(Same frame): " + FrameDuplicates);
@@ -7792,7 +7873,8 @@ namespace DemoScanner.DG
             {
                 if (len > 0)
                 {
-                    voicedata.Write(len);
+                    voicedata.Write((float)SecondFrameTime);
+                    voicedata.Write((int)len);
                     voicedata.Write(data);
                 }
             }
@@ -8612,7 +8694,8 @@ namespace DemoScanner.DG
             // поиск игрока с нужным UserID если он существует
             for (player_in_struct_id = 0; player_in_struct_id < playerList.Count; player_in_struct_id++)
             {
-                if (playerList[player_in_struct_id].ServerUserIdLong == userid)
+                if (playerList[player_in_struct_id].ServerUserIdLong == userid
+                    || playerList[player_in_struct_id].iSlot == slot)
                 {
                     playerfound = true;
                     player = playerList[player_in_struct_id];
@@ -8625,17 +8708,20 @@ namespace DemoScanner.DG
             if (!playerfound)
             {
                 player = new Player(slot, userid);
-                playerList.Add(player);
-                player_in_struct_id = playerList.Count - 1;
+                playerList.Insert(0, player);
+                player_in_struct_id = 0;
             }
 
             if (playerfound)
             {
                 fullPlayerList.Add(player);
                 playerList.RemoveAt(player_in_struct_id);
-                player = new Player(slot, userid);
-                playerList.Add(player);
-                player_in_struct_id = playerList.Count - 1;
+                var tmpplayer = new Player(slot, userid);
+                tmpplayer.UserName = player.UserName;
+                tmpplayer.UserSteamId = player.UserSteamId;
+                playerList.Insert(0, tmpplayer);
+                player = tmpplayer;
+                player_in_struct_id = 0;
             }
 
             var userinfo_string_bak = userinfo_string;
@@ -9364,7 +9450,7 @@ namespace DemoScanner.DG
                 if (has_extra) BitBuffer.ReadBytes(32);
 
                 if (type == 0)
-                    DownloadResources.Add("sound\\" + downloadname);
+                    DownloadResources.Add("sound/" + downloadname);
                 else
                     DownloadResources.Add(downloadname);
 
@@ -9543,7 +9629,7 @@ namespace DemoScanner.DG
             // string: codec name (sv_voicecodec, either voice_miles or voice_speex)
             // byte: quality (sv_voicequality, 1 to 5)
             var tmpcodecname = BitBuffer.ReadString();
-            if (tmpcodecname.Length > 0) codecname = tmpcodecname;
+            if (tmpcodecname.Length > 0) VoiceCodec = tmpcodecname;
 
             //MessageBox.Show(codecname);
             if (DUMP_ALL_FRAMES) OutDumpString += "MessageVoiceInit:" + tmpcodecname + "\n";
@@ -9567,9 +9653,16 @@ namespace DemoScanner.DG
 
             //MessageBox.Show(playerid + "(2):" + length);
             if (playerid <= 33)
+            {
                 for (var i = 0; i < playerList.Count; i++)
+                {
                     if (playerList[i].iSlot == playerid)
+                    {
                         playerList[i].WriteVoice(length, data);
+                        break;
+                    }
+                }
+            }
         }
 
         private void MessageSendExtraInfo()

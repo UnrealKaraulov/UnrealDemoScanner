@@ -150,7 +150,7 @@ int VoiceEncoder_Silk::Decompress(const char *pCompressed, int compressedBytes, 
 	char *pWritePosMax; // [sp+28h] [bp-44h]@4
 	const char *pReadPosMax; // [sp+3Ch] [bp-30h]@1
 
-	const int outSampleRate = 8000;
+	const int outSampleRate = 48000;
 
 	m_decControl.API_sampleRate = outSampleRate;
 	int nSamplesPerFrame = outSampleRate / 50;
