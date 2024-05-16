@@ -5,6 +5,7 @@ VoiceCodec_Frame::VoiceCodec_Frame(IFrameEncoder *pEncoder)
 	m_nEncodeBufferSamples = 0;
 	m_nRawBytes = m_nRawSamples = m_nEncodedBytes = 0;
 	m_pFrameEncoder = pEncoder;
+	m_Client = nullptr;
 }
 
 VoiceCodec_Frame::~VoiceCodec_Frame()

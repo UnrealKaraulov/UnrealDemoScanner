@@ -7,7 +7,7 @@
 const int MAX_CHANNELS = 1;
 const int FRAME_SIZE = 160;
 const int MAX_FRAME_SIZE = 3 * FRAME_SIZE;
-const int MAX_PACKET_LOSS = 10;
+const int MAX_PACKET_LOSS = 5;
 
 class VoiceEncoder_Opus: public IVoiceCodec {
 private:

@@ -59,7 +59,7 @@ void Buffer::writeBool(bool val)  {
     writeBytes<bool>(val);
 }
 void Buffer::writeStr(const std::string &str)  {
-    for (const unsigned char &s : str) writeInt8(s);
+    for (auto &s : str) writeInt8(s);
 }
 void Buffer::writeInt8(char val)  {
     writeBytes<char>(val);

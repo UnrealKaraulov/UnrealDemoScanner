@@ -24,7 +24,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.71.3fix";
+        public const string PROGRAMVERSION = "1.71.4";
 
         public enum AngleDirection
         {
@@ -1949,7 +1949,7 @@ namespace DemoScanner.DG
                 }
             }
 
-            var CurrentDir = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName).Replace("\\","/");
+            var CurrentDir = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName).Replace("\\", "/");
             if (CurrentDir.Length > 0 && (CurrentDir.EndsWith("\\") || CurrentDir.EndsWith("/")))
                 CurrentDir.Remove(CurrentDir.Length - 1);
 
@@ -6798,7 +6798,7 @@ namespace DemoScanner.DG
                                 player.UserName = "USER[" + player.iStructCounter + "]";
                             }
 
-                            if (player.voicedata_stream.Length > 0)
+                            if (player.voicedata.Count > 0)
                             {
                                 var filename = Regex.Replace(player.UserName, @"[^\u0000-\u007F]+", "_") + "_[" + player.UserSteamId + "]_" + "(" +
                                                player.iSlot + ").wav";
@@ -6810,16 +6810,24 @@ namespace DemoScanner.DG
 
                                 voice_paths[player.UserName + "[" + player.UserSteamId + "]"] = outputfile;
 
-                                var binaryReader = new BinaryReader(player.voicedata_stream);
-                                player.voicedata_stream.Seek(0, SeekOrigin.Begin);
-                                var data2 = new List<byte>(binaryReader.ReadBytes((int)player.voicedata_stream.Length));
+                                var voice_stream = new FileStream(inputfile, FileMode.Create);
+                                var binaryWriter = new BinaryWriter(voice_stream);
+                                binaryWriter.BaseStream.Seek(0, SeekOrigin.Begin);
 
-                                // voice quality at 2 byte
-                                data2.Insert(0, (byte)VoiceQuality);
-                                // one file bool at 1 byte
-                                data2.Insert(0, (byte)(one_file ? 1 : 0));
+                                binaryWriter.Write((byte)(one_file ? 1 : 0));
+                                binaryWriter.Write((byte)VoiceQuality);
 
-                                File.WriteAllBytes(inputfile, data2.ToArray());
+                                foreach (var v in player.voicedata)
+                                {
+                                    binaryWriter.Write((float)v.time);
+                                    binaryWriter.Write((int)v.len);
+                                    binaryWriter.Write(v.data);
+                                }
+
+                                binaryWriter.Flush();
+                                voice_stream.Flush();
+                                binaryWriter.Close();
+                                voice_stream.Close();
                             }
                         }
 
@@ -7846,6 +7854,19 @@ namespace DemoScanner.DG
             public int x, y;
         }
 
+        public struct VOICEDATA
+        {
+            public int len;
+            public float time;
+            public byte[] data;
+            public VOICEDATA(int _len, byte[] _data)
+            {
+                len = _len;
+                data = _data;
+                time = SecondFrameTime;
+            }
+        }
+
         public class Player
         {
             public Dictionary<string, string> InfoKeys;
@@ -7854,8 +7875,7 @@ namespace DemoScanner.DG
             public int iSlot;
             public int ServerUserIdLong;
             public string UserSteamId;
-            public BinaryWriter voicedata;
-            public Stream voicedata_stream;
+            public List<VOICEDATA> voicedata;
 
             public Player(int slot, int serveruserid)
             {
@@ -7864,18 +7884,16 @@ namespace DemoScanner.DG
                 iSlot = slot;
                 ServerUserIdLong = serveruserid;
                 InfoKeys = new Dictionary<string, string>();
-                voicedata_stream = new MemoryStream();
-                voicedata = new BinaryWriter(voicedata_stream);
+                voicedata = new List<VOICEDATA>();
                 UserSteamId = "";
+
             }
 
             public void WriteVoice(int len, byte[] data)
             {
                 if (len > 0)
                 {
-                    voicedata.Write((float)SecondFrameTime);
-                    voicedata.Write((int)len);
-                    voicedata.Write(data);
+                    voicedata.Add(new VOICEDATA(len, data));
                 }
             }
 
@@ -8695,7 +8713,7 @@ namespace DemoScanner.DG
             for (player_in_struct_id = 0; player_in_struct_id < playerList.Count; player_in_struct_id++)
             {
                 if (playerList[player_in_struct_id].ServerUserIdLong == userid
-                    || playerList[player_in_struct_id].iSlot == slot)
+                    /*|| playerList[player_in_struct_id].iSlot == slot*/)
                 {
                     playerfound = true;
                     player = playerList[player_in_struct_id];
@@ -8712,17 +8730,17 @@ namespace DemoScanner.DG
                 player_in_struct_id = 0;
             }
 
-            if (playerfound)
-            {
-                fullPlayerList.Add(player);
-                playerList.RemoveAt(player_in_struct_id);
-                var tmpplayer = new Player(slot, userid);
-                tmpplayer.UserName = player.UserName;
-                tmpplayer.UserSteamId = player.UserSteamId;
-                playerList.Insert(0, tmpplayer);
-                player = tmpplayer;
-                player_in_struct_id = 0;
-            }
+            //if (playerfound)
+            //{
+            //    fullPlayerList.Add(player);
+            //    playerList.RemoveAt(player_in_struct_id);
+            //    var tmpplayer = new Player(slot, userid);
+            //    tmpplayer.UserName = player.UserName;
+            //    tmpplayer.UserSteamId = player.UserSteamId;
+            //    playerList.Insert(0, tmpplayer);
+            //    player = tmpplayer;
+            //    player_in_struct_id = 0;
+            //}
 
             var userinfo_string_bak = userinfo_string;
             try
@@ -8743,9 +8761,10 @@ namespace DemoScanner.DG
                     if (key.ToLower() == "name")
                     {
                         string newname = infoKeyTokens[n + 1];
+                        string oldname = player.UserName;
                         if (newname.Length > 0)
                         {
-                            player.UserName = infoKeyTokens[n + 1];
+                            player.UserName = newname;
 
                             if (LocalPlayerId != -1 && slot == LocalPlayerId)
                             {
@@ -8798,6 +8817,13 @@ namespace DemoScanner.DG
 
                                 LocalPlayerUserId = player.ServerUserIdLong;
                             }
+                            else if (oldname != null && oldname != newname && newname.Length > 0 && oldname.Length > 0)
+                            {
+                                if (IsRussia)
+                                    DemoScanner_AddTextMessage("Игрок " + userid + " сменил никнейм с [" + oldname + "] на [" + newname + "] на " + CurrentTimeString, "PLAYERINFO", CurrentTime, CurrentTimeString);
+                                else
+                                    DemoScanner_AddTextMessage("Player " + userid + " changes nickname from [" + oldname + "] to [" + newname + "] at " + CurrentTimeString, "PLAYERINFO", CurrentTime, CurrentTimeString);
+                            }
                         }
                     }
 
@@ -8809,7 +8835,9 @@ namespace DemoScanner.DG
                         if (tmpSteamKey.Length > 0)
                         {
                             infoKeyTokens[n + 1] = CalculateSteamId(infoKeyTokens[n + 1]);
+                            string oldsteam = player.UserSteamId;
                             player.UserSteamId = infoKeyTokens[n + 1];
+
                             if (LocalPlayerId != -1 && slot == LocalPlayerId)
                             {
                                 if (LastSteam.Length != 0 && LastSteam != player.UserSteamId
@@ -8841,6 +8869,14 @@ namespace DemoScanner.DG
                                     LastSteam = player.UserSteamId;
                                 }
                                 LocalPlayerUserId2 = player.ServerUserIdLong;
+                            }
+                            else
+                            {
+                                if (oldsteam != null && player.UserSteamId != null && oldsteam != player.UserSteamId && oldsteam.Length > 0 && player.UserSteamId.Length > 0)
+                                {
+                                    DemoScanner_AddTextMessage("[STEAMID HACK] USER " + userid + " NAME " + (player.UserName != null ? player.UserName : "ERROR NO NAME") + " FROM [" + LastSteam + "] TO [" + player.UserSteamId +
+                                           "] at (" + CurrentTime + ") " + CurrentTimeString, "PLAYERINFO", CurrentTime, CurrentTimeString);
+                                }
                             }
                         }
                     }
@@ -9652,17 +9688,24 @@ namespace DemoScanner.DG
             if (DUMP_ALL_FRAMES) OutDumpString += "MessageVoiceData:" + length + "\n";
 
             //MessageBox.Show(playerid + "(2):" + length);
-            if (playerid <= 33)
+
+            // bool found = false;
+            for (var i = 0; i < playerList.Count; i++)
             {
-                for (var i = 0; i < playerList.Count; i++)
+                if (playerList[i].iSlot == playerid)
                 {
-                    if (playerList[i].iSlot == playerid)
-                    {
-                        playerList[i].WriteVoice(length, data);
-                        break;
-                    }
+                    //found = true;
+                    playerList[i].WriteVoice(length, data);
+                    break;
                 }
             }
+
+            //if (!found)
+            //{
+            //    Console.WriteLine("Missing player " + playerid + " for voice!");
+            //}
+            //else
+            //    Console.Write(".");
         }
 
         private void MessageSendExtraInfo()

@@ -62,7 +62,7 @@ namespace DemoScanner
             var rect = e.ClipRectangle;
             var step_x = rect.Width / 100.0f;
             var center_y = rect.Height / 2.0f;
-            Font font = new Font("Arial", 12);
+            System.Drawing.Font font = new System.Drawing.Font("Arial", 12);
             float value = 0.0f;
             float.TryParse(CurrentTimeTextBox.Text, out value);
 

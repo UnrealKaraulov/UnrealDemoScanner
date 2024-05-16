@@ -18,6 +18,8 @@ namespace fs = std::filesystem;
 
 static bool bMixFiles = false;
 static std::vector<int16_t> mixed_samples = {};
+static bool isFirstTime = false;
+static float first_time = 0.0f;
 
 std::vector<int16_t> decode(const std::vector<unsigned char>& input_bytes)
 {
@@ -49,6 +51,15 @@ std::vector<int16_t> decode(const std::vector<unsigned char>& input_bytes)
 			break;
 
 		float time = tmpBuff->readBytes<float>();
+
+		/*
+		if (!isFirstTime)
+		{
+			oldtime = time;
+			first_time = time;
+			isFirstTime = true;
+		}
+		*/
 
 		if (bMixFiles)
 		{
@@ -95,7 +106,7 @@ std::vector<int16_t> decode(const std::vector<unsigned char>& input_bytes)
 			else
 			{
 				samples = speex_codec->Decompress((const char*)&enc_samples[0], len, (char*)&dec_samples[0], 0xffff);
-				oldtime += samples / 48000.0f + 0.01f;
+				oldtime += samples  / 48000.0f + 0.01f;
 				for (int i = 0; i < samples; i++)
 				{
 					samplesout.push_back(samplesarray[i]);
@@ -116,19 +127,22 @@ std::vector<int16_t> decode(const std::vector<unsigned char>& input_bytes)
 	return samplesout;
 }
 
-#define SILENT_LEN 48000 * 5
+#define SILENT_LEN 48000 * 3
 
 void remove_silence(std::vector<int16_t>& samples) {
 	std::vector<int16_t> result = {};
 	int silence_length = 0;
-
-	for (int16_t sample : samples) {
+	for (int16_t sample : samples) 
+	{
 		if (abs(sample) == 0) {
 			silence_length++;
 		}
-		else {
-			if (silence_length <= SILENT_LEN) {
-				for (int i = 0; i < silence_length; i++) {
+		else 
+		{
+			if (silence_length <= SILENT_LEN) 
+			{
+				for (int i = 0; i < silence_length; i++) 
+				{
 					result.push_back(0);
 				}
 			}
@@ -209,9 +223,9 @@ int main()
 
 					for (size_t i = 0; i < samples.size(); i++)
 					{
-						if (abs(samples[i]) > abs(mixed_samples[i]))
-							mixed_samples[i] = samples[i];
-						/*int a = samples[i];
+						/*if (abs(samples[i]) > abs(mixed_samples[i]))
+							mixed_samples[i] = samples[i];*/
+						int a = samples[i];
 						int b = mixed_samples[i];
 
 						int mix;
@@ -231,7 +245,7 @@ int main()
 							mix = 65535;
 
 						mix -= 32768;
-						mixed_samples[i] = (short)mix;*/
+						mixed_samples[i] = (short)mix;
 					}
 				}
 			}

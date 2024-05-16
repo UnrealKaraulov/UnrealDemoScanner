@@ -6,6 +6,8 @@ VoiceEncoder_Opus::VoiceEncoder_Opus() : m_bitrate(44000), m_samplerate(48000)
 	m_nDecodeSeq = 0;
 	m_pEncoder = nullptr;
 	m_pDecoder = nullptr;
+	m_MaxframeSize = m_frameSize = 0;
+	m_PacketLossConcealment = false;
 }
 
 VoiceEncoder_Opus::~VoiceEncoder_Opus()

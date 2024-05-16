@@ -7,6 +7,7 @@ VoiceEncoder_Speex::VoiceEncoder_Speex()
 	m_EncoderState = nullptr;
 	m_DecoderState = nullptr;
 	m_Quality = 0;
+	m_Bits = {};
 }
 
 VoiceEncoder_Speex::~VoiceEncoder_Speex()

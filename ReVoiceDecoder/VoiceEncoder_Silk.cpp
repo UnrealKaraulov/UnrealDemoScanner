@@ -6,6 +6,8 @@ VoiceEncoder_Silk::VoiceEncoder_Silk()
 	m_pDecoder = nullptr;
 	m_targetRate_bps = 44000;
 	m_packetLoss_perc = 0;
+	m_encControl = {};
+	m_decControl = {};
 }
 
 VoiceEncoder_Silk::~VoiceEncoder_Silk()
@@ -146,7 +148,7 @@ int VoiceEncoder_Silk::Decompress(const char *pCompressed, int compressedBytes, 
 {
 	int nPayloadSize; // ebp@2
 	char *pWritePos; // ebx@5
-	const char *pReadPos; // edx@5
+	char *pReadPos; // edx@5
 	char *pWritePosMax; // [sp+28h] [bp-44h]@4
 	const char *pReadPosMax; // [sp+3Ch] [bp-30h]@1
 
@@ -160,7 +162,7 @@ int VoiceEncoder_Silk::Decompress(const char *pCompressed, int compressedBytes, 
 	}
 
 	pReadPosMax = &pCompressed[compressedBytes];
-	pReadPos = pCompressed;
+	pReadPos = (char*)pCompressed;
 
 	pWritePos = pUncompressed;
 	pWritePosMax = &pUncompressed[maxUncompressedBytes];
