@@ -129,6 +129,7 @@
     <Compile Include="..\UnrealDemoScanner\UnrealDemoScanner.cs" />
     <EmbeddedResource Include="..\UnrealDemoScanner\EntitiesPreviewWindow.resx">
       <DependentUpon>EntitiesPreviewWindow.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="..\UnrealDemoScanner\Preview.resx">
       <DependentUpon>Preview.cs</DependentUpon>

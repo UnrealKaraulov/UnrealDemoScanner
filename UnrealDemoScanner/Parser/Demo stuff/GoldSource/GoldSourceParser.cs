@@ -654,6 +654,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                 {0xFF, 0xFF }
             };
             for (var index = 0; index < originalBytes.Length; index++)
+            {
                 if (originalBytes[index] == 0xFF)
                 {
                     if (originalBytes.Length > index + 1)
@@ -670,6 +671,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                 {
                     res.Add(originalBytes[index]);
                 }
+            }
 
             return res.ToArray();
         }
@@ -1032,10 +1034,8 @@ namespace DemoScanner.DemoStuff.GoldSource
                         if (UnexpectedEof(br, 4 + 4 + 260 + 260 + 4))
                         {
                             gDemo.ParsingErrors.Add("Unexpected end of file at the header!");
-
                             throw new Exception("E1");
                         }
-                        // return gDemo;
                         gDemo.Header.DemoProtocol = br.ReadInt32();
                         gDemo.Header.NetProtocol = br.ReadInt32();
                         gDemo.Header.MapName = Encoding.ASCII.GetString(br.ReadBytes(260))
@@ -1060,6 +1060,11 @@ namespace DemoScanner.DemoStuff.GoldSource
                         try
                         {
                             br.BaseStream.Seek(gDemo.Header.DirectoryOffset, SeekOrigin.Begin);
+                            if (gDemo.Header.DirectoryOffset >= br.BaseStream.Length)
+                            {
+                                gDemo.ParsingErrors.Add("Unexpected directory offset.");
+
+                            }
                         }
                         catch
                         {
@@ -1088,8 +1093,6 @@ namespace DemoScanner.DemoStuff.GoldSource
                             gDemo.Header.DirectoryOffset = 0;
                         }
 
-                        //  return gDemo;
-
                         //if (entryCount < 1 || entryCount > 5)
                         //{
                         //   // entryCount = 2;
@@ -1110,8 +1113,8 @@ namespace DemoScanner.DemoStuff.GoldSource
                                 if (UnexpectedEof(br, 4 + 64 + 4 + 4 + 4 + 4 + 4 + 4))
                                 {
                                     gDemo.ParsingErrors.Add("Unexpected end of file when reading the directory entries! (" + i + ") of " + entryCount);
+                                    break;
                                 }
-                                //return gDemo;
                                 var tempvar = new GoldSource.DemoDirectoryEntry
                                 {
                                     Type = br.ReadInt32(),
@@ -1147,10 +1150,8 @@ namespace DemoScanner.DemoStuff.GoldSource
                             gDemo.DirectoryEntries.Add(tempvar);
                             br.BaseStream.Seek(fileMark, SeekOrigin.Begin);
                         }
-                        //s1.Stop();
-                        //var s2 = new System.Diagnostics.Stopwatch();
-                        //s2.Start();
-                        //Demo directory entries parsed... now we parse the frames.
+
+                        int directory_error_counter = 10;
 
                         foreach (var entry in gDemo.DirectoryEntries)
                         {
@@ -1160,8 +1161,11 @@ namespace DemoScanner.DemoStuff.GoldSource
                                 {
                                     if (UnexpectedEof(br, entry.Offset - br.BaseStream.Position))
                                     {
-                                        gDemo.ParsingErrors.Add("Unexpected end of file when seeking to directory entry!");
-                                        throw new Exception("E4");
+                                        gDemo.ParsingErrors.Add("Unexpected end of file when seeking to directory entry " + entry + "!");
+                                        if (directory_error_counter-- > 0)
+                                            continue;
+                                        else
+                                            break;
                                     }
                                     br.BaseStream.Seek(entry.Offset, SeekOrigin.Begin);
                                 }
@@ -1215,7 +1219,6 @@ namespace DemoScanner.DemoStuff.GoldSource
                                                 gDemo.ParsingErrors.Add(
                                                     "Unexpected end of file when reading console command at frame: " +
                                                     ind);
-
                                                 nextSectionRead = true;
                                                 break;
                                             }
@@ -1231,10 +1234,8 @@ namespace DemoScanner.DemoStuff.GoldSource
                                                 gDemo.ParsingErrors.Add(
                                                     "Unexpected end of file when reading clientdataframe at frame: " +
                                                     ind);
-
                                                 nextSectionRead = true;
                                                 break;
-                                                // return gDemo;
                                             }
                                             cdframe.Origin.X = br.ReadSingle();
                                             cdframe.Origin.Y = br.ReadSingle();
@@ -1260,10 +1261,8 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             {
                                                 gDemo.ParsingErrors.Add(
                                                     "Unexpected end of file at when reading eventframe on frame: " + ind);
-
                                                 nextSectionRead = true;
                                                 break;
-                                                // return gDemo;
                                             }
                                             eframe.Flags = br.ReadInt32();
                                             eframe.Index = br.ReadInt32();
@@ -1307,10 +1306,8 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             {
                                                 gDemo.ParsingErrors.Add(
                                                     "Unexpected end of file when reading weaponanim at frame: " + ind);
-
                                                 nextSectionRead = true;
                                                 break;
-                                                //return gDemo;
                                             }
                                             waframe.Anim = br.ReadInt32();
                                             waframe.Body = br.ReadInt32();
@@ -1322,10 +1319,8 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             {
                                                 gDemo.ParsingErrors.Add(
                                                     "Unexpected end of file when reading sound channel at frame: " + ind);
-
                                                 nextSectionRead = true;
                                                 break;
-                                                //  return gDemo;
                                             }
                                             sframe.Channel = br.ReadInt32();
                                             var samplelength = br.ReadInt32();
@@ -1333,10 +1328,8 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             {
                                                 gDemo.ParsingErrors.Add(
                                                     "Unexpected end of file when reading sound data at frame: " + ind);
-
                                                 nextSectionRead = true;
                                                 break;
-                                                //  return gDemo;
                                             }
                                             try
                                             {
@@ -1358,20 +1351,16 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             {
                                                 gDemo.ParsingErrors.Add(
                                                     "Unexpected end of file when demobuffer data at frame: " + ind);
-
                                                 nextSectionRead = true;
                                                 break;
-                                                // return gDemo;
                                             }
                                             var buggerlength = br.ReadInt32();
                                             if (UnexpectedEof(br, buggerlength))
                                             {
                                                 gDemo.ParsingErrors.Add(
                                                     "Unexpected end of file when reading buffer data at frame: " + ind);
-
                                                 nextSectionRead = true;
                                                 break;
-                                                // return gDemo;
                                             }
                                             bframe.Buffer = new List<byte>();
                                             if (buggerlength > 0)
@@ -1387,10 +1376,8 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             {
                                                 gDemo.ParsingErrors.Add(
                                                     "Unexpected end of file when default frame at frame: " + ind);
-
                                                 nextSectionRead = true;
                                                 break;
-                                                // return gDemo;
                                             }
                                             nf.Timestamp = br.ReadSingle();
                                             nf.RParms.Vieworg.X = br.ReadSingle();
@@ -1555,7 +1542,8 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             {
                                                 gDemo.ParsingErrors.Add(
                                                     "Unexpected end of file when default frame message at frame: " + ind);
-                                                throw new Exception("E15");
+                                                nextSectionRead = true;
+                                                break;
                                             }
                                             nf.MsgBytes = br.ReadBytes(msglength);
                                             if (nf.MsgBytes.Length != msglength)

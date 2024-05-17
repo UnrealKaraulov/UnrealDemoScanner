@@ -24,7 +24,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.71.6";
+        public const string PROGRAMVERSION = "1.71.7";
 
         public enum AngleDirection
         {
@@ -1850,6 +1850,28 @@ namespace DemoScanner.DG
         {
             try
             {
+                RunDemoScanner(args);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine();
+                Console.ForegroundColor = ConsoleColor.DarkRed;
+                if (IsRussia)
+                {
+                    Console.WriteLine("Сканер не может продолжить работу, обнаружена критическая ошибка!");
+                }
+                else
+                {
+                    Console.WriteLine("Critical error. Analyzing can not be continued.");
+                }
+                Console.WriteLine(ex.Message);
+            }
+        }
+
+        public static void RunDemoScanner(string[] args)
+        {
+            try
+            {
                 NativeConsoleMethods.CenterConsole();
                 Console.SetWindowSize(114, 32);
                 Console.SetBufferSize(114, 5555);
@@ -1940,7 +1962,7 @@ namespace DemoScanner.DG
                     Console.WriteLine("Search for updates...(hint: to change language, need remove lang file!)");
 
                     HttpWebRequest request = (HttpWebRequest)WebRequest.Create(
-                        "https://raw.githubusercontent.com/UnrealKaraulov/UnrealDemoScanner/main/SourceCode/UnrealDemoScanner.cs");
+                        "https://raw.githubusercontent.com/UnrealKaraulov/UnrealDemoScanner/main/UnrealDemoScanner/UnrealDemoScanner.cs");
                     request.AddRange(0, 2048);
                     request.Timeout = request.ContinueTimeout = request.ReadWriteTimeout = 3000;
                     using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
@@ -2251,12 +2273,6 @@ namespace DemoScanner.DG
             ViewDemoHelperComments.Write(0);
             Console.WriteLine("DEMO " + Path.GetFileName(CurrentDemoFilePath));
             DemoName = Truncate(Path.GetFileName(CurrentDemoFilePath), 25);
-            if (CurrentDemoFile.GsDemoInfo.ParsingErrors.Count > 0)
-            {
-                Console.WriteLine("Parse errors:");
-                Console.ForegroundColor = ConsoleColor.DarkRed;
-                foreach (var s in CurrentDemoFile.GsDemoInfo.ParsingErrors) Console.WriteLine(s.Trim());
-            }
 
             Console.ForegroundColor = ConsoleColor.Green;
             if (IsRussia)
@@ -6390,6 +6406,20 @@ namespace DemoScanner.DG
                 Console.WriteLine("Demo playing time: " + t1str + " ~ " + t2str + " seconds.");
             }
 
+            if (CurrentDemoFile.GsDemoInfo.ParsingErrors.Count > 0)
+            {
+                if (IsRussia)
+                {
+                    Console.WriteLine("Во время сканирования были обнаружены следующие ошибки:");
+                }
+                else
+                {
+                    Console.WriteLine("Parse errors:");
+                }
+                Console.ForegroundColor = ConsoleColor.DarkRed;
+                foreach (var s in CurrentDemoFile.GsDemoInfo.ParsingErrors) Console.WriteLine(s.Trim());
+            }
+
             if (PlayerSensUsageList.Count > 1)
                 PlayerSensUsageList =
                     new List<PLAYER_USED_SENS>(PlayerSensUsageList.OrderByDescending(x => x.usagecount));
@@ -8881,7 +8911,7 @@ namespace DemoScanner.DG
 
                                 if (LastUsername.Length > 2 && player.UserName.Length > 2)
                                 {
-                                    samenames = LastUsername.Substring(0, 3).Equals(player.UserName.Substring(0, 3)) && 
+                                    samenames = LastUsername.Substring(0, 3).Equals(player.UserName.Substring(0, 3)) &&
                                         player.UserName.IndexOf(" + ") > 0;
                                 }
 
