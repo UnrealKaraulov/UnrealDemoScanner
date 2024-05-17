@@ -21,6 +21,8 @@ static std::vector<int16_t> mixed_samples = {};
 static bool isFirstTime = false;
 static float first_time = 0.0f;
 
+#define SKIP_THRESHOLD 0.75f
+
 std::vector<int16_t> decode(const std::vector<unsigned char>& input_bytes)
 {
 	IVoiceCodec* speex_codec = new VoiceCodec_Frame(new VoiceEncoder_Speex());
@@ -28,6 +30,12 @@ std::vector<int16_t> decode(const std::vector<unsigned char>& input_bytes)
 	IVoiceCodec* opus_codec = new CSteamP2PCodec(new VoiceEncoder_Opus());
 
 	std::vector<int16_t> samplesout = {};
+	std::vector<int16_t> tempSamples = {};
+
+	float targetSampleTime = 0.0f;
+	unsigned int lastSampleOffset = 0;
+
+	bool firstTime = true;
 
 	unsigned char* enc_samples = new unsigned char[0x10000];
 	unsigned char* dec_samples = new unsigned char[0x10000];
@@ -38,49 +46,73 @@ std::vector<int16_t> decode(const std::vector<unsigned char>& input_bytes)
 	unsigned char quality = tmpBuff->readBytes<unsigned char>();
 
 	if (is_one_file > 0 && !bMixFiles)
+	{
 		bMixFiles = true;
+	}
+
+	float totalTime = abs(tmpBuff->readBytes<float>());
+
+	if (bMixFiles)
+	{
+		samplesout.resize((int)(totalTime * 48000.0f));
+	}
 
 	speex_codec->Init(quality);
 	silk_codec->Init(quality);
 	opus_codec->Init(quality);
 
 	float oldtime = 0.0f;
+	float time = 0.0f;
+
 	while (true)
 	{
 		if (tmpBuff->getReadOffset() + 4 >= input_bytes.size())
 			break;
 
-		float time = tmpBuff->readBytes<float>();
+		oldtime = time;
+		time = abs(tmpBuff->readBytes<float>());
+
+		if (firstTime)
+		{
+			firstTime = false;
+			oldtime = time;
+			targetSampleTime = time;
+		}
 
 		if (bMixFiles)
 		{
-			int sleepsamples = (int)((time - oldtime) * 48000.0f);
-			if (sleepsamples > 0)
+			if (time - oldtime > SKIP_THRESHOLD)
 			{
-				samplesout.resize(samplesout.size() + sleepsamples, 0);
+				lastSampleOffset = targetSampleTime * 48000.0f;
+				//std::cout << "Write to " << targetSampleTime << " time with offset " << lastSampleOffset << std::endl;
+				if (samplesout.size() <= lastSampleOffset + tempSamples.size())
+				{
+					samplesout.resize(lastSampleOffset + tempSamples.size() + 1);
+				}
+				std::copy(tempSamples.begin(), tempSamples.end(), samplesout.begin() + lastSampleOffset);
+
+				tempSamples.clear();
+				targetSampleTime = time;
 			}
 		}
-
-		oldtime = time;
 
 		int len = tmpBuff->readBytes<int>();
 		if (len <= 0)
 			break;
 
-		for (int i = 0; i < len; i++)
-		{
-			enc_samples[i] = tmpBuff->readBytes<unsigned char>();
-		}
+		tmpBuff->readData((char*)&enc_samples[0], len);
 
 		int16_t* samplesarray = (int16_t*)&dec_samples[0];
 		int samples = opus_codec->Decompress((const char*)&enc_samples[0], len, (char*)&dec_samples[0], 0xffff);
 		if (samples > 5)
 		{
-			oldtime += samples / 48000.0f;
-
-			for (int i = 0; i < samples; i++)
+			if (!bMixFiles)
 			{
-				samplesout.push_back(samplesarray[i]);
+				samplesout.insert(samplesout.end(), &samplesarray[0], &samplesarray[samples]);
+			}
+			else
+			{
+				tempSamples.insert(tempSamples.end(), &samplesarray[0], &samplesarray[samples]);
 			}
 		}
 		else
@@ -88,10 +120,13 @@ std::vector<int16_t> decode(const std::vector<unsigned char>& input_bytes)
 			samples = silk_codec->Decompress((const char*)&enc_samples[0], len, (char*)&dec_samples[0], 0xffff);
 			if (samples > 5)
 			{
-				oldtime += samples / 48000.0f;
-				for (int i = 0; i < samples; i++)
+				if (!bMixFiles)
 				{
-					samplesout.push_back(samplesarray[i]);
+					samplesout.insert(samplesout.end(), &samplesarray[0], &samplesarray[samples]);
+				}
+				else
+				{
+					tempSamples.insert(tempSamples.end(), &samplesarray[0], &samplesarray[samples]);
 				}
 			}
 			else
@@ -99,14 +134,30 @@ std::vector<int16_t> decode(const std::vector<unsigned char>& input_bytes)
 				samples = speex_codec->Decompress((const char*)&enc_samples[0], len, (char*)&dec_samples[0], 0xffff);
 				if (samples > 5)
 				{
-					oldtime += samples / 48000.0f;
-					for (int i = 0; i < samples; i++)
+					if (!bMixFiles)
 					{
-						samplesout.push_back(samplesarray[i]);
+						samplesout.insert(samplesout.end(), &samplesarray[0], &samplesarray[samples]);
 					}
+					else
+					{
+						tempSamples.insert(tempSamples.end(), &samplesarray[0], &samplesarray[samples]);
+					}
+				}
+				else
+				{
+					time = oldtime;
 				}
 			}
 		}
+	}
+
+	if (tempSamples.size())
+	{
+		if (samplesout.size() <= lastSampleOffset + tempSamples.size())
+		{
+			samplesout.resize(lastSampleOffset + tempSamples.size() + 1);
+		}
+		std::copy(tempSamples.begin(), tempSamples.end(), samplesout.begin() + lastSampleOffset);
 	}
 
 	speex_codec->Release();
@@ -126,16 +177,16 @@ std::vector<int16_t> decode(const std::vector<unsigned char>& input_bytes)
 void remove_silence(std::vector<int16_t>& samples) {
 	std::vector<int16_t> result = {};
 	int silence_length = 0;
-	for (int16_t sample : samples) 
+	for (int16_t sample : samples)
 	{
 		if (abs(sample) == 0) {
 			silence_length++;
 		}
-		else 
+		else
 		{
-			if (silence_length <= SILENT_LEN) 
+			if (silence_length <= SILENT_LEN)
 			{
-				for (int i = 0; i < silence_length; i++) 
+				for (int i = 0; i < silence_length; i++)
 				{
 					result.push_back(0);
 				}
@@ -178,7 +229,7 @@ int main()
 	auto processFile =
 		[&](const fs::path& filePath)
 		{
-			std::cout << "Process " << filePath.string() << std::endl;
+			std::cout << std::endl << "Process " << filePath.string() << std::endl;
 
 			std::vector<unsigned char> fileData = loadFile(filePath.string());
 

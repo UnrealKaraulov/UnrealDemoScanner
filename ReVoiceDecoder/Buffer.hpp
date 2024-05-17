@@ -44,6 +44,7 @@ public:
     unsigned long long getReadOffset() const ;
     template <class T> inline T readBytes(bool LE = true);
 
+    void               readData(char* out, unsigned int size);
     bool               readBool() ;
     std::string        readStr(unsigned long long len) ;
     std::string        readStr() ;

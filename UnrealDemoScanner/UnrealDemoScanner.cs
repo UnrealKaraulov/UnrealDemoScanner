@@ -24,7 +24,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.71.7";
+        public const string PROGRAMVERSION = "1.71.8";
 
         public static bool DEMOSCANNER_HLTV = false;
 
@@ -104,6 +104,8 @@ namespace DemoScanner.DG
         public static bool PREVIEW_ENTS;
 
         public static string OutDumpString = "";
+
+        public static Dictionary<string, string> testData = new Dictionary<string, string>();
 
         public static List<string> outFrames = new List<string>();
         public static float CurrentFrameTimeBetween;
@@ -6427,6 +6429,12 @@ namespace DemoScanner.DG
                 }
             }
 
+            //foreach (var s in testData)
+            //{
+            //    File.AppendAllText("Delta.txt", s.Key + "=\n");
+            //    File.AppendAllText("Delta.txt", s.Value);
+            //}
+
             if (CurrentDemoFile.GsDemoInfo.ParsingErrors.Count > 0)
             {
                 if (IsRussia)
@@ -6977,6 +6985,8 @@ namespace DemoScanner.DG
 
                                 binaryWriter.Write((byte)(one_file ? 1 : 0));
                                 binaryWriter.Write((byte)VoiceQuality);
+
+                                binaryWriter.Write((float)PlayersVoiceTimer);
 
                                 foreach (var v in player.voicedata)
                                 {
@@ -8043,8 +8053,6 @@ namespace DemoScanner.DG
             public int ServerUserIdLong;
             public string UserSteamId;
             public List<VOICEDATA> voicedata;
-            public float LastVoiceTimer;
-            public float LastVoiceTimer_upd;
 
             public Player(int slot, int serveruserid)
             {
@@ -8054,24 +8062,14 @@ namespace DemoScanner.DG
                 ServerUserIdLong = serveruserid;
                 InfoKeys = new Dictionary<string, string>();
                 voicedata = new List<VOICEDATA>();
-                UserSteamId = "";
-                LastVoiceTimer = LastVoiceTimer_upd = 0.0f;
+                UserSteamId = string.Empty;
             }
 
             public void WriteVoice(int len, byte[] data)
             {
                 if (len > 0)
                 {
-                    if (abs(PlayersVoiceTimer - LastVoiceTimer) < 0.5f)
-                    {
-                        voicedata.Add(new VOICEDATA(len, data, LastVoiceTimer_upd));
-                    }
-                    else
-                    {
-                        voicedata.Add(new VOICEDATA(len, data, LastVoiceTimer_upd));
-                        LastVoiceTimer_upd = PlayersVoiceTimer;
-                    }
-                    LastVoiceTimer = PlayersVoiceTimer;
+                    voicedata.Add(new VOICEDATA(len, data, PlayersVoiceTimer));
                 }
             }
 
@@ -10882,6 +10880,7 @@ namespace DemoScanner.DG
             ReadDelta(bitBuffer, delta, ref mask);
         }
 
+
         public void ReadDelta(BitBuffer bitBuffer, HalfLifeDelta delta, ref byte[] bitmaskBytes)
         {
             // read bitmask
@@ -10909,6 +10908,15 @@ namespace DemoScanner.DG
                         var value = ParseEntry(bitBuffer, entryList[index]);
                         if (Name != null && entryList[index].Name != null)
                         {
+                            //string addline = "|" + entryList[index].Name + "\n";
+                            //if (testData.ContainsKey(Name))
+                            //{
+                            //    if (testData[Name].IndexOf(addline) < 0)
+                            //        testData[Name] += addline;
+                            //}
+                            //else
+                            //    testData[Name] = addline;
+
                             if (Name == "entity_state_player_t")
                                 if (LastPlayerEntity == UserId2 + 1)
                                 {

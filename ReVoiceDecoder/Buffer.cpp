@@ -125,8 +125,7 @@ template <class T> inline T Buffer::readBytes(bool LE) {
     char *src = (char*)&buffer[readOffset];
 
     if (LE == true) {
-        for (unsigned int i = 0; i < size; ++i)
-            dst[i] = src[i];
+        memcpy(&dst[0], &src[0], size);
     } else {
         for (unsigned int i = 0; i < size; ++i)
             dst[i] = src[size - i - 1];
@@ -135,9 +134,21 @@ template <class T> inline T Buffer::readBytes(bool LE) {
     return result;
 }
 
-bool Buffer::readBool()  {
+bool Buffer::readBool() {
     return readBytes<bool>();
 }
+
+void Buffer::readData(char * dst, unsigned int size)
+{
+    if (readOffset + size > buffer.size())
+        return;
+
+    char* src = (char*)&buffer[readOffset];
+
+    memcpy(&dst[0], &src[0], size);
+    readOffset += size;
+}
+
 std::string Buffer::readStr(unsigned long long len)  {
     if (readOffset + len > buffer.size())
         return "Buffer out of range (provided length greater than buffer size)";
