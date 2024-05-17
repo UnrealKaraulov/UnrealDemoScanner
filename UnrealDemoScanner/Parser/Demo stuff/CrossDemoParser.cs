@@ -100,6 +100,7 @@ namespace DemoScanner.DemoStuff
         public static CrossParseResult Parse(string filename)
         {
             var cpr = new CrossParseResult();
+
             switch (CheckDemoType(filename))
             {
                 case Parseresult.GoldSource:
@@ -109,10 +110,6 @@ namespace DemoScanner.DemoStuff
                 case Parseresult.UnsupportedFile:
                     cpr.Type = Parseresult.UnsupportedFile;
                     //Main.//Log("Demotype check resulted in an unsupported file.");
-                    break;
-                case Parseresult.Hlsooe:
-                    cpr.Type = Parseresult.Hlsooe;
-                    cpr.HlsooeDemoInfo = GoldSourceParser.ParseDemoHlsooe(filename);
                     break;
                 default:
                     cpr.Type = Parseresult.UnsupportedFile;

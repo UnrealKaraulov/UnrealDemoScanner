@@ -24,7 +24,9 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.71.7";
+        public const string PROGRAMVERSION = "1.71.8";
+
+        public static bool DEMOSCANNER_HLTV = false;
 
         public enum AngleDirection
         {
@@ -513,7 +515,7 @@ namespace DemoScanner.DG
         public static float[] TimeShift4Times = new float[3] { 0.0f, 0.0f, 0.0f };
         public static int LastFrameDiff;
         public static bool AimType6FalseDetect;
-        public static float SecondFrameTime;
+        public static float PlayersVoiceTimer;
         public static float Aim8DetectionTimeY = 0.0f;
         public static float Aim8DetectionTimeX;
         public static float NewAttackTime;
@@ -3533,6 +3535,7 @@ namespace DemoScanner.DG
                                 CurrentTime3 = frame.Key.Time;
                                 PreviousTime = CurrentTime;
 
+
                                 if (AlternativeTimeCounter == 1)
                                 {
                                     if (abs(CurrentTime) > 1.0 && abs(CurrentTimeSvc) < 0.01f)
@@ -3733,7 +3736,7 @@ namespace DemoScanner.DG
                                 }
 
                                 ParseGameData(halfLifeDemoParser, nf.MsgBytes);
-                                ;
+
                                 if (SkipNextErrors)
                                 {
                                     SkipNextErrors = false;
@@ -3794,8 +3797,11 @@ namespace DemoScanner.DG
                                 }
 
 
-                                if (CurrentFrameDuplicated < 2)
-                                    SecondFrameTime += nf.RParms.Frametime;
+                                var voice_time = abs(CurrentTime - PreviousTime);
+                                if (voice_time > 1.0f)
+                                    voice_time = 1.0f;
+
+                                PlayersVoiceTimer += voice_time;
 
                                 CurrentFrameAlive = UserAlive;
                                 RealAlive = CurrentFrameAlive && PreviousFrameAlive;
@@ -6388,22 +6394,37 @@ namespace DemoScanner.DG
             ViewDemoHelperComments.Write(ViewDemoCommentCount);
             ViewDemoHelperComments.Seek(0, SeekOrigin.Begin);
             ForceFlushScanResults();
-            var EndScanTime = Trim(new DateTime((DateTime.Now - StartScanTime).Ticks), 10);
-            var t1 = TimeSpan.FromSeconds(StartGameSecond);
-            var t1str = string.Format("{0:D2}h:{1:D2}m:{2:D2}s:{3:D3}ms", t1.Hours, t1.Minutes, t1.Seconds,
-                t1.Milliseconds);
-            var t2 = TimeSpan.FromSeconds(EndGameSecond);
-            var t2str = string.Format("{0:D2}h:{1:D2}m:{2:D2}s:{3:D3}ms", t2.Hours, t2.Minutes, t2.Seconds,
-                t2.Milliseconds);
-            if (IsRussia)
+
+            try
             {
-                Console.WriteLine("Анализ завершен, потрачено " + EndScanTime.ToString("T") + " времени");
-                Console.WriteLine("Игровое время демо начинается с " + t1str + " по " + t2str + " секунд.");
+                var EndScanTime = Trim(new DateTime((DateTime.Now - StartScanTime).Ticks), 10);
+                var t1 = TimeSpan.FromSeconds(StartGameSecond);
+                var t1str = string.Format("{0:D2}h:{1:D2}m:{2:D2}s:{3:D3}ms", t1.Hours, t1.Minutes, t1.Seconds,
+                    t1.Milliseconds);
+                var t2 = TimeSpan.FromSeconds(EndGameSecond);
+                var t2str = string.Format("{0:D2}h:{1:D2}m:{2:D2}s:{3:D3}ms", t2.Hours, t2.Minutes, t2.Seconds,
+                    t2.Milliseconds);
+                if (IsRussia)
+                {
+                    Console.WriteLine("Анализ завершен, потрачено " + EndScanTime.ToString("T") + " времени");
+                    Console.WriteLine("Игровое время демо начинается с " + t1str + " по " + t2str + " секунд.");
+                }
+                else
+                {
+                    Console.WriteLine("Scan completed. Scan time: " + EndScanTime.ToString("T"));
+                    Console.WriteLine("Demo playing time: " + t1str + " ~ " + t2str + " seconds.");
+                }
             }
-            else
+            catch
             {
-                Console.WriteLine("Scan completed. Scan time: " + EndScanTime.ToString("T"));
-                Console.WriteLine("Demo playing time: " + t1str + " ~ " + t2str + " seconds.");
+                if (IsRussia)
+                {
+                    Console.WriteLine("Анализ завершен");
+                }
+                else
+                {
+                    Console.WriteLine("Scan completed.");
+                }
             }
 
             if (CurrentDemoFile.GsDemoInfo.ParsingErrors.Count > 0)
@@ -6417,7 +6438,11 @@ namespace DemoScanner.DG
                     Console.WriteLine("Parse errors:");
                 }
                 Console.ForegroundColor = ConsoleColor.DarkRed;
-                foreach (var s in CurrentDemoFile.GsDemoInfo.ParsingErrors) Console.WriteLine(s.Trim());
+                foreach (var s in CurrentDemoFile.GsDemoInfo.ParsingErrors)
+                {
+                    var s2 = Regex.Replace(s, @"[^\u0000-\u007F]+", "_");
+                    Console.WriteLine("Error:" + s2.Trim());
+                }
             }
 
             if (PlayerSensUsageList.Count > 1)
@@ -6929,13 +6954,20 @@ namespace DemoScanner.DG
 
                             if (player.voicedata.Count > 0)
                             {
-                                var filename = Regex.Replace(player.UserName, @"[^\u0000-\u007F]+", "_") + "_[" + player.UserSteamId + "]_" + "(" +
-                                               player.iSlot + ").wav";
+                                var filename = player.UserName + "_[" + player.UserSteamId + "][id_" + player.iSlot + "][user_" + player.ServerUserIdLong + "].wav";
+
+                                filename = Regex.Replace(filename, @"[^\u0000-\u007F]+", "_");
+
                                 foreach (var c in Path.GetInvalidFileNameChars())
+                                {
                                     filename = filename.Replace(c, '_');
+                                }
 
                                 var inputfile = CurrentDir + "/input/" + filename;
                                 var outputfile = CurrentDir + "/output/" + filename;
+                                if (one_file)
+                                    outputfile = CurrentDir + "/output/voice.wav";
+
 
                                 voice_paths[player.UserName + "[" + player.UserSteamId + "]"] = outputfile;
 
@@ -7987,16 +8019,18 @@ namespace DemoScanner.DG
             public int x, y;
         }
 
+
+
         public struct VOICEDATA
         {
             public int len;
             public float time;
             public byte[] data;
-            public VOICEDATA(int _len, byte[] _data)
+            public VOICEDATA(int _len, byte[] _data, float PlayersVoiceTimer)
             {
                 len = _len;
                 data = _data;
-                time = SecondFrameTime;
+                time = PlayersVoiceTimer;
             }
         }
 
@@ -8009,6 +8043,8 @@ namespace DemoScanner.DG
             public int ServerUserIdLong;
             public string UserSteamId;
             public List<VOICEDATA> voicedata;
+            public float LastVoiceTimer;
+            public float LastVoiceTimer_upd;
 
             public Player(int slot, int serveruserid)
             {
@@ -8019,14 +8055,23 @@ namespace DemoScanner.DG
                 InfoKeys = new Dictionary<string, string>();
                 voicedata = new List<VOICEDATA>();
                 UserSteamId = "";
-
+                LastVoiceTimer = LastVoiceTimer_upd = 0.0f;
             }
 
             public void WriteVoice(int len, byte[] data)
             {
                 if (len > 0)
                 {
-                    voicedata.Add(new VOICEDATA(len, data));
+                    if (abs(PlayersVoiceTimer - LastVoiceTimer) < 0.5f)
+                    {
+                        voicedata.Add(new VOICEDATA(len, data, LastVoiceTimer_upd));
+                    }
+                    else
+                    {
+                        voicedata.Add(new VOICEDATA(len, data, LastVoiceTimer_upd));
+                        LastVoiceTimer_upd = PlayersVoiceTimer;
+                    }
+                    LastVoiceTimer = PlayersVoiceTimer;
                 }
             }
 
@@ -8497,7 +8542,7 @@ namespace DemoScanner.DG
                     messageFrameOffsetOld = BitBuffer.CurrentByte;
                 else
                     //MessageBox.Show("error");
-                    throw new ApplicationException(string.Format("Offset error message \"{0}\"", 1234));
+                    throw new ApplicationException(string.Format("Offset error message {0} -> {1}", BitBuffer.CurrentByte, messageFrameOffsetOld));
             }
 
             readingGameData = false;
@@ -8846,9 +8891,10 @@ namespace DemoScanner.DG
             for (player_in_struct_id = 0; player_in_struct_id < playerList.Count; player_in_struct_id++)
             {
                 if (playerList[player_in_struct_id].ServerUserIdLong == userid
-                    /*|| playerList[player_in_struct_id].iSlot == slot*/)
+                    || (playerList[player_in_struct_id].iSlot == slot && playerList[player_in_struct_id].ServerUserIdLong == -1))
                 {
                     playerfound = true;
+                    playerList[player_in_struct_id].ServerUserIdLong = userid;
                     player = playerList[player_in_struct_id];
                     break;
                 }
@@ -8862,18 +8908,6 @@ namespace DemoScanner.DG
                 playerList.Insert(0, player);
                 player_in_struct_id = 0;
             }
-
-            //if (playerfound)
-            //{
-            //    fullPlayerList.Add(player);
-            //    playerList.RemoveAt(player_in_struct_id);
-            //    var tmpplayer = new Player(slot, userid);
-            //    tmpplayer.UserName = player.UserName;
-            //    tmpplayer.UserSteamId = player.UserSteamId;
-            //    playerList.Insert(0, tmpplayer);
-            //    player = tmpplayer;
-            //    player_in_struct_id = 0;
-            //}
 
             var userinfo_string_bak = userinfo_string;
             try
@@ -9054,6 +9088,8 @@ namespace DemoScanner.DG
 
         public void MessageClientData()
         {
+            if (DEMOSCANNER_HLTV)
+                return;
             ClientDataCountMessages++;
             SVC_CLIENTUPDATEMSGID = DemoScanner.MessageId;
             if (demo.GsDemoInfo.Header.NetProtocol <= 43) BitBuffer.Endian = BitBuffer.EndianType.Big;
@@ -9436,7 +9472,10 @@ namespace DemoScanner.DG
         private void MessageSign()
         {
             int signid = BitBuffer.ReadByte();
-            if (DEBUG_ENABLED) Console.Write("sign num:" + signid + "\n");
+            if (DEBUG_ENABLED)
+            {
+                Console.Write("sign num:" + signid + "\n");
+            }
         }
 
         private void MessageSetPause()
@@ -9726,29 +9765,32 @@ namespace DemoScanner.DG
 
         private void MessageHltv()
         {
-            // TODO: CHECK THE SDK - MESSAGE_BEGIN( MSG_SPEC, SVC_HLTV );
-            /*
-
-            new:
-            #define HLTV_ACTIVE				0	// tells client that he's an spectator and will get director command
-            #define HLTV_STATUS				1	// send status infos about proxy
-            #define HLTV_CAMERA				2	// set the actual director camera position
-            #define HLTV_EVENT				3	// informs the dircetor about ann important game event
-
-            old:
-            #define HLTV_ACTIVE				0	// tells client that he's an spectator and will get director commands
-            #define HLTV_STATUS				1	// send status infos about proxy
-            #define HLTV_LISTEN				2	// tell client to listen to a multicast stream
-             */
             var subCommand = BitBuffer.ReadByte();
-            if (subCommand == 1) // HLTV_LISTEN/HLTV_CAMERA
+            if (subCommand == 0)
             {
-                BitBuffer.ReadInt32();
-                BitBuffer.ReadInt16();
-                BitBuffer.ReadInt16();
-                BitBuffer.ReadInt32();
-                BitBuffer.ReadInt32();
-                BitBuffer.ReadInt16();
+                LocalPlayerId = 0;
+                LocalPlayerUserId = 0;
+                LocalPlayerUserId2 = 0;
+                LocalPlayerEntity = 0;
+                AlternativeTimeCounter = 1;
+                DEMOSCANNER_HLTV = true;
+                var backcolor = Console.ForegroundColor;
+                Console.ForegroundColor = ConsoleColor.DarkRed;
+                if (IsRussia)
+                {
+                    DemoScanner_AddInfo("Внимание! Демо файл отмечен как HLTV.");
+                    DemoScanner_AddInfo("Сканирование POV демо на наличие читов отключается.");
+                }
+                else
+                {
+                    DemoScanner_AddInfo("Warning! Demo file marked as HLTV.");
+                    DemoScanner_AddInfo("POV demo HACK analyze is disabled.");
+                }
+                Console.ForegroundColor = backcolor;
+            }
+            else if (subCommand == 1) // HLTV_STATUS
+            {
+                BitBuffer.ReadBytes(10);
             }
             else if (subCommand == 2)
             {
@@ -9757,6 +9799,7 @@ namespace DemoScanner.DG
             }
             else if (subCommand > 0)
             {
+
             }
         }
 
@@ -9814,6 +9857,8 @@ namespace DemoScanner.DG
             DemoScanner_AddTextMessage(tmpcodecname, "INIT_CODEC", CurrentTime, CurrentTimeString);
         }
 
+        public static List<Player> tempVoicePlayer = new List<Player>();
+
         private void MessageVoiceData()
         {
             // byte: client id/slot?
@@ -9822,27 +9867,25 @@ namespace DemoScanner.DG
             int playerid = BitBuffer.ReadByte();
             var length = BitBuffer.ReadUInt16();
             var data = BitBuffer.ReadBytes(length);
-            if (DUMP_ALL_FRAMES) OutDumpString += "MessageVoiceData:" + length + "\n";
 
-            //MessageBox.Show(playerid + "(2):" + length);
+            if (DUMP_ALL_FRAMES) OutDumpString += "MessageVoiceData: SLOT:" + playerid + " LEN:" + length + "\n";
 
-            // bool found = false;
+            bool found = false;
             for (var i = 0; i < playerList.Count; i++)
             {
                 if (playerList[i].iSlot == playerid)
                 {
-                    //found = true;
+                    found = true;
                     playerList[i].WriteVoice(length, data);
                     break;
                 }
             }
 
-            //if (!found)
-            //{
-            //    Console.WriteLine("Missing player " + playerid + " for voice!");
-            //}
-            //else
-            //    Console.Write(".");
+            if (!found)
+            {
+                playerList.Add(new Player(playerid, -1));
+                playerList[playerList.Count - 1].WriteVoice(length, data);
+            }
         }
 
         private void MessageSendExtraInfo()

@@ -575,11 +575,6 @@ namespace DemoScanner.DemoStuff.GoldSource
     public class GoldSourceDemoInfo : DemoInfo
     {
         /// <summary>
-        /// Whether there are any non allowed commands in the demo
-        /// </summary>
-        public List<string> Cheats;
-
-        /// <summary>
         ///     The directory entries of the demo containing the frames
         /// </summary>
         public List<GoldSource.DemoDirectoryEntry> DirectoryEntries;
@@ -688,322 +683,6 @@ namespace DemoScanner.DemoStuff.GoldSource
         }
 
         /// <summary>
-        ///     Parses a HLS:OOE Demo
-        /// </summary>
-        /// <param name="s">Path to the file</param>
-        /// <returns></returns>
-        public static GoldSourceDemoInfoHlsooe ParseDemoHlsooe(string s)
-        {
-            var hlsooeDemo = new GoldSourceDemoInfoHlsooe
-            {
-                Header = new Hlsooe.DemoHeader(),
-                ParsingErrors = new List<string>(),
-                DirectoryEntries = new List<Hlsooe.DemoDirectoryEntry>()
-            };
-            try
-            {
-                using (var br = new BinaryReader(new MemoryStream(File.ReadAllBytes(s))))
-                {
-                    if (UnexpectedEof(br, 540)) //520 + 12 + 8 = 540 -> IDString size
-                        hlsooeDemo.ParsingErrors.Add("Unexpected end of file at the header!");
-                    // return hlsooeDemo;
-                    var mw = Encoding.ASCII.GetString(br.ReadBytes(8)).Trim('\0').Replace("\0", string.Empty);
-
-                    if (DemoScanner.DG.DemoScanner.DEBUG_ENABLED)
-                        Console.WriteLine("DEMO HEADER: \"" + mw + "\" = " + (mw == "HLDEMO").ToString());
-
-                    if (mw == "HLDEMO")
-                    {
-                        hlsooeDemo.Header.DemoProtocol = br.ReadInt32();
-                        hlsooeDemo.Header.NetProtocol = br.ReadInt32();
-                        hlsooeDemo.Header.MapName = Encoding.ASCII.GetString(br.ReadBytes(260))
-                            .Trim('\0')
-                            .Replace("\0", string.Empty);
-                        hlsooeDemo.Header.GameDir =
-                            Encoding.ASCII.GetString(br.ReadBytes(260)).Trim('\0').Replace("\0", string.Empty);
-                        hlsooeDemo.Header.DirectoryOffset = br.ReadInt32();
-
-                        //IDString Parsed... now we read the directory entries
-                        br.BaseStream.Seek(hlsooeDemo.Header.DirectoryOffset, SeekOrigin.Begin);
-
-                        if (DemoScanner.DG.DemoScanner.DEBUG_ENABLED)
-                        {
-                            Console.WriteLine("DEMO PROTOCOL: " + hlsooeDemo.Header.DemoProtocol + " / " + hlsooeDemo.Header.NetProtocol);
-                            Console.WriteLine("DEMO MAP, DIR, DIR OFFSET: \"" + hlsooeDemo.Header.MapName + "\" , \""
-                               + hlsooeDemo.Header.GameDir + "\" , " + hlsooeDemo.Header.DirectoryOffset.ToString("x2"));
-                        }
-
-                        if (UnexpectedEof(br, 4))
-                            hlsooeDemo.ParsingErrors.Add("Unexpected end of file after the header!");
-                        //return hlsooeDemo;
-                        var entryCount = br.ReadInt32();
-                        for (var i = 0; i < entryCount; i++)
-                        {
-                            if (UnexpectedEof(br, 20))
-                                hlsooeDemo.ParsingErrors.Add("Unexpected end of when reading frames!");
-                            // return hlsooeDemo;
-                            var tempvar = new Hlsooe.DemoDirectoryEntry
-                            {
-                                Type = br.ReadInt32(),
-                                PlaybackTime = br.ReadSingle(),
-                                FrameCount = br.ReadInt32(),
-                                Offset = br.ReadInt32(),
-                                Filelength = br.ReadInt32(),
-                                Frames = new List<Hlsooe.FramesHren2>(),
-                                Flags = new Dictionary<Hlsooe.DemoFrame, Hlsooe.ConsoleCommandFrame>()
-                            };
-                            hlsooeDemo.DirectoryEntries.Add(tempvar);
-                        }
-                        //Demo directory entries parsed... now we parse the frames.
-                        var dirid = -1;
-                        foreach (var entry in hlsooeDemo.DirectoryEntries)
-                        {
-                            dirid++;
-                            if (entry.Offset > br.BaseStream.Length)
-                                hlsooeDemo.ParsingErrors.Add("Couldn't seek to directoryentry the file is corrupted.");
-                            //return hlsooeDemo;
-                            br.BaseStream.Seek(entry.Offset, SeekOrigin.Begin);
-                            var i = 0;
-                            var nextSectionRead = false;
-                            while (!nextSectionRead)
-                            {
-                                if (UnexpectedEof(br, 9))
-                                    hlsooeDemo.ParsingErrors.Add(
-                                        "Failed to read next frame details after frame no.: " + i);
-                                //return hlsooeDemo;
-                                var currentDemoFrame = new Hlsooe.DemoFrame
-                                {
-                                    Type = (Hlsooe.DemoFrameType)br.ReadSByte(),
-                                    Time = br.ReadSingle(),
-                                    Index = br.ReadInt32(),
-                                    Frame = i + 1
-                                };
-
-                                if (float.IsNaN(currentDemoFrame.Time) || Math.Abs(currentDemoFrame.Time - 0.0f) < 0.00001f)
-                                {
-                                    br.BaseStream.Seek(entry.Offset, SeekOrigin.Begin);
-                                    hlsooeDemo.ParsingErrors.Add(
-                                             "Unexpected 'currentDemoFrame.Time' at frame: " +
-                                             (i + 1) + ".Directory:" + dirid);
-                                    nextSectionRead = true;
-                                    continue;
-                                }
-                                switch (currentDemoFrame.Type)
-                                {
-                                    case Hlsooe.DemoFrameType.StartupPacket:
-                                        if (UnexpectedEof(br, 108))
-                                            hlsooeDemo.ParsingErrors.Add("Failed to read startup packet at frame:" +
-                                                                         i);
-                                        // return hlsooeDemo;
-                                        var g = new Hlsooe.StartupPacketFrame
-                                        {
-                                            Flags = br.ReadInt32(),
-                                            ViewOrigins =
-                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
-                                            ViewAngles =
-                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
-                                            LocalViewAngles =
-                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
-                                            ViewOrigin2 =
-                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
-                                            ViewAngles2 =
-                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
-                                            LocalViewAngles2 =
-                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
-                                            IncomingSequence = br.ReadInt32(),
-                                            IncomingAcknowledged = br.ReadInt32(),
-                                            IncomingReliableAcknowledged = br.ReadInt32(),
-                                            IncomingReliableSequence = br.ReadInt32(),
-                                            OutgoingSequence = br.ReadInt32(),
-                                            ReliableSequence = br.ReadInt32(),
-                                            LastReliableSequence = br.ReadInt32()
-                                        };
-                                        var spml = br.ReadInt32();
-                                        g.Msg = Encoding.ASCII.GetString(br.ReadBytes(spml))
-                                            .Trim('\0')
-                                            .Replace("\0", string.Empty);
-                                        entry.Frames.Add(new Hlsooe.FramesHren2(currentDemoFrame, g));
-                                        break;
-                                    case Hlsooe.DemoFrameType.NetworkPacket:
-                                        if (UnexpectedEof(br, 108))
-                                            hlsooeDemo.ParsingErrors.Add("Failed to read netmessage at frame: " + i);
-                                        // return hlsooeDemo;
-                                        var b = new Hlsooe.NetMsgFrame
-                                        {
-                                            Flags = br.ReadInt32(),
-                                            ViewOrigins =
-                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
-                                            ViewAngles =
-                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
-                                            LocalViewAngles =
-                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
-                                            ViewAngles2 =
-                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
-                                            LocalViewAngles2 =
-                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
-                                            ViewOrigin2 =
-                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
-                                            IncomingSequence = br.ReadInt32(),
-                                            IncomingAcknowledged = br.ReadInt32(),
-                                            IncomingReliableAcknowledged = br.ReadInt32(),
-                                            IncomingReliableSequence = br.ReadInt32(),
-                                            OutgoingSequence = br.ReadInt32(),
-                                            ReliableSequence = br.ReadInt32(),
-                                            LastReliableSequence = br.ReadInt32()
-                                        };
-                                        var nml = br.ReadInt32();
-                                        b.Msg = Encoding.ASCII.GetString(br.ReadBytes(nml))
-                                            .Trim('\0')
-                                            .Replace("\0", string.Empty);
-                                        entry.Frames.Add(new Hlsooe.FramesHren2(currentDemoFrame, b));
-                                        break;
-                                    case Hlsooe.DemoFrameType.Jumptime:
-                                        //No extra stuff
-                                        entry.Frames.Add(new Hlsooe.FramesHren2(currentDemoFrame, new Hlsooe.JumpTimeFrame()));
-                                        break;
-                                    case Hlsooe.DemoFrameType.ConsoleCommand:
-                                        if (UnexpectedEof(br, 4))
-                                            hlsooeDemo.ParsingErrors.Add(
-                                                "Unexpected enf of file when reading console command length at frame: " +
-                                                i + " brpos: " + br.BaseStream.Position);
-                                        //  return hlsooeDemo;
-                                        var a = new Hlsooe.ConsoleCommandFrame();
-                                        var commandlength = br.ReadInt32();
-                                        if (UnexpectedEof(br, commandlength))
-                                            hlsooeDemo.ParsingErrors.Add(
-                                                "Unexpected end of file when reading the console command at frame: " +
-                                                i + " brpos: " + br.BaseStream.Position);
-                                        //  return hlsooeDemo;
-                                        a.Command = Encoding.ASCII.GetString(br.ReadBytes(commandlength))
-                                            .Trim('\0')
-                                            .Replace("\0", string.Empty);
-                                        if (a.Command.Contains("#SAVE#")) entry.Flags.Add(currentDemoFrame, a);
-
-                                        if (a.Command.Contains("autosave")) entry.Flags.Add(currentDemoFrame, a);
-
-                                        if (a.Command.Contains("changelevel2")) entry.Flags.Add(currentDemoFrame, a);
-
-                                        entry.Frames.Add(new Hlsooe.FramesHren2(currentDemoFrame, a));
-                                        break;
-                                    case Hlsooe.DemoFrameType.Usercmd:
-                                        if (UnexpectedEof(br, 4 + 4 + 2))
-                                            hlsooeDemo.ParsingErrors.Add(
-                                                "Unexpected end of file when reading UserCMD header at frame: " + i +
-                                                " brpos: " + br.BaseStream.Position);
-                                        //  return hlsooeDemo;
-                                        var c = new Hlsooe.UserCmdFrame
-                                        {
-                                            OutgoingSequence = br.ReadInt32(),
-                                            Slot = br.ReadInt32()
-                                        };
-                                        var usercmdlength = br.ReadUInt16();
-                                        if (UnexpectedEof(br, usercmdlength))
-                                            hlsooeDemo.ParsingErrors.Add(
-                                                "Unexpected end of file when reading userCMD at frame: " + i +
-                                                " brpos: " + br.BaseStream.Position);
-                                        // return hlsooeDemo;
-                                        c.Data =
-                                            Encoding.ASCII.GetString(br.ReadBytes(usercmdlength))
-                                                .Trim('\0')
-                                                .Replace("\0", string.Empty);
-                                        entry.Frames.Add(new Hlsooe.FramesHren2(currentDemoFrame, c));
-                                        break;
-                                    case Hlsooe.DemoFrameType.Stringtables:
-                                        var e = new Hlsooe.StringTablesFrame();
-                                        if (UnexpectedEof(br, 4))
-                                            hlsooeDemo.ParsingErrors.Add(
-                                                "Unexpected end of file when reading stringtablelength at frame: " +
-                                                i + " brpos: " + br.BaseStream.Position);
-                                        //  return hlsooeDemo;
-                                        var stringtablelength = br.ReadInt32();
-                                        if (UnexpectedEof(br, stringtablelength))
-                                            hlsooeDemo.ParsingErrors.Add(
-                                                "Unexpected end of file when reading stringtable data at frame: " +
-                                                i + " brpos: " + br.BaseStream.Position);
-                                        // return hlsooeDemo;
-                                        var edata = Encoding.ASCII.GetString(br.ReadBytes(stringtablelength))
-                                            .Trim('\0')
-                                            .Replace("\0", string.Empty);
-                                        e.Data = edata;
-                                        entry.Frames.Add(new Hlsooe.FramesHren2(currentDemoFrame, e));
-                                        break;
-                                    case Hlsooe.DemoFrameType.NetworkDataTable:
-                                        var d = new Hlsooe.NetworkDataTableFrame();
-                                        if (UnexpectedEof(br, 4))
-                                            hlsooeDemo.ParsingErrors.Add(
-                                                "Unexpected end of file when reading networktable length at frame: " +
-                                                i + " brpos: " + br.BaseStream.Position);
-                                        //  return hlsooeDemo;
-                                        var networktablelength = br.ReadInt32();
-                                        if (UnexpectedEof(br, 4))
-                                            hlsooeDemo.ParsingErrors.Add(
-                                                "Unexpected end of file when reading NetWorkTable data at frame: " +
-                                                i + " brpos: " + br.BaseStream.Position);
-                                        // return hlsooeDemo;
-                                        d.Data = Encoding.ASCII.GetString(br.ReadBytes(networktablelength))
-                                            .Trim('\0')
-                                            .Replace("\0", string.Empty);
-                                        entry.Frames.Add(new Hlsooe.FramesHren2(currentDemoFrame, d));
-                                        break;
-                                    case Hlsooe.DemoFrameType.NextSection:
-                                        nextSectionRead = true;
-                                        entry.Frames.Add(new Hlsooe.FramesHren2(currentDemoFrame, new Hlsooe.NextSectionFrame()));
-                                        break;
-                                    default:
-                                        if (UnexpectedEof(br, 108))
-                                            hlsooeDemo.ParsingErrors.Add(
-                                                "Unexpected end of file when reading default frame at frame: " + i +
-                                                " brpos: " + br.BaseStream.Position);
-                                        //return hlsooeDemo;
-                                        var err = new Hlsooe.ErrorFrame
-                                        {
-                                            Flags = br.ReadInt32(),
-                                            ViewOrigins =
-                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
-                                            ViewAngles =
-                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
-                                            LocalViewAngles =
-                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
-                                            ViewOrigin2 =
-                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
-                                            ViewAngles2 =
-                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
-                                            LocalViewAngles2 =
-                                                new FPoint3D(br.ReadSingle(), br.ReadSingle(), br.ReadSingle()),
-                                            IncomingSequence = br.ReadInt32(),
-                                            IncomingAcknowledged = br.ReadInt32(),
-                                            IncomingReliableAcknowledged = br.ReadInt32(),
-                                            IncomingReliableSequence = br.ReadInt32(),
-                                            OutgoingSequence = br.ReadInt32(),
-                                            ReliableSequence = br.ReadInt32(),
-                                            LastReliableSequence = br.ReadInt32()
-                                        };
-                                        var dml = br.ReadInt32();
-                                        err.Msg = Encoding.ASCII.GetString(br.ReadBytes(dml))
-                                            .Trim('\0')
-                                            .Replace("\0", string.Empty);
-                                        entry.Frames.Add(new Hlsooe.FramesHren2(currentDemoFrame, err));
-                                        break;
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        hlsooeDemo.ParsingErrors.Add("Non goldsource demo file");
-                        br.Close();
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                //Main.//Log("Exception happened at hlsooe parser: " + e.Message);
-                hlsooeDemo.ParsingErrors.Add(e.Message);
-            }
-            return hlsooeDemo;
-        }
-
-        /// <summary>
         ///     Parses a goldsource engine demo
         /// </summary>
         /// <param name="s">Path to the file</param>
@@ -1014,8 +693,7 @@ namespace DemoScanner.DemoStuff.GoldSource
             {
                 Header = new GoldSource.DemoHeader(),
                 ParsingErrors = new List<string>(),
-                DirectoryEntries = new List<GoldSource.DemoDirectoryEntry>(),
-                Cheats = new List<string>()
+                DirectoryEntries = new List<GoldSource.DemoDirectoryEntry>()
             };
             try
             {
@@ -1024,7 +702,6 @@ namespace DemoScanner.DemoStuff.GoldSource
                     //var s1 = new System.Diagnostics.Stopwatch();
                     //s1.Start();
                     var mw = Encoding.ASCII.GetString(br.ReadBytes(8)).Trim('\0').Replace("\0", string.Empty);
-
 
                     if (DemoScanner.DG.DemoScanner.DEBUG_ENABLED)
                         Console.WriteLine("DEMO HEADER: \"" + mw + "\" = " + (mw == "HLDEMO").ToString());
@@ -1060,10 +737,10 @@ namespace DemoScanner.DemoStuff.GoldSource
                         try
                         {
                             br.BaseStream.Seek(gDemo.Header.DirectoryOffset, SeekOrigin.Begin);
-                            if (gDemo.Header.DirectoryOffset >= br.BaseStream.Length)
+                            if (gDemo.Header.DirectoryOffset < 0 || gDemo.Header.DirectoryOffset >= br.BaseStream.Length)
                             {
                                 gDemo.ParsingErrors.Add("Unexpected directory offset.");
-
+                                throw new Exception("Bad directory offset.");
                             }
                         }
                         catch
@@ -1128,6 +805,14 @@ namespace DemoScanner.DemoStuff.GoldSource
                                     FileLength = br.ReadInt32(),
                                     Frames = new List<GoldSource.FramesHren>()
                                 };
+
+                                if (DemoScanner.DG.DemoScanner.DEBUG_ENABLED)
+                                {
+                                    Console.WriteLine("Entry type: " + tempvar.Type + ". Description:" + tempvar.Description + ". Flags:" + tempvar.Flags);
+                                    Console.WriteLine("CdTrack: " + tempvar.CdTrack + ". TrackTime:" + tempvar.TrackTime + ". FrameCount:" + tempvar.FrameCount);
+                                    Console.WriteLine("Offset: " + tempvar.Offset + ". FileLength:" + tempvar.FileLength);
+                                }
+
                                 gDemo.DirectoryEntries.Add(tempvar);
                             }
                         }
@@ -1206,7 +891,6 @@ namespace DemoScanner.DemoStuff.GoldSource
                                         Index = ind
                                     };
 
-                                    //Console.WriteLine(currentDemoFrame.Type);
                                     switch (currentDemoFrame.Type)
                                     {
                                         case GoldSource.DemoFrameType.DemoStart: //No extra dat

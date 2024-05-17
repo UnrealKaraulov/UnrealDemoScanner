@@ -52,15 +52,6 @@ std::vector<int16_t> decode(const std::vector<unsigned char>& input_bytes)
 
 		float time = tmpBuff->readBytes<float>();
 
-		/*
-		if (!isFirstTime)
-		{
-			oldtime = time;
-			first_time = time;
-			isFirstTime = true;
-		}
-		*/
-
 		if (bMixFiles)
 		{
 			int sleepsamples = (int)((time - oldtime) * 48000.0f);
@@ -85,7 +76,7 @@ std::vector<int16_t> decode(const std::vector<unsigned char>& input_bytes)
 		int samples = opus_codec->Decompress((const char*)&enc_samples[0], len, (char*)&dec_samples[0], 0xffff);
 		if (samples > 5)
 		{
-			oldtime += samples / 48000.0f + 0.01f;
+			oldtime += samples / 48000.0f;
 
 			for (int i = 0; i < samples; i++)
 			{
@@ -97,7 +88,7 @@ std::vector<int16_t> decode(const std::vector<unsigned char>& input_bytes)
 			samples = silk_codec->Decompress((const char*)&enc_samples[0], len, (char*)&dec_samples[0], 0xffff);
 			if (samples > 5)
 			{
-				oldtime += samples / 48000.0f + 0.01f;
+				oldtime += samples / 48000.0f;
 				for (int i = 0; i < samples; i++)
 				{
 					samplesout.push_back(samplesarray[i]);
@@ -106,10 +97,13 @@ std::vector<int16_t> decode(const std::vector<unsigned char>& input_bytes)
 			else
 			{
 				samples = speex_codec->Decompress((const char*)&enc_samples[0], len, (char*)&dec_samples[0], 0xffff);
-				oldtime += samples  / 48000.0f + 0.01f;
-				for (int i = 0; i < samples; i++)
+				if (samples > 5)
 				{
-					samplesout.push_back(samplesarray[i]);
+					oldtime += samples / 48000.0f;
+					for (int i = 0; i < samples; i++)
+					{
+						samplesout.push_back(samplesarray[i]);
+					}
 				}
 			}
 		}
