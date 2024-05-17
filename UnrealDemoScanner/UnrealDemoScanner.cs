@@ -24,7 +24,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.71.8";
+        public const string PROGRAMVERSION = "1.71.9";
 
         public static bool DEMOSCANNER_HLTV = false;
 
@@ -1566,9 +1566,7 @@ namespace DemoScanner.DG
                 SearchJumpBug = true;
                 FrameCrash = 0;
                 FirstJump = true;
-                BHOP_GroundWarn = 0;
-                BHOP_JumpWarn = 0;
-                BHOP_GroundSearchDirection = 0;
+
                 if (RealAlive)
                 {
                     FlyJumps++;
@@ -1581,6 +1579,31 @@ namespace DemoScanner.DG
 
                 if (IsUserAlive())
                 {
+                    if (BHOP_JumpWarn > 2)
+                    {
+                        if (abs(CurrentTime - LastBhopTime) > 1.0f)
+                        {
+                            BHOPcount += BHOP_JumpWarn - 1;
+                            DemoScanner_AddWarn("[BHOP TYPE 1.2] at (" + CurrentTime + ") " + CurrentTimeString + " [" +
+                                                (BHOP_JumpWarn - 1) + "]" + " times.");
+                            LastBhopTime = CurrentTime;
+                            BHOP_JumpWarn = 0;
+                        }
+                    }
+
+                    if (BHOP_GroundWarn > 2)
+                    {
+                        if (abs(CurrentTime - LastBhopTime) > 0.75f && abs(CurrentTime - LastBhopTime) < 2.5f)
+                        {
+                            BHOPcount += BHOP_GroundWarn - 1;
+                            DemoScanner_AddWarn(
+                                "[BHOP TYPE 2.2] at (" + CurrentTime + ") " + CurrentTimeString + " [" +
+                                (BHOP_GroundWarn - 1) + "]" + " times.", BHOP_GroundWarn > 3, BHOP_GroundWarn > 3);
+                            LastBhopTime = CurrentTime;
+                            BHOP_GroundWarn = 0;
+                        }
+                    }
+
                     JumpCount++;
                     if (abs(LastJumpTime - CurrentTime) < EPSILON && abs(LastJumpTime) > EPSILON) MouseJumps++;
 
@@ -1593,6 +1616,9 @@ namespace DemoScanner.DG
                 LastJumpFrame = CurrentFrameId;
                 JumpHackCount2 = -1;
                 IsJump = true;
+                BHOP_GroundWarn = 0;
+                BHOP_JumpWarn = 0;
+                BHOP_GroundSearchDirection = 0;
             }
 
             if (sLower.IndexOf("-jump") > -1)
@@ -1607,29 +1633,35 @@ namespace DemoScanner.DG
                         LastJumpHackFalseDetectionTime = CurrentTime;
                     }
 
-                    if (!IsJump && SearchJumpBug) JumpWithAlias++;
+                    if (!IsJump && SearchJumpBug)
+                    {
+                        JumpWithAlias++;
+                    }
 
                     if (BHOP_JumpWarn > 2)
                     {
-                        BHOPcount += BHOP_JumpWarn - 1;
-                        if (abs(CurrentTime - LastBhopTime) > 1.0f && abs(LastBhopTime) > EPSILON)
+                        if (abs(CurrentTime - LastBhopTime) > 1.0f)
                         {
-                            DemoScanner_AddWarn("[BHOP TYPE 1] at (" + CurrentTime + ") " + CurrentTimeString + " [" +
+                            BHOPcount += BHOP_JumpWarn - 1;
+                            DemoScanner_AddWarn("[BHOP TYPE 1.1] at (" + CurrentTime + ") " + CurrentTimeString + " [" +
                                                 (BHOP_JumpWarn - 1) + "]" + " times.");
                             LastBhopTime = CurrentTime;
+                            BHOP_JumpWarn = 0;
                         }
                     }
 
                     if (BHOP_GroundWarn > 2)
-                        if (abs(CurrentTime - LastBhopTime) > 0.75f && abs(CurrentTime - LastBhopTime) < 2.5f &&
-                            abs(LastBhopTime) > EPSILON)
+                    {
+                        if (abs(CurrentTime - LastBhopTime) > 0.75f && abs(CurrentTime - LastBhopTime) < 2.5f)
                         {
                             BHOPcount += BHOP_GroundWarn - 1;
                             DemoScanner_AddWarn(
-                                "[BHOP TYPE 2] at (" + CurrentTime + ") " + CurrentTimeString + " [" +
+                                "[BHOP TYPE 2.1] at (" + CurrentTime + ") " + CurrentTimeString + " [" +
                                 (BHOP_GroundWarn - 1) + "]" + " times.", BHOP_GroundWarn > 3, BHOP_GroundWarn > 3);
                             LastBhopTime = CurrentTime;
+                            BHOP_GroundWarn = 0;
                         }
+                    }
 
                     LastJumpTime = CurrentTime;
                 }
@@ -4251,8 +4283,10 @@ namespace DemoScanner.DG
                                 }
 
                                 if (RealAlive)
+                                {
                                     if (CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_MOVELEFT) ||
                                         CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_MOVERIGHT))
+                                    {
                                         //Console.WriteLine("MovementPressed " +
                                         //    (MoveLeft ? "MOVELEFT PRESSED |" : "NO MOVELEFT |") + " " +
                                         //    (MoveRight ? "MOVERIGHT PRESSED |" : "NO MOVERIGHT |") + " " +
@@ -4268,8 +4302,11 @@ namespace DemoScanner.DG
                                                 SearchMoveHack1 = true;
                                                 LastMovementHackTime = CurrentTime;
                                             }
+                                    }
+                                }
 
                                 if (IsAttack)
+                                {
                                     if (PreviousFrameAttacked && !CurrentFrameAttacked)
                                     {
                                         var tmpframeattacked = 0;
@@ -4330,22 +4367,23 @@ namespace DemoScanner.DG
                                             }
                                         }
                                     }
+                                }
 
                                 if (NewAttack)
                                 {
                                     if (AimType7Event == 53) AimType7Event = 3;
-
                                     if (AimType7Event == 52) AimType7Event = 2;
                                 }
                                 else
                                 {
                                     if (AimType7Event == 53) AimType7Event = 0;
-
                                     if (AimType7Event == 52) AimType7Event = 0;
                                 }
 
                                 CurrentFrameJumped = CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_JUMP);
-                                if (CurrentFrameJumped) LastJumpBtnTime = CurrentTime;
+
+                                if (CurrentFrameJumped) 
+                                    LastJumpBtnTime = CurrentTime;
 
                                 if (SearchJumpHack5 > 1)
                                 {
@@ -4376,13 +4414,32 @@ namespace DemoScanner.DG
                                 }
 
                                 if (PreviousFrameJumped && !CurrentFrameJumped)
+                                {
                                     if (NeedDetectBHOPHack && RealAlive)
+                                    {
                                         BHOP_JumpWarn++;
+                                        if (BHOP_JumpWarn > 10)
+                                        {
+                                            if (abs(CurrentTime - LastBhopTime) > 1.0f)
+                                            {
+                                                BHOPcount += BHOP_JumpWarn - 1;
+                                                DemoScanner_AddWarn("[BHOP TYPE 1.3] at (" + CurrentTime + ") " + CurrentTimeString + " [" +
+                                                                    (BHOP_JumpWarn - 1) + "]" + " times.");
+                                                LastBhopTime = CurrentTime;
+                                                BHOP_JumpWarn = 0;
+                                            }
+                                        }
+                                    }
+                                }
 
                                 if (!PreviousFrameJumped && CurrentFrameJumped)
-                                    // Console.WriteLine("Real jump at: " + CurrentTimeString);
+                                {
                                     if (IsUserAlive())
+                                    {
                                         JumpCount2++;
+                                        NeedDetectBHOPHack = true;
+                                    }
+                                }
 
                                 //Console.WriteLine("JMP BUTTON at (" + CurrentTime + ") : " + CurrentTimeString);
                                 //if (FirstAttack && CurrentTime == IsAttackLastTime)
@@ -4625,7 +4682,8 @@ namespace DemoScanner.DG
 
                                 if (!PreviousFrameOnGround && CurrentFrameOnGround)
                                 {
-                                    if (NeedDetectBHOPHack && RealAlive) BHOP_GroundSearchDirection = 1;
+                                    if (NeedDetectBHOPHack && RealAlive) 
+                                        BHOP_GroundSearchDirection = 1;
                                 }
                                 else if (PreviousFrameOnGround && CurrentFrameOnGround)
                                 {
@@ -4669,6 +4727,8 @@ namespace DemoScanner.DG
                                 //    && PreviousFramePunchangleZ == 0.0f &&
                                 //    CurrentFramePunchangleZ > 2.0f)
                                 //    NeedDetectBHOPHack = true;
+
+
                                 AddLerpAndMs(nf.UCmd.LerpMsec, nf.UCmd.Msec);
                                 BadPunchAngle = abs(CurrentFramePunchangleZ) > EPSILON /* ||
                                  abs(nf.RParms.Punchangle.Y) > EPSILON ||
@@ -5335,7 +5395,10 @@ namespace DemoScanner.DG
 
                                 if (abs(CurrentTime) > EPSILON && RealAlive)
                                 {
-                                    if ((IsJump && FirstJump) || CurrentTime - LastUnJumpTime < 0.5f) JumpHackCount2 = 0;
+                                    if ((IsJump && FirstJump) || CurrentTime - LastUnJumpTime < 0.5f)
+                                    {
+                                        JumpHackCount2 = 0;
+                                    }
 
                                     if (!CurrentFrameJumped && !FirstJump)
                                     {
@@ -5345,12 +5408,15 @@ namespace DemoScanner.DG
                                     else
                                     {
                                         if (FirstJump && !IsJump)
+                                        {
                                             if (JumpHackCount2 > 0)
                                             {
                                                 JumpHackCount2 = 0;
                                                 if (abs(LastJumpHackFalseDetectionTime) > EPSILON &&
                                                     abs(CurrentTime - LastJumpHackFalseDetectionTime) > 5.0f)
+                                                {
                                                     LastJumpHackFalseDetectionTime = 0.0f;
+                                                }
 
                                                 if (abs(CurrentTime - LastUnJumpTime) > 1.5f &&
                                                     abs(CurrentTime - LastJumpTime) > 1.5f)
@@ -5394,11 +5460,16 @@ namespace DemoScanner.DG
                                                     }
                                                 }
                                             }
+                                        }
 
                                         if (FirstJump && !IsJump && CurrentFrameJumped)
+                                        {
                                             if (abs(CurrentTime - LastUnJumpTime) > 0.5f &&
                                                 abs(CurrentTime - LastJumpTime) > 0.5f)
+                                            {
                                                 JumpHackCount2++;
+                                            }
+                                        }
                                     }
                                 }
                                 else
@@ -9012,13 +9083,13 @@ namespace DemoScanner.DG
 
                             if (LocalPlayerId != -1 && slot == LocalPlayerId)
                             {
-                                if (LastSteam.Length != 0 && LastSteam != player.UserSteamId
+                                if (LastSteam != null && LastSteam.Length != 0 && LastSteam != player.UserSteamId
                                     && LocalPlayerUserId2 == player.ServerUserIdLong)
                                 {
                                     DemoScanner_AddWarn("[STEAMID HACK] FROM [" + LastSteam + "] TO [" + player.UserSteamId +
                                         "] at (" + CurrentTime + ") " + CurrentTimeString, true, true, true);
                                 }
-                                if (player.UserSteamId != LastSteam)
+                                if (player.UserSteamId != null && player.UserSteamId != LastSteam)
                                 {
                                     if (!SKIP_RESULTS)
                                     {
