@@ -24,7 +24,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.71.5";
+        public const string PROGRAMVERSION = "1.71.6";
 
         public enum AngleDirection
         {
@@ -3844,6 +3844,7 @@ namespace DemoScanner.DG
 
                                 NewAttack = false;
                                 NewAttack2 = false;
+
                                 if (CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_RELOAD) &&
                                     !PreviousFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_RELOAD))
                                 {
@@ -3855,8 +3856,8 @@ namespace DemoScanner.DG
                                             ReloadHackTime = CurrentTime;
                                         else if (PreviousFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_ATTACK) &&
                                                  !CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_ATTACK))
-                                            if (abs(IsNoAttackLastTime - CurrentTime) > 0.05 ||
-                                                abs(ReloadKeyPressTime - CurrentTime) > 0.05)
+                                            if (abs(IsNoAttackLastTime - CurrentTime) > 0.1 ||
+                                                abs(ReloadKeyPressTime - CurrentTime) > 0.1)
                                                 DemoScanner_AddWarn("[BETA] [SILENT RELOAD " + CurrentWeapon + "] at (" +
                                                                     CurrentTime + ") " + CurrentTimeString);
                                     }
@@ -5470,8 +5471,10 @@ namespace DemoScanner.DG
                                 }
 
                                 if (nf.RParms.Intermission != 0)
+                                {
                                     // Console.WriteLine("Intermiss");
                                     Intermission = true;
+                                }
 
                                 if (DUMP_ALL_FRAMES)
                                 {
@@ -7734,7 +7737,7 @@ namespace DemoScanner.DG
                                         DemoScanner_AddWarn(
                                             "[CMD HACK TYPE 3] at (" + CurrentTime + ") " + CurrentTimeString,
                                             ms == 0 && !IsAngleEditByEngine());
-                                       
+
                                         LastCmdHack = CurrentTime;
                                     }
                                 }
@@ -8874,7 +8877,15 @@ namespace DemoScanner.DG
                                 //    Console.WriteLine("User2 = " + UserId2);
                                 //    Console.WriteLine(player.ToString());
 
-                                if (player.UserName != LastUsername)
+                                bool samenames = false;
+
+                                if (LastUsername.Length > 2 && player.UserName.Length > 2)
+                                {
+                                    samenames = LastUsername.Substring(0, 3).Equals(player.UserName.Substring(0, 3)) && 
+                                        player.UserName.IndexOf(" + ") > 0;
+                                }
+
+                                if (player.UserName != LastUsername && !samenames)
                                 {
                                     if (LastUsername.Length != 0 && LastUsername.IndexOf(player.UserName) != 0 &&
                                        player.UserName.IndexOf(LastUsername) != 0 &&
@@ -8884,7 +8895,6 @@ namespace DemoScanner.DG
                                             DemoScanner_AddInfo("Игрок сменил никнейм с [" + LastUsername + "] на [" + player.UserName + "] на " + CurrentTimeString);
                                         else
                                             DemoScanner_AddInfo("Player changes nickname from [" + LastUsername + "] to [" + player.UserName + "] at " + CurrentTimeString);
-
                                     }
 
                                     if (!SKIP_RESULTS)
@@ -8917,7 +8927,7 @@ namespace DemoScanner.DG
 
                                 LocalPlayerUserId = player.ServerUserIdLong;
                             }
-                            else if (oldname != null && oldname != newname && newname.Length > 0 && oldname.Length > 0)
+                            if (oldname != null && oldname != newname && newname.Length > 0 && oldname.Length > 0)
                             {
                                 if (IsRussia)
                                     DemoScanner_AddTextMessage("Игрок " + userid + " сменил никнейм с [" + oldname + "] на [" + newname + "] на " + CurrentTimeString, "PLAYERINFO", CurrentTime, CurrentTimeString);
@@ -8970,13 +8980,10 @@ namespace DemoScanner.DG
                                 }
                                 LocalPlayerUserId2 = player.ServerUserIdLong;
                             }
-                            else
+                            if (oldsteam != null && player.UserSteamId != null && oldsteam != player.UserSteamId && oldsteam.Length > 0 && player.UserSteamId.Length > 0)
                             {
-                                if (oldsteam != null && player.UserSteamId != null && oldsteam != player.UserSteamId && oldsteam.Length > 0 && player.UserSteamId.Length > 0)
-                                {
-                                    DemoScanner_AddTextMessage("[STEAMID HACK] USER " + userid + " NAME " + (player.UserName != null ? player.UserName : "ERROR NO NAME") + " FROM [" + LastSteam + "] TO [" + player.UserSteamId +
-                                           "] at (" + CurrentTime + ") " + CurrentTimeString, "PLAYERINFO", CurrentTime, CurrentTimeString);
-                                }
+                                DemoScanner_AddTextMessage("[STEAMID HACK] USER " + userid + " NAME " + (player.UserName != null ? player.UserName : "ERROR NO NAME") + " FROM [" + LastSteam + "] TO [" + player.UserSteamId +
+                                        "] at (" + CurrentTime + ") " + CurrentTimeString, "PLAYERINFO", CurrentTime, CurrentTimeString);
                             }
                         }
                     }

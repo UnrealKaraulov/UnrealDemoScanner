@@ -57,7 +57,7 @@
   </PropertyGroup>
   <PropertyGroup>
     <StartupObject>DemoScanner.DG.DemoScanner</StartupObject>
-    <PlatformTarget>x86</PlatformTarget>
+    <PlatformTarget>AnyCPU</PlatformTarget>
     <AnalysisLevel>none</AnalysisLevel>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
@@ -71,6 +71,7 @@
     <NoWarn />
     <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
     <IsPublishable>True</IsPublishable>
+    <Prefer32Bit>True</Prefer32Bit>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -79,6 +80,7 @@
     <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
     <FileAlignment>512</FileAlignment>
     <IsPublishable>True</IsPublishable>
+    <Prefer32Bit>True</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
     <FileAssociation Include=".dem">

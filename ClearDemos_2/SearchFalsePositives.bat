@@ -1,1 +1,1 @@
-for /r %%v in (*.dem) do START ..\Release\UnrealDemoScanner2.exe -alive "%%v"
+for /r %%v in (*.dem) do START ..\Release\UnrealDemoScanner.exe -alive "%%v"
