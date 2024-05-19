@@ -7123,7 +7123,7 @@ namespace DemoScanner.DG
                                     {
                                         foreach (var path in invalidPaths)
                                         {
-                                            string lowerpath = path.ToLower();
+                                            string lowerpath = path.ToLower().TrimEnd('.');
                                             if (lowerpath.EndsWith(".spr"))
                                             {
                                                 File.WriteAllBytes(strikedir + "//" + path, EMPTY_SPR);
@@ -7144,9 +7144,34 @@ namespace DemoScanner.DG
                                             {
                                                 Console.WriteLine("Error .bsp file can not be empty: " + path);
                                             }
+                                            else if (lowerpath.EndsWith(".ini") || lowerpath.EndsWith(".cfg"))
+                                            {
+                                                Console.WriteLine("Can't write configuration file: " + path);
+                                            }
+                                            else if (
+                                                lowerpath.EndsWith(".dll") ||
+                                                lowerpath.EndsWith(".exe") ||
+                                                lowerpath.EndsWith(".drv") ||
+                                                lowerpath.EndsWith(".bat") ||
+                                                lowerpath.EndsWith(".cmd") ||
+                                                lowerpath.EndsWith(".asi") ||
+                                                lowerpath.EndsWith(".mix") ||
+                                                lowerpath.EndsWith(".m3d") ||
+                                                lowerpath.EndsWith(".flt")
+                                                )
+                                            {
+                                                Console.WriteLine("Can't write executable file: " + path);
+                                            }
                                             else
                                             {
-                                                File.WriteAllBytes(strikedir + "//" + path, new byte[0]);
+                                                try
+                                                {
+                                                    File.WriteAllBytes(strikedir + "//" + path, new byte[0]);
+                                                }
+                                                catch
+                                                {
+                                                    Console.WriteLine("Error write " + path + " file!");
+                                                }
                                             }
                                         }
                                     }
