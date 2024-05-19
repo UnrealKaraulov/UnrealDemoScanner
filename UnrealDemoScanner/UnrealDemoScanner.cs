@@ -7123,55 +7123,90 @@ namespace DemoScanner.DG
                                     {
                                         foreach (var path in invalidPaths)
                                         {
-                                            string lowerpath = path.ToLower().TrimEnd('.');
-                                            if (lowerpath.EndsWith(".spr"))
+                                            try
                                             {
-                                                File.WriteAllBytes(strikedir + "//" + path, EMPTY_SPR);
-                                            }
-                                            else if (lowerpath.EndsWith(".mdl"))
-                                            {
-                                                File.WriteAllBytes(strikedir + "//" + path, EMPTY_MDL);
-                                            }
-                                            else if (lowerpath.EndsWith(".mp3"))
-                                            {
-                                                File.WriteAllBytes(strikedir + "//" + path, EMPTY_MP3);
-                                            }
-                                            else if (lowerpath.EndsWith(".wav"))
-                                            {
-                                                File.WriteAllBytes(strikedir + "//" + path, EMPTY_WAV);
-                                            }
-                                            else if (lowerpath.EndsWith(".bsp"))
-                                            {
-                                                Console.WriteLine("Error .bsp file can not be empty: " + path);
-                                            }
-                                            else if (lowerpath.EndsWith(".ini") || lowerpath.EndsWith(".cfg"))
-                                            {
-                                                Console.WriteLine("Can't write configuration file: " + path);
-                                            }
-                                            else if (
-                                                lowerpath.EndsWith(".dll") ||
-                                                lowerpath.EndsWith(".exe") ||
-                                                lowerpath.EndsWith(".drv") ||
-                                                lowerpath.EndsWith(".bat") ||
-                                                lowerpath.EndsWith(".cmd") ||
-                                                lowerpath.EndsWith(".asi") ||
-                                                lowerpath.EndsWith(".mix") ||
-                                                lowerpath.EndsWith(".m3d") ||
-                                                lowerpath.EndsWith(".flt")
-                                                )
-                                            {
-                                                Console.WriteLine("Can't write executable file: " + path);
-                                            }
-                                            else
-                                            {
-                                                try
+                                                string lowerpath = path.ToLower().TrimEnd('.');
+                                                if (lowerpath.EndsWith(".spr"))
                                                 {
+                                                    try
+                                                    {
+                                                        Directory.CreateDirectory(Path.GetDirectoryName(strikedir + "/" + path));
+                                                    }
+                                                    catch
+                                                    {
+                                                    }
+                                                    File.WriteAllBytes(strikedir + "//" + path, EMPTY_SPR);
+                                                }
+                                                else if (lowerpath.EndsWith(".mdl"))
+                                                {
+                                                    try
+                                                    {
+                                                        Directory.CreateDirectory(Path.GetDirectoryName(strikedir + "/" + path));
+                                                    }
+                                                    catch
+                                                    {
+                                                    }
+                                                    File.WriteAllBytes(strikedir + "//" + path, EMPTY_MDL);
+                                                }
+                                                else if (lowerpath.EndsWith(".mp3"))
+                                                {
+                                                    try
+                                                    {
+                                                        Directory.CreateDirectory(Path.GetDirectoryName(strikedir + "/" + path));
+                                                    }
+                                                    catch
+                                                    {
+                                                    }
+                                                    File.WriteAllBytes(strikedir + "//" + path, EMPTY_MP3);
+                                                }
+                                                else if (lowerpath.EndsWith(".wav"))
+                                                {
+                                                    try
+                                                    {
+                                                        Directory.CreateDirectory(Path.GetDirectoryName(strikedir + "/" + path));
+                                                    }
+                                                    catch
+                                                    {
+                                                    }
+                                                    File.WriteAllBytes(strikedir + "//" + path, EMPTY_WAV);
+                                                }
+                                                else if (lowerpath.EndsWith(".bsp"))
+                                                {
+                                                    Console.WriteLine("Error .bsp file can not be empty: " + path);
+                                                }
+                                                else if (lowerpath.EndsWith(".ini") || lowerpath.EndsWith(".cfg"))
+                                                {
+                                                    Console.WriteLine("Can't write configuration file: " + path);
+                                                }
+                                                else if (
+                                                    lowerpath.EndsWith(".dll") ||
+                                                    lowerpath.EndsWith(".exe") ||
+                                                    lowerpath.EndsWith(".drv") ||
+                                                    lowerpath.EndsWith(".bat") ||
+                                                    lowerpath.EndsWith(".cmd") ||
+                                                    lowerpath.EndsWith(".asi") ||
+                                                    lowerpath.EndsWith(".mix") ||
+                                                    lowerpath.EndsWith(".m3d") ||
+                                                    lowerpath.EndsWith(".flt")
+                                                    )
+                                                {
+                                                    Console.WriteLine("Can't write executable file: " + path);
+                                                }
+                                                else
+                                                {
+                                                    try
+                                                    {
+                                                        Directory.CreateDirectory(Path.GetDirectoryName(strikedir + "/" + path));
+                                                    }
+                                                    catch
+                                                    {
+                                                    }
                                                     File.WriteAllBytes(strikedir + "//" + path, new byte[0]);
                                                 }
-                                                catch
-                                                {
-                                                    Console.WriteLine("Error write " + path + " file!");
-                                                }
+                                            }
+                                            catch
+                                            {
+                                                Console.WriteLine("Error write " + path + " file!");
                                             }
                                         }
                                     }
