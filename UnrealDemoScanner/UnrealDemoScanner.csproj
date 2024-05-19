@@ -24,13 +24,11 @@
     <ApplicationRevision>20</ApplicationRevision>
     <ApplicationVersion>1.71.%2a.0</ApplicationVersion>
     <UseApplicationTrust>false</UseApplicationTrust>
-    <CreateDesktopShortcut>true</CreateDesktopShortcut>
     <PublishWizardCompleted>true</PublishWizardCompleted>
     <BootstrapperEnabled>true</BootstrapperEnabled>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <UseWindowsForms>true</UseWindowsForms>
-    <ImportWindowsDesktopTargets>true</ImportWindowsDesktopTargets>
-    <Platforms>x86</Platforms>
+    <GenerateResourceUsePreserializedResources>false</GenerateResourceUsePreserializedResources>
+    <Platforms>x86;x64</Platforms>
   </PropertyGroup>
   <PropertyGroup>
     <TargetZone>LocalIntranet</TargetZone>
@@ -83,6 +81,22 @@
     <Prefer32Bit>True</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Remove="EntitiesPreviewWindow.cs" />
+    <Compile Remove="EntitiesPreviewWindow.Designer.cs" />
+    <Compile Remove="Preview.cs" />
+    <Compile Remove="Preview.Designer.cs" />
+    <Compile Remove="Properties\Resources.Designer.cs" />
+    <Compile Remove="Properties\Settings.Designer.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Remove="EntitiesPreviewWindow.resx" />
+    <EmbeddedResource Remove="Preview.resx" />
+    <EmbeddedResource Remove="Properties\Resources.resx" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="Properties\Settings.settings" />
+  </ItemGroup>
+  <ItemGroup>
     <FileAssociation Include=".dem">
       <Visible>False</Visible>
       <Description>Demo files</Description>
@@ -97,16 +111,6 @@
     </FileAssociation>
   </ItemGroup>
   <ItemGroup>
-    <BootstrapperPackage Include="Microsoft.Net.Framework.3.5.SP1">
-      <Visible>False</Visible>
-      <ProductName>.NET Framework 3.5 SP1</ProductName>
-      <Install>false</Install>
-    </BootstrapperPackage>
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="Other\1.ico" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="System.Data.DataSetExtensions" Version="4.5.0" />
+    <EmbeddedResource Include="Other\1.ico" />
   </ItemGroup>
 </Project>

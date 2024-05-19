@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace DemoScanner.Properties {
+namespace DemoScanner.Other {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]

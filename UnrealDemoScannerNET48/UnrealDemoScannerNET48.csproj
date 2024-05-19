@@ -106,14 +106,12 @@
     <Compile Include="..\UnrealDemoScanner\EntitiesPreviewWindow.Designer.cs">
       <DependentUpon>EntitiesPreviewWindow.cs</DependentUpon>
     </Compile>
-    <Compile Include="..\UnrealDemoScanner\Helpers\GlobalSuppressions.cs" />
-    <Compile Include="..\UnrealDemoScanner\Helpers\ConsoleTable.cs" />
-    <Compile Include="..\UnrealDemoScanner\Helpers\NativeConsoleMethods.cs" />
-    <Compile Include="..\UnrealDemoScanner\Parser\Demo stuff\BinaryReaderExtension.cs" />
-    <Compile Include="..\UnrealDemoScanner\Parser\Demo stuff\DemoInfo.cs" />
-    <Compile Include="..\UnrealDemoScanner\Parser\Demo stuff\CrossDemoParser.cs" />
-    <Compile Include="..\UnrealDemoScanner\Parser\Demo stuff\Point3D.cs" />
-    <Compile Include="..\UnrealDemoScanner\Parser\Demo stuff\GoldSource\GoldSourceParser.cs" />
+    <Compile Include="..\UnrealDemoScanner\Helpers\ConsoleTable.cs">
+      <Link>Helpers\ConsoleTable.cs</Link>
+    </Compile>
+    <Compile Include="..\UnrealDemoScanner\Helpers\NativeConsoleMethods.cs">
+      <Link>Helpers\NativeConsoleMethods.cs</Link>
+    </Compile>
     <Compile Include="..\UnrealDemoScanner\Preview.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -124,9 +122,28 @@
       <AutoGen>True</AutoGen>
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
+      <Link>Other\Resources.Designer.cs</Link>
     </Compile>
-    <Compile Include="..\UnrealDemoScanner\Properties\AssemblyInfo.cs" />
-    <Compile Include="..\UnrealDemoScanner\UnrealDemoScanner.cs" />
+    <Compile Include="..\UnrealDemoScanner\Properties\AssemblyInfo.cs">
+	 <Link>Properties\AssemblyInfo.cs</Link>
+    </Compile>
+    <Compile Include="..\UnrealDemoScanner\UnrealDemoScanner.cs">
+    </Compile>
+    <Compile Include="..\UnrealDemoScanner\Parser\BinaryReaderExtension.cs">
+	 <Link>Parser\BinaryReaderExtension.cs</Link>
+    </Compile>
+    <Compile Include="..\UnrealDemoScanner\Parser\CrossDemoParser.cs">
+	 <Link>Parser\CrossDemoParser.cs</Link>
+    </Compile>
+    <Compile Include="..\UnrealDemoScanner\Parser\DemoInfo.cs">
+	 <Link>Parser\DemoInfo</Link>
+    </Compile>
+    <Compile Include="..\UnrealDemoScanner\Parser\GoldSourceParser.cs">
+	 <Link>Parser\GoldSourceParser.cs</Link>
+    </Compile>
+    <Compile Include="..\UnrealDemoScanner\Parser\Point3D.cs">
+	 <Link>Parser\Point3D</Link>
+    </Compile>
     <EmbeddedResource Include="..\UnrealDemoScanner\EntitiesPreviewWindow.resx">
       <DependentUpon>EntitiesPreviewWindow.cs</DependentUpon>
       <SubType>Designer</SubType>
@@ -138,15 +155,18 @@
       <Generator>PublicResXFileCodeGenerator</Generator>
       <SubType>Designer</SubType>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <Link>Other\Resources.resx</Link>
     </EmbeddedResource>
     <None Include="..\UnrealDemoScanner\Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+      <Link>Other\Settings.settings</Link>
     </None>
     <Compile Include="..\UnrealDemoScanner\Properties\Settings.Designer.cs">
       <AutoGen>True</AutoGen>
       <DependentUpon>Settings.settings</DependentUpon>
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <Link>Other\Settings.Designer.cs</Link>
     </Compile>
   </ItemGroup>
   <ItemGroup>
