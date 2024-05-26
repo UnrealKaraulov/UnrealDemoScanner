@@ -1,5 +1,6 @@
 // ATTENTION! 
-// NEED INSTALL THIS PLUGIN AT START OF PLUGINS.INI FILE!!! 
+// [WARNING] NEED INSTALL THIS PLUGIN AT START OF PLUGINS.INI FILE!!! 
+// [ПРЕДУПРЕЖДЕНИЕ] НЕОБХОДИМО УСТАНОВИТЬ ЭТОТ ПЛАГИН В НАЧАЛО СПИСКА PLUGINS.INI ДЛЯ ПЕРЕХВАТА fullupdate!
 
 #include <amxmodx>
 #include <fakemeta>
@@ -8,12 +9,12 @@
 
 #define PLUGIN "Unreal Demo Plugin"
 #define AUTHOR "karaulov"
-#define VERSION "1.54"
+#define VERSION "1.55"
 
 
-new g_iDemoHelperInitStage[33];
-new g_iFrameNum[33];
-new g_iPbEventCount[33];
+new g_iDemoHelperInitStage[33] = {0,...};
+new g_iFrameNum[33] = {0,...};
+new g_iPbEventCount[33] = {0,...};
 
 public plugin_init() 
 {
@@ -34,6 +35,7 @@ public client_disconnected(id)
 	g_iPbEventCount[id] = 0;
 	g_iFrameNum[id] = 0;
 	g_iDemoHelperInitStage[id] = 0;
+
 	remove_task(id);
 }
 
@@ -48,9 +50,7 @@ public fw_PlaybackEvent( iFlags, id, eventIndex )
 	return FMRES_IGNORED;
 }
 
-
-/* Более точное определение прыжка, костыль из-за того что reapi не позволяет узнать что игрок прыгнул */
-
+/* JUMP DETECTION FROM ENGINE */
 public HC_CBasePlayer_Jump_Pre(id) 
 {
 	new iFlags = get_entvar(id,var_flags);
@@ -85,10 +85,11 @@ public HC_CBasePlayer_Jump_Pre(id)
 		return HC_CONTINUE;
 	}
 	
-	if (get_entvar(id, var_oldbuttons) & IN_JUMP && get_entvar(id, var_button) & IN_JUMP)
+	if (get_entvar(id, var_oldbuttons) & IN_JUMP || get_entvar(id, var_button) & IN_JUMP)
 		WriteDemoInfo(id, "UDS/JMP/2");
 	else 
 		WriteDemoInfo(id, "UDS/JMP/1");
+
 	return HC_CONTINUE;
 }
 
@@ -148,15 +149,12 @@ public DemoHelperInitializeTask(id)
 		}
 		case 3:
 		{
-			if (get_cvar_num("sv_minrate") < 25000 || get_cvar_num("sv_maxrate") < 25000)
-			{
-				WriteDemoInfo(id,"UDS/BAD/1");
-			}
+			WriteDemoInfo(id,"UDS/MINR/%i",get_cvar_num("sv_minrate"));
+			WriteDemoInfo(id,"UDS/MAXR/%i",get_cvar_num("sv_maxrate"));
+		
+			WriteDemoInfo(id,"UDS/MINUR/%i",get_cvar_num("sv_minupdaterate"));
+			WriteDemoInfo(id,"UDS/MAXUR/%i",get_cvar_num("sv_maxupdaterate"));
 			
-			if (get_cvar_num("sv_minupdaterate") < 30 || get_cvar_num("sv_maxupdaterate") < 30)
-			{
-				WriteDemoInfo(id,"UDS/BAD/2");
-			}
 			g_iPbEventCount[id] = 0;
 			g_iDemoHelperInitStage[id] = -1;
 		}
