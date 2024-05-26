@@ -125,24 +125,24 @@
       <Link>Other\Resources.Designer.cs</Link>
     </Compile>
     <Compile Include="..\UnrealDemoScanner\Properties\AssemblyInfo.cs">
-	 <Link>Properties\AssemblyInfo.cs</Link>
+      <Link>Properties\AssemblyInfo.cs</Link>
     </Compile>
     <Compile Include="..\UnrealDemoScanner\UnrealDemoScanner.cs">
     </Compile>
     <Compile Include="..\UnrealDemoScanner\Parser\BinaryReaderExtension.cs">
-	 <Link>Parser\BinaryReaderExtension.cs</Link>
+      <Link>Parser\BinaryReaderExtension.cs</Link>
     </Compile>
     <Compile Include="..\UnrealDemoScanner\Parser\CrossDemoParser.cs">
-	 <Link>Parser\CrossDemoParser.cs</Link>
+      <Link>Parser\CrossDemoParser.cs</Link>
     </Compile>
     <Compile Include="..\UnrealDemoScanner\Parser\DemoInfo.cs">
-	 <Link>Parser\DemoInfo</Link>
+      <Link>Parser\DemoInfo</Link>
     </Compile>
     <Compile Include="..\UnrealDemoScanner\Parser\GoldSourceParser.cs">
-	 <Link>Parser\GoldSourceParser.cs</Link>
+      <Link>Parser\GoldSourceParser.cs</Link>
     </Compile>
     <Compile Include="..\UnrealDemoScanner\Parser\Point3D.cs">
-	 <Link>Parser\Point3D</Link>
+      <Link>Parser\Point3D</Link>
     </Compile>
     <EmbeddedResource Include="..\UnrealDemoScanner\EntitiesPreviewWindow.resx">
       <DependentUpon>EntitiesPreviewWindow.cs</DependentUpon>

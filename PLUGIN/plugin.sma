@@ -9,12 +9,12 @@
 
 #define PLUGIN "Unreal Demo Plugin"
 #define AUTHOR "karaulov"
-#define VERSION "1.55"
+#define VERSION "1.56"
 
 
 new g_iDemoHelperInitStage[33] = {0,...};
 new g_iFrameNum[33] = {0,...};
-new g_iPbEventCount[33] = {0,...};
+new Float:g_flLastEventTime[33] = {0.0,...};
 
 public plugin_init() 
 {
@@ -32,7 +32,7 @@ public plugin_init()
 
 public client_disconnected(id)
 {
-	g_iPbEventCount[id] = 0;
+	g_flLastEventTime[id] = 0.0;
 	g_iFrameNum[id] = 0;
 	g_iDemoHelperInitStage[id] = 0;
 
@@ -42,9 +42,13 @@ public client_disconnected(id)
 /*Server not processed angles. Always empty.*/
 public fw_PlaybackEvent( iFlags, id, eventIndex )
 {
-	if(id > 0 && id < 33 && g_iDemoHelperInitStage[id] == -1)
+	if(id > 0 && id < 33 && g_iDemoHelperInitStage[id] == -1 && iFlags == 1)
 	{
-		g_iPbEventCount[id]++;
+		if (floatabs(get_gametime() - g_flLastEventTime[id]) > 1.0)
+		{
+			g_flLastEventTime[id] = get_gametime();
+			WriteDemoInfo(id, "UDS/EVENT/%i", eventIndex);
+		}
 	}
 	
 	return FMRES_IGNORED;
@@ -97,22 +101,18 @@ public PM_Move(const id)
 {
 	new button = get_entvar(id, var_button)
 	new oldbuttons = get_entvar(id, var_oldbuttons)
-	if (g_iDemoHelperInitStage[id] == -1 && !(button & IN_ATTACK) && (oldbuttons & IN_ATTACK))
+	if (g_iDemoHelperInitStage[id] == -1 && (button & IN_ATTACK) && !(oldbuttons & IN_ATTACK))
 	{
 		new cmdx = get_pmove( pm_cmd );
-		
-		g_iFrameNum[id]++;
 		WriteDemoInfo(id, "UDS/XCMD/%i/%i/%i", get_ucmd(cmdx, ucmd_lerp_msec), get_ucmd(cmdx, ucmd_msec),g_iFrameNum[id]);
-		if (g_iPbEventCount[id] > 0)
-			WriteDemoInfo(id, "UDS/EVENTS/%i",g_iPbEventCount[id]);
-		g_iPbEventCount[id] = 0;
+		g_iFrameNum[id]++;
 	}
 	return HC_CONTINUE;
 }
 
 public UnrealDemoHelpInitialize(id) 
 {
-	g_iPbEventCount[id] = 0;
+	g_flLastEventTime[id] = 0.0;
 	g_iFrameNum[id] = 0;
 	g_iDemoHelperInitStage[id] = 0;
 	if (is_user_connected(id))
@@ -155,7 +155,7 @@ public DemoHelperInitializeTask(id)
 			WriteDemoInfo(id,"UDS/MINUR/%i",get_cvar_num("sv_minupdaterate"));
 			WriteDemoInfo(id,"UDS/MAXUR/%i",get_cvar_num("sv_maxupdaterate"));
 			
-			g_iPbEventCount[id] = 0;
+			g_flLastEventTime[id] = 0.0;
 			g_iDemoHelperInitStage[id] = -1;
 		}
 	}

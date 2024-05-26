@@ -159,7 +159,6 @@ namespace DemoScanner.DG
         public static int LocalPlayerId = -1;
         public static int LocalPlayerUserId = -1;
         public static int LocalPlayerUserId2 = -1;
-        public static int LocalPlayerEntity = -1;
         public static int TmpPlayerNum = -1;
         public static int TmpPlayerEnt = -1;
         public static bool FirstEventShift;
@@ -3608,13 +3607,20 @@ namespace DemoScanner.DG
 
                                 var eframe = (GoldSource.EventFrame)frame.Value;
 
+                                //bool found = false;
+
                                 //foreach (var res in DownloadedResources)
                                 //{
                                 //    if (res.res_index == eframe.Index && res.res_type == 5)
                                 //    {
+                                //        found = true;
                                 //        Console.WriteLine("Event:" + res.res_path + " at " + CurrentTimeString);
                                 //    }
                                 //}
+
+                                //if (!found)
+                                //    Console.WriteLine("Event:" + "[UNKNOWN]" + " at " + CurrentTimeString);
+
                                 LastEventId = eframe.Index;
 
                                 if (abs(LastEventDetectTime) > EPSILON && abs(LastAttackPressed - LastEventDetectTime) > 0.25)
@@ -3853,7 +3859,8 @@ namespace DemoScanner.DG
                                     FirstJump = false;
                                     FirstAttack = false;
                                     SearchJumpBug = false;
-
+                                    TmpPlayerEnt = -1;
+                                    TmpPlayerNum = -1;
                                     LocalPlayerId = -1;
                                     fullPlayerList.AddRange(playerList);
                                     playerList.Clear();
@@ -4146,6 +4153,18 @@ namespace DemoScanner.DG
                                     FrameDuplicates++;
                                 }
 
+                                TmpPlayerNum = nf.RParms.Playernum;
+                                TmpPlayerEnt = nf.RParms.Viewentity;
+
+                                if (abs(CurrentTime) > EPSILON && CurrentFrameDuplicated <= 1)
+                                {
+                                    if (LocalPlayerId < 0)
+                                    {
+                                        LocalPlayerId = TmpPlayerNum;
+                                        //if (DUMP_ALL_FRAMES) subnode.Text += "[HERE PLAYER FOUND]";
+                                        //Console.WriteLine(LocalPlayerId.ToString());
+                                    }
+                                }
 
                                 var voice_time = abs(CurrentTime - PreviousTime);
                                 if (voice_time > 1.0f)
@@ -4191,14 +4210,14 @@ namespace DemoScanner.DG
                                     }
                                     if (abs(LastEventDetectTime) > EPSILON && abs(LastAttackPressed - LastEventDetectTime) > 0.25)
                                     {
-                                        DemoScanner_AddWarn("[BETA] [TRIGGER TYPE 3 " + CurrentWeapon + "] at (" + CurrentTime + ") " +
+                                        DemoScanner_AddWarn("[BETA] [TRIGGER TYPE 3." + (LastEventId < 0 ? 2 : 1) + " " + CurrentWeapon + "] at (" + CurrentTime + ") " +
                                                 CurrentTimeString, false);
                                         TriggerAimAttackCount++;
                                         LastTriggerAttack = CurrentTime;
 
                                         foreach (var res in DownloadedResources)
                                         {
-                                            if (res.res_index == LastEventId && res.res_type == 5)
+                                            if (res.res_index == Math.Abs(LastEventId) && res.res_type == 5)
                                             {
                                                 Console.WriteLine("[Debug] event:" + res.res_path + " at " + CurrentTimeString);
                                             }
@@ -5985,14 +6004,6 @@ namespace DemoScanner.DG
                                     subnode.Text += "RParms.Maxclients  = " + nf.RParms.Maxclients + "\n";
                                     subnode.Text += "RParms.Viewentity  = " + nf.RParms.Viewentity + "\n";
                                     subnode.Text += "RParms.Playernum  = " + nf.RParms.Playernum + "\n";
-                                }
-
-                                TmpPlayerNum = nf.RParms.Playernum;
-                                TmpPlayerEnt = nf.RParms.Viewentity;
-
-                                if (LocalPlayerId == -1 && TmpPlayerNum == TmpPlayerEnt - 1)
-                                {
-                                    LocalPlayerId = TmpPlayerNum;
                                 }
 
                                 ViewModel = nf.Viewmodel;
@@ -8342,7 +8353,7 @@ namespace DemoScanner.DG
                                 PluginVersion = cmdList[1] == "UCMD" ? "< 1.5" : cmdList[2];
                                 DemoScanner_AddWarn("[INFO] Found module version " + PluginVersion, true, false, true,
                                     true);
-                                if (cmdList[1] == "UCMD" || PluginVersion != "1.55")
+                                if (cmdList[1] == "UCMD" || PluginVersion != "1.56")
                                 {
                                     if (IsRussia)
                                     {
@@ -8384,7 +8395,7 @@ namespace DemoScanner.DG
                             var ms = Convert.ToByte(int.Parse(cmdList[3]));
                             var incomingframenum = int.Parse(cmdList[4]);
 
-                            if (!IsPlayerBtnAttackedPressed() && abs(CurrentTime - LastLostAttackTime2) < 1.0f &&
+                            if (!IsPlayerBtnAttackedPressed() && /*abs(CurrentTime - LastLostAttackTime2) < 1.0f &&*/
                                 FirstAttack && IsUserAlive() && !DisableJump5AndAim16)
                             {
                                 DemoScanner_AddWarn(
@@ -8488,32 +8499,45 @@ namespace DemoScanner.DG
                         }
                         else if (cmdList[1] == "EVENT" && !DisableJump5AndAim16)
                         {
-                            var events = 1;
                             if (DUMP_ALL_FRAMES) OutDumpString += "\n{ EVENT PLUGIN }\n";
 
-                            if (PluginEvents == -1)
-                            {
-                                CurrentEvents = 0;
-                                PluginEvents = 0;
-                            }
-                            else if (CurrentEvents > 0)
-                            {
-                                if (CurrentEvents - PluginEvents > 4)
-                                {
-                                    if (PluginEvents != 0)
-                                        DemoScanner_AddWarn(
-                                            "[EXPERIMENTAL][CMD HACK TYPE 8] at (" + CurrentTime + "):" +
-                                            CurrentTimeString, false, true, false, true);
-                                    else
-                                        BadEvents += 8;
+                            var tmpEvent = 0;
+                            if (cmdList.Length > 1)
+                                int.TryParse(cmdList[2], out tmpEvent);
+                            LastEventId = -tmpEvent;
 
-                                    CurrentEvents = 0;
-                                    PluginEvents = 0;
-                                    FirstEventShift = true;
-                                }
+                            if (abs(LastEventDetectTime) > EPSILON && abs(LastAttackPressed - LastEventDetectTime) > 0.5)
+                            {
 
-                                PluginEvents += events;
                             }
+                            else
+                            {
+                                LastEventDetectTime = 0.0f;
+                            }
+
+                            //if (PluginEvents == -1)
+                            //{
+                            //    CurrentEvents = 0;
+                            //    PluginEvents = 0;
+                            //}
+                            //else if (CurrentEvents > 0)
+                            //{
+                            //    if (CurrentEvents - PluginEvents > 4)
+                            //    {
+                            //        if (PluginEvents != 0)
+                            //            DemoScanner_AddWarn(
+                            //                "[EXPERIMENTAL][CMD HACK TYPE 8] at (" + CurrentTime + "):" +
+                            //                CurrentTimeString, false, true, false, true);
+                            //        else
+                            //            BadEvents += 8;
+
+                            //        CurrentEvents = 0;
+                            //        PluginEvents = 0;
+                            //        FirstEventShift = true;
+                            //    }
+
+                            //    PluginEvents += events;
+                            //}
                         }
                         else if (cmdList[1] == "MINR" || cmdList[1] == "MINUR"
                             || cmdList[1] == "MAXR" || cmdList[1] == "MAXUR")
@@ -9670,7 +9694,6 @@ namespace DemoScanner.DG
                                             var tmpconsolecolor = Console.ForegroundColor;
                                             Console.ForegroundColor = ConsoleColor.Red;
                                             for (var i = 0; i < 64; i++) Console.Write(" ");
-
                                             Console.CursorLeft = UserNameAndSteamIDField2;
                                             Console.Write(player.UserName.TrimBad().Trim());
                                             Console.ForegroundColor = ConsoleColor.Cyan;
@@ -10425,6 +10448,11 @@ namespace DemoScanner.DG
 
             DownloadedResources = CleanDownloadedResources;
 
+            //foreach (var res in DownloadedResources)
+            //{
+            //    Console.WriteLine(res.ToString() + " at " + CurrentTimeString);
+            //}
+
             // consistency list
             // indices of resources to force consistency upon?
             if (BitBuffer.ReadBoolean())
@@ -10530,7 +10558,6 @@ namespace DemoScanner.DG
                 LocalPlayerId = 0;
                 LocalPlayerUserId = 0;
                 LocalPlayerUserId2 = 0;
-                LocalPlayerEntity = 0;
                 AlternativeTimeCounter = 1;
                 DEMOSCANNER_HLTV = true;
                 var backcolor = Console.ForegroundColor;
