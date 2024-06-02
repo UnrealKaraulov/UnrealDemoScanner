@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -25,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.72.1b";
+        public const string PROGRAMVERSION = "1.72.2b";
 
         public static bool DEMOSCANNER_HLTV = false;
 
@@ -351,6 +352,10 @@ namespace DemoScanner.DG
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
             0x00, 0x00
         };
+
+        public static float[] LastSCMD_Angles1 = new float[2];
+        public static float[] LastSCMD_Angles2 = new float[2];
+        public static float[] LastSCMD_Angles3 = new float[2];
 
         public static float DemoStartTime;
         public static float DemoStartTime2;
@@ -8277,26 +8282,26 @@ namespace DemoScanner.DG
                                 PluginVersion = cmdList[1] == "UCMD" ? "< 1.5" : cmdList[2];
                                 DemoScanner_AddWarn("[INFO] Found module version " + PluginVersion, true, false, true,
                                     true);
-                                if (cmdList[1] == "UCMD" || PluginVersion != "1.56")
+                                if (cmdList[1] == "UCMD" || PluginVersion == "1.55" || PluginVersion == "1.54")
                                 {
                                     if (IsRussia)
                                     {
                                         DemoScanner_AddWarn("[INFO] На сервере установлена старая версия плагина", true, false,
                                             true, true);
-                                        //DemoScanner_AddWarn(
-                                        //    "[ERROR] Отключается обнаружение [JUMPHACK TYPE 5] и [AIM TYPE 1.6]", true,
-                                        //    false, true, true);
+                                        DemoScanner_AddWarn(
+                                            "[ERROR] Отключается обнаружение [JUMPHACK TYPE 5] и [AIM TYPE 1.6]", true,
+                                            false, true, true);
                                     }
                                     else
                                     {
                                         DemoScanner_AddWarn("[INFO] Old plugin version installed at server.", true, false, true,
                                             true);
-                                        //DemoScanner_AddWarn(
-                                        //    "[ERROR] Disabled detection of [JUMPHACK TYPE 5] and [AIM TYPE 1.6]", true,
-                                        //    false, true, true);
+                                        DemoScanner_AddWarn(
+                                            "[ERROR] Disabled detection of [JUMPHACK TYPE 5] and [AIM TYPE 1.6]", true,
+                                            false, true, true);
                                     }
 
-                                    //DisableJump5AndAim16 = true;
+                                    DisableJump5AndAim16 = true;
                                 }
                             }
                         }
@@ -8311,13 +8316,29 @@ namespace DemoScanner.DG
                                 SearchJumpHack51 = 5;
 
                         }
-                        else if (cmdList[1] == "XCMD")
+                        else if (cmdList[1] == "SCMD")
                         {
-                            if (IsUserAlive()) attackscounter2++;
+                            if (IsUserAlive())
+                                attackscounter2++;
 
                             var lerpms = int.Parse(cmdList[2]);
                             var ms = Convert.ToByte(int.Parse(cmdList[3]));
                             var incomingframenum = int.Parse(cmdList[4]);
+
+                            LastSCMD_Angles1 = new float[] { float.Parse(cmdList[5], NumberStyles.Any,
+                      CultureInfo.InvariantCulture), float.Parse(cmdList[6], NumberStyles.Any,
+                      CultureInfo.InvariantCulture) };
+                            LastSCMD_Angles2 = new float[] { float.Parse(cmdList[7], NumberStyles.Any,
+                      CultureInfo.InvariantCulture), float.Parse(cmdList[8], NumberStyles.Any,
+                      CultureInfo.InvariantCulture) };
+                            LastSCMD_Angles3 = new float[] { float.Parse(cmdList[9], NumberStyles.Any,
+                      CultureInfo.InvariantCulture), float.Parse(cmdList[10], NumberStyles.Any,
+                      CultureInfo.InvariantCulture) };
+
+                            //Console.WriteLine("SCMD");
+                            //Console.WriteLine(LastSCMD_Angles1[0].ToString() + "/" + LastSCMD_Angles1[1].ToString() + " " +
+                            //    LastSCMD_Angles2[0].ToString() + "/" + LastSCMD_Angles2[1].ToString() + " " +
+                            //    LastSCMD_Angles3[0].ToString() + "/" + LastSCMD_Angles3[1].ToString());
 
                             if (!IsPlayerBtnAttackedPressed() && /*abs(CurrentTime - LastLostAttackTime2) < 1.0f &&*/
                                 FirstAttack && IsUserAlive() && !DisableJump5AndAim16)
@@ -8355,7 +8376,7 @@ namespace DemoScanner.DG
                                 {
                                     if (abs(CurrentTime - LastCmdHack) > 5.0)
                                         DemoScanner_AddWarn(
-                                            "[CMD HACK TYPE 5] at (" + CurrentTime + ") " + CurrentTimeString,
+                                            "[CMD HACK TYPE 5.1] at (" + CurrentTime + ") " + CurrentTimeString,
                                             !IsAngleEditByEngine());
 
                                     //Console.WriteLine("BAD BAD " + nf.UCmd.Msec + " / " + nf.RParms.Frametime + " = " + ((float)nf.UCmd.Msec / nf.RParms.Frametime).ToString());
@@ -8366,7 +8387,7 @@ namespace DemoScanner.DG
                             }
 
                             if (DUMP_ALL_FRAMES)
-                                OutDumpString += "\n{ UCMD PLUGIN. Lerp " + lerpms + ". ms " + ms + "}\n";
+                                OutDumpString += "\n{ ACMD PLUGIN. Lerp " + lerpms + ". ms " + ms + "}\n";
 
                             if (!FindLerpAndMs(lerpms, ms))
                             {
@@ -8382,6 +8403,120 @@ namespace DemoScanner.DG
                                     if (FakeLag2Aim > 0)
                                         DemoScanner_AddWarn(
                                             "[FAKELAG TYPE 1.2] at (" + CurrentTime + "):" + CurrentTimeString, false,
+                                            true, false, true);
+                                }
+                            }
+                        }
+                        else if (cmdList[1] == "ACMD")
+                        {
+                            if (IsUserAlive())
+                                attackscounter2++;
+
+                            var lerpms = int.Parse(cmdList[2]);
+                            var ms = Convert.ToByte(int.Parse(cmdList[3]));
+                            var incomingframenum = int.Parse(cmdList[4]);
+
+                            var tmp_ACMD_Angles1 = new float[] { float.Parse(cmdList[5], NumberStyles.Any,
+                      CultureInfo.InvariantCulture), float.Parse(cmdList[6], NumberStyles.Any,
+                      CultureInfo.InvariantCulture) };
+                            var tmp_ACMD_Angles2 = new float[] { float.Parse(cmdList[7], NumberStyles.Any,
+                      CultureInfo.InvariantCulture), float.Parse(cmdList[8], NumberStyles.Any,
+                      CultureInfo.InvariantCulture) };
+                            var tmp_ACMD_Angles3 = new float[] { float.Parse(cmdList[9], NumberStyles.Any,
+                      CultureInfo.InvariantCulture), float.Parse(cmdList[10], NumberStyles.Any,
+                      CultureInfo.InvariantCulture) };
+
+
+                            //Console.WriteLine("ACMD");
+                            //Console.WriteLine(tmp_ACMD_Angles1[0].ToString() + "/" + tmp_ACMD_Angles1[1].ToString() + " " +
+                            //    tmp_ACMD_Angles2[0].ToString() + "/" + tmp_ACMD_Angles2[1].ToString() + " " +
+                            //    tmp_ACMD_Angles3[0].ToString() + "/" + tmp_ACMD_Angles3[1].ToString());
+
+                            if (IsUserAlive() && FirstJump && abs(CurrentTime) > EPSILON)
+                            {
+                                if (ms <= 1)
+                                {
+                                    if (abs(CurrentTime - LastCmdHack) > 5.0 && CurrentFps < 500 && CurrentFps2 < 500)
+                                    {
+                                        DemoScanner_AddWarn(
+                                            "[CMD HACK TYPE 3] at (" + CurrentTime + ") " + CurrentTimeString,
+                                            ms == 0 && !IsAngleEditByEngine());
+
+                                        LastCmdHack = CurrentTime;
+                                    }
+                                }
+                            }
+
+                            if (IsUserAlive() && (CurrentWeapon == WeaponIdType.WEAPON_DEAGLE
+                                || CurrentWeapon == WeaponIdType.WEAPON_FIVESEVEN
+                                || CurrentWeapon == WeaponIdType.WEAPON_GLOCK18
+                                || CurrentWeapon == WeaponIdType.WEAPON_KNIFE
+                                || CurrentWeapon == WeaponIdType.WEAPON_USP
+                                || CurrentWeapon == WeaponIdType.WEAPON_P228
+                                || CurrentWeapon == WeaponIdType.WEAPON_ELITE))
+                            {
+                                if (/*abs(tmp_SCMD_Angles1[0] - tmp_SCMD_Angles2[0]) > EPSILON_2 &&*/
+                                    abs(tmp_ACMD_Angles1[1] - tmp_ACMD_Angles2[1]) > EPSILON_2 &&
+                                    /*abs(tmp_SCMD_Angles2[0] - tmp_SCMD_Angles3[0]) > EPSILON_2 &&*/
+                                    abs(tmp_ACMD_Angles2[1] - tmp_ACMD_Angles3[1]) > EPSILON_2 &&
+                                    /*abs(LastACMD_Angles1[0] - LastACMD_Angles2[0]) > EPSILON_2 &&*/
+                                    abs(LastSCMD_Angles1[1] - LastSCMD_Angles2[1]) > EPSILON_2 &&
+                                    /*abs(LastACMD_Angles2[0] - LastACMD_Angles3[0]) > EPSILON_2 &&*/
+                                    abs(LastSCMD_Angles2[1] - LastSCMD_Angles3[1]) > EPSILON_2)
+                                {
+                                    //Console.WriteLine("True Angles 1!");
+                                    if (abs(tmp_ACMD_Angles3[0] - LastSCMD_Angles1[0]) < EPSILON_2 &&
+                                    abs(tmp_ACMD_Angles3[1] - LastSCMD_Angles1[1]) < EPSILON_2 &&
+                                    abs(tmp_ACMD_Angles1[0] - LastSCMD_Angles2[0]) < EPSILON_2 &&
+                                    abs(tmp_ACMD_Angles1[1] - LastSCMD_Angles2[1]) < EPSILON_2 &&
+                                    abs(tmp_ACMD_Angles2[0] - LastSCMD_Angles3[0]) < EPSILON_2 &&
+                                    abs(tmp_ACMD_Angles2[1] - LastSCMD_Angles3[1]) < EPSILON_2)
+                                    {
+                                        DemoScanner_AddWarn(
+                                            "[BETA] [AIM TYPE 12 " + CurrentWeapon + "] at (" + CurrentTime +
+                                            "):" + CurrentTimeString,
+                                            !IsCmdChangeWeapon() && !IsPlayerLossConnection());
+                                    }
+                                }
+                            }
+
+                            if (PluginFrameNum < 0 || incomingframenum < PluginFrameNum)
+                            {
+                                PluginFrameNum = incomingframenum;
+                            }
+                            else
+                            {
+                                if (abs(incomingframenum - PluginFrameNum) > 1)
+                                {
+                                    if (abs(CurrentTime - LastCmdHack) > 5.0)
+                                        DemoScanner_AddWarn(
+                                            "[CMD HACK TYPE 5.2] at (" + CurrentTime + ") " + CurrentTimeString,
+                                            !IsAngleEditByEngine());
+
+                                    //Console.WriteLine("BAD BAD " + nf.UCmd.Msec + " / " + nf.RParms.Frametime + " = " + ((float)nf.UCmd.Msec / nf.RParms.Frametime).ToString());
+                                    LastCmdHack = CurrentTime;
+                                }
+
+                                PluginFrameNum = incomingframenum;
+                            }
+
+                            if (DUMP_ALL_FRAMES)
+                                OutDumpString += "\n{ SCMD PLUGIN. Lerp " + lerpms + ". ms " + ms + "}\n";
+
+                            if (!FindLerpAndMs(lerpms, ms))
+                            {
+                                DemoScanner_AddWarn("[FAKELAG TYPE 1.3] at (" + CurrentTime + "):" + CurrentTimeString,
+                                    true, true, false, true);
+                                FakeLagAim++;
+                            }
+                            else
+                            {
+                                if (!FindLerpAndMs(lerpms, ms, false))
+                                {
+                                    FakeLag2Aim++;
+                                    if (FakeLag2Aim > 0)
+                                        DemoScanner_AddWarn(
+                                            "[FAKELAG TYPE 1.4] at (" + CurrentTime + "):" + CurrentTimeString, false,
                                             true, false, true);
                                 }
                             }
@@ -8470,7 +8605,7 @@ namespace DemoScanner.DG
                             if (cmdList[1] == "MINR")
                             {
                                 sv_minrate = rate;
-                                if (rate < 25000)
+                                if (rate > 0 && rate < 25000)
                                 {
                                     if (IsRussia)
                                     {
@@ -8494,7 +8629,7 @@ namespace DemoScanner.DG
                             else if (cmdList[1] == "MAXR")
                             {
                                 sv_maxrate = rate;
-                                if (rate < 25000)
+                                if (rate > 0 && rate < 25000)
                                 {
                                     if (IsRussia)
                                     {

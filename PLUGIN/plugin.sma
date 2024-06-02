@@ -9,12 +9,14 @@
 
 #define PLUGIN "Unreal Demo Plugin"
 #define AUTHOR "karaulov"
-#define VERSION "1.56"
+#define VERSION "1.57"
 
 
 new g_iDemoHelperInitStage[33] = {0,...};
 new g_iFrameNum[33] = {0,...};
 new Float:g_flLastEventTime[33] = {0.0,...};
+new Float:g_flPMoveTime[33] = {0.0,...};
+new Float:g_flPMovePrevPrevAngles[33][3];
 
 public plugin_init() 
 {
@@ -25,7 +27,7 @@ public plugin_init()
 	
 	RegisterHookChain(RG_PM_Move, "PM_Move")
 	RegisterHookChain(RG_CBasePlayer_Jump, "HC_CBasePlayer_Jump_Pre", .post = false);
-
+	
 	register_forward(FM_PlaybackEvent, "fw_PlaybackEvent")	
 }
 
@@ -33,8 +35,11 @@ public plugin_init()
 public client_disconnected(id)
 {
 	g_flLastEventTime[id] = 0.0;
+	g_flPMoveTime[id] = -1.0;
 	g_iFrameNum[id] = 0;
 	g_iDemoHelperInitStage[id] = 0;
+
+	g_flPMovePrevPrevAngles[id][0] = g_flPMovePrevPrevAngles[id][1] = g_flPMovePrevPrevAngles[id][2] = 0.0;
 
 	remove_task(id);
 }
@@ -101,11 +106,35 @@ public PM_Move(const id)
 {
 	new button = get_entvar(id, var_button)
 	new oldbuttons = get_entvar(id, var_oldbuttons)
-	if (g_iDemoHelperInitStage[id] == -1 && (button & IN_ATTACK) && !(oldbuttons & IN_ATTACK))
+	if (g_iDemoHelperInitStage[id] == -1)
 	{
 		new cmdx = get_pmove( pm_cmd );
-		WriteDemoInfo(id, "UDS/XCMD/%i/%i/%i", get_ucmd(cmdx, ucmd_lerp_msec), get_ucmd(cmdx, ucmd_msec),g_iFrameNum[id]);
-		g_iFrameNum[id]++;
+
+		static Float:tmpAngles1[3];
+		static Float:tmpAngles2[3];
+		
+		if (g_flPMoveTime[id] == get_pmove(pm_time))
+		{
+			g_iFrameNum[id]++;
+		}
+		else if (g_flPMoveTime[id] != -1.0)
+		{
+			g_flPMoveTime[id] = -1.0;
+			get_pmove(pm_oldangles, tmpAngles1);
+			get_pmove(pm_angles, tmpAngles2);
+			WriteDemoInfo(id, "UDS/ACMD/%i/%i/%i/%f/%f/%f/%f/%f/%f", get_ucmd(cmdx, ucmd_lerp_msec), get_ucmd(cmdx, ucmd_msec),g_iFrameNum[id],tmpAngles1[0], tmpAngles1[1], 
+						tmpAngles2[0], tmpAngles2[1],g_flPMovePrevPrevAngles[id][0],g_flPMovePrevPrevAngles[id][1]);
+		}
+		if ((button & IN_ATTACK) && !(oldbuttons & IN_ATTACK))
+		{
+			get_pmove(pm_oldangles, tmpAngles1);
+			get_pmove(pm_angles, tmpAngles2);
+			WriteDemoInfo(id, "UDS/SCMD/%i/%i/%i/%f/%f/%f/%f/%f/%f", get_ucmd(cmdx, ucmd_lerp_msec), get_ucmd(cmdx, ucmd_msec),g_iFrameNum[id],tmpAngles1[0], tmpAngles1[1], 
+							tmpAngles2[0], tmpAngles2[1],g_flPMovePrevPrevAngles[id][0],g_flPMovePrevPrevAngles[id][1]);
+			g_iFrameNum[id]++;
+			g_flPMoveTime[id] = get_pmove(pm_time);
+		}
+		get_pmove(pm_oldangles, g_flPMovePrevPrevAngles[id]);
 	}
 	return HC_CONTINUE;
 }
