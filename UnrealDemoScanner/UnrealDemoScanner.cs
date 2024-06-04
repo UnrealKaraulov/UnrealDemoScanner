@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.72.2b";
+        public const string PROGRAMVERSION = "1.72.3b";
 
         public static bool DEMOSCANNER_HLTV = false;
 
@@ -8335,10 +8335,10 @@ namespace DemoScanner.DG
                       CultureInfo.InvariantCulture), float.Parse(cmdList[10], NumberStyles.Any,
                       CultureInfo.InvariantCulture) };
 
-                            //Console.WriteLine("SCMD");
-                            //Console.WriteLine(LastSCMD_Angles1[0].ToString() + "/" + LastSCMD_Angles1[1].ToString() + " " +
-                            //    LastSCMD_Angles2[0].ToString() + "/" + LastSCMD_Angles2[1].ToString() + " " +
-                            //    LastSCMD_Angles3[0].ToString() + "/" + LastSCMD_Angles3[1].ToString());
+                            /*Console.WriteLine("SCMD");
+                            Console.WriteLine(LastSCMD_Angles1[0].ToString() + "/" + LastSCMD_Angles1[1].ToString() + " " +
+                                LastSCMD_Angles2[0].ToString() + "/" + LastSCMD_Angles2[1].ToString() + " " +
+                                LastSCMD_Angles3[0].ToString() + "/" + LastSCMD_Angles3[1].ToString());*/
 
                             if (!IsPlayerBtnAttackedPressed() && /*abs(CurrentTime - LastLostAttackTime2) < 1.0f &&*/
                                 FirstAttack && IsUserAlive() && !DisableJump5AndAim16)
@@ -8427,10 +8427,10 @@ namespace DemoScanner.DG
                       CultureInfo.InvariantCulture) };
 
 
-                            //Console.WriteLine("ACMD");
-                            //Console.WriteLine(tmp_ACMD_Angles1[0].ToString() + "/" + tmp_ACMD_Angles1[1].ToString() + " " +
-                            //    tmp_ACMD_Angles2[0].ToString() + "/" + tmp_ACMD_Angles2[1].ToString() + " " +
-                            //    tmp_ACMD_Angles3[0].ToString() + "/" + tmp_ACMD_Angles3[1].ToString());
+                            /*Console.WriteLine("ACMD");
+                            Console.WriteLine(tmp_ACMD_Angles1[0].ToString() + "/" + tmp_ACMD_Angles1[1].ToString() + " " +
+                                tmp_ACMD_Angles2[0].ToString() + "/" + tmp_ACMD_Angles2[1].ToString() + " " +
+                                tmp_ACMD_Angles3[0].ToString() + "/" + tmp_ACMD_Angles3[1].ToString());*/
 
                             if (IsUserAlive() && FirstJump && abs(CurrentTime) > EPSILON)
                             {
@@ -8465,17 +8465,62 @@ namespace DemoScanner.DG
                                     abs(LastSCMD_Angles2[1] - LastSCMD_Angles3[1]) > EPSILON_2)
                                 {
                                     //Console.WriteLine("True Angles 1!");
-                                    if (abs(tmp_ACMD_Angles3[0] - LastSCMD_Angles1[0]) < EPSILON_2 &&
-                                    abs(tmp_ACMD_Angles3[1] - LastSCMD_Angles1[1]) < EPSILON_2 &&
-                                    abs(tmp_ACMD_Angles1[0] - LastSCMD_Angles2[0]) < EPSILON_2 &&
-                                    abs(tmp_ACMD_Angles1[1] - LastSCMD_Angles2[1]) < EPSILON_2 &&
-                                    abs(tmp_ACMD_Angles2[0] - LastSCMD_Angles3[0]) < EPSILON_2 &&
-                                    abs(tmp_ACMD_Angles2[1] - LastSCMD_Angles3[1]) < EPSILON_2)
+                                    if (abs(LastSCMD_Angles1[0] - tmp_ACMD_Angles3[0]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles1[1] - tmp_ACMD_Angles3[1]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles2[0] - tmp_ACMD_Angles1[0]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles2[1] - tmp_ACMD_Angles1[1]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles3[0] - tmp_ACMD_Angles2[0]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles3[1] - tmp_ACMD_Angles2[1]) < EPSILON_2)
                                     {
                                         DemoScanner_AddWarn(
-                                            "[BETA] [AIM TYPE 12 " + CurrentWeapon + "] at (" + CurrentTime +
-                                            "):" + CurrentTimeString,
-                                            !IsCmdChangeWeapon() && !IsPlayerLossConnection());
+                                            "[BETA] [AIM TYPE 12.1 " + CurrentWeapon + "] at (" + CurrentTime +
+                                            "):" + CurrentTimeString/*, !IsAngleEditByEngine()*/);
+                                    }
+                                    else if (abs(LastSCMD_Angles1[0] - tmp_ACMD_Angles3[0]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles1[1] - tmp_ACMD_Angles3[1]) < EPSILON_2 &&
+                                    //abs(LastSCMD_Angles2[0] - tmp_ACMD_Angles1[0]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles2[1] - tmp_ACMD_Angles1[1]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles3[0] - tmp_ACMD_Angles2[0]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles3[1] - tmp_ACMD_Angles2[1]) < EPSILON_2)
+                                    {
+                                        DemoScanner_AddWarn(
+                                            "[BETA] [AIM TYPE 12.2 " + CurrentWeapon + "] at (" + CurrentTime +
+                                            "):" + CurrentTimeString/*, !IsAngleEditByEngine()*/);
+                                    }
+                                }
+                            }
+                            else if (IsUserAlive() && CurrentWeapon != WeaponIdType.WEAPON_HEGRENADE
+                                && CurrentWeapon != WeaponIdType.WEAPON_SMOKEGRENADE 
+                                && CurrentWeapon != WeaponIdType.WEAPON_FLASHBANG 
+                                && CurrentWeapon != WeaponIdType.WEAPON_C4)
+                            {
+                                if (
+                                    abs(LastSCMD_Angles1[0] - LastSCMD_Angles2[0]) > EPSILON_2 &&
+                                    abs(LastSCMD_Angles1[1] - LastSCMD_Angles2[1]) > EPSILON_2 &&
+                                    abs(LastSCMD_Angles2[0] - LastSCMD_Angles3[0]) > EPSILON_2 &&
+                                    abs(LastSCMD_Angles2[1] - LastSCMD_Angles3[1]) > EPSILON_2 &&
+                                    abs(tmp_ACMD_Angles1[0] - tmp_ACMD_Angles2[0]) > EPSILON_2 &&
+                                    abs(tmp_ACMD_Angles1[1] - tmp_ACMD_Angles2[1]) > EPSILON_2 &&
+                                    abs(tmp_ACMD_Angles2[0] - tmp_ACMD_Angles3[0]) < EPSILON_2 &&
+                                    abs(tmp_ACMD_Angles2[1] - tmp_ACMD_Angles3[1]) < EPSILON_2
+                                    )
+                                {
+                                    if (abs(LastSCMD_Angles1[0] - tmp_ACMD_Angles3[0]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles1[1] - tmp_ACMD_Angles3[1]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles2[0] - tmp_ACMD_Angles1[0]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles2[1] - tmp_ACMD_Angles1[1]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles3[0] - tmp_ACMD_Angles2[0]) > EPSILON_2 &&
+                                    abs(LastSCMD_Angles3[1] - tmp_ACMD_Angles2[1]) > EPSILON_2 &&
+                                    abs(LastSCMD_Angles3[0] - tmp_ACMD_Angles1[0]) > EPSILON_2 &&
+                                    abs(LastSCMD_Angles3[1] - tmp_ACMD_Angles1[1]) > EPSILON_2 &&
+                                    abs(LastSCMD_Angles3[0] - tmp_ACMD_Angles3[0]) > EPSILON_2 &&
+                                    abs(LastSCMD_Angles3[1] - tmp_ACMD_Angles3[1]) > EPSILON_2 &&
+                                    abs(tmp_ACMD_Angles2[0] - tmp_ACMD_Angles3[0]) < EPSILON_2 &&
+                                    abs(tmp_ACMD_Angles2[1] - tmp_ACMD_Angles3[1]) < EPSILON_2)
+                                    {
+                                        DemoScanner_AddWarn(
+                                            "[BETA] [AIM TYPE 12.3 " + CurrentWeapon + "] at (" + CurrentTime +
+                                            "):" + CurrentTimeString/*, !IsAngleEditByEngine()*/);
                                     }
                                 }
                             }
@@ -11960,6 +12005,9 @@ namespace DemoScanner.DG
                                 if (entryList[index].Name == "punchangle[0]")
                                 {
                                     var punchangle_x = value != null ? (float)value : 0.0f;
+
+                                    //Console.WriteLine("punchangle[0] = " + punchangle_x);
+
                                     // Search in current or next frames
                                     var foundOld = false;
                                     foreach (var old_punch_x in LastPunchAngleX)

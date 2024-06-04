@@ -104,11 +104,11 @@ public HC_CBasePlayer_Jump_Pre(id)
 
 public PM_Move(const id)
 {
-	new button = get_entvar(id, var_button)
-	new oldbuttons = get_entvar(id, var_oldbuttons)
 	if (g_iDemoHelperInitStage[id] == -1)
 	{
-		new cmdx = get_pmove( pm_cmd );
+		new button = get_entvar(id, var_button)
+		new oldbuttons = get_entvar(id, var_oldbuttons)
+		new cmdx = get_pmove(pm_cmd);
 
 		static Float:tmpAngles1[3];
 		static Float:tmpAngles2[3];
