@@ -52,7 +52,7 @@ public fw_PlaybackEvent( iFlags, id, eventIndex )
 		if (floatabs(get_gametime() - g_flLastEventTime[id]) > 1.0)
 		{
 			g_flLastEventTime[id] = get_gametime();
-			WriteDemoInfo(id, "UDS/EVENT/%i", eventIndex);
+			WriteDemoInfo(id, "UDS/XEVENT/%i", eventIndex);
 		}
 	}
 	

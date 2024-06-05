@@ -3843,27 +3843,31 @@ namespace DemoScanner.DG
                                 LASTFRAMEISCLIENTDATA = false;
                                 MessageId = 0;
                                 NewViewAngleSearcherAngle = 0.0f;
+
                                 //if (frame.Key.Type != GoldSource.DemoFrameType.NetMsg)
                                 //{
                                 //    Console.WriteLine("Invalid");
                                 //}
+
                                 CurrentNetMsgFrameId++;
                                 NeedCheckAttack = true;
                                 NeedCheckAttack2 = true;
+
                                 //IsAttackSkipTimes--;
+
                                 CurrentFrameIdWeapon += 10;
                                 row = index + "/" + frame.Key.FrameIndex + " " + "[" + frame.Key.Time + "s]: " +
                                       "NETMESSAGE";
                                 var nf = (GoldSource.NetMsgFrame)frame.Value;
                                 CurrentNetMsgFrame = nf;
-                                var AngleYBigChanged = false;
-                                if (AngleBetween(CurrentNetMsgFrame.RParms.Viewangles.Y,
-                                        PreviousNetMsgFrame.RParms.Viewangles.Y) > 2.0) AngleYBigChanged = true;
+
+                                //var AngleYBigChanged = false;
+                                //if (AngleBetween(CurrentNetMsgFrame.RParms.Viewangles.Y,
+                                //        PreviousNetMsgFrame.RParms.Viewangles.Y) > 2.0) AngleYBigChanged = true;
 
                                 PreviousTime3 = CurrentTime3;
                                 CurrentTime3 = frame.Key.Time;
                                 PreviousTime = CurrentTime;
-
 
                                 if (AlternativeTimeCounter == 1)
                                 {
@@ -3945,6 +3949,7 @@ namespace DemoScanner.DG
                                     }
 
                                     Console.WriteLine();
+
                                     /* START: SOME BLACK MAGIC OUTSIDE HOGWARTS */
                                     FieldInfo[] fields = typeof(DemoScanner).GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
 
@@ -3964,6 +3969,7 @@ namespace DemoScanner.DG
                                         .GetConstructor(BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public, null,
                                             new Type[0], null).Invoke(null, null);
                                     /* END: VERY DARK BLACK MAGIC!!!!!! */
+
                                     DUMP_ALL_FRAMES = isDump;
                                     AlternativeTimeCounter = newAltTimer;
                                     DemoRescanned = true;
@@ -4016,10 +4022,13 @@ namespace DemoScanner.DG
                                     LossPackets2++;
                                 }
 
-                                /*if (abs(CurrentTime) > EPSILON && abs(CurrentTime - PreviousTime) > 0.01 && CurrentFrameTimeBetween > abs(CurrentTime - PreviousTime) + 0.2)
+                                /*
+                                   if (abs(CurrentTime) > EPSILON && abs(CurrentTime - PreviousTime) > 0.01 && CurrentFrameTimeBetween > abs(CurrentTime - PreviousTime) + 0.2)
                                     {
                                         ServerLagCount++;
-                                    }*/
+                                    }
+                                */
+
                                 CurrentFrameTimeBetween = 0.0f;
                                 try
                                 {
@@ -4060,6 +4069,7 @@ namespace DemoScanner.DG
 
                                 if (abs(CurrentTime) > EPSILON)
                                     CurrentMsgBytes += nf.MsgBytes.Length;
+
                                 if (SkipNextErrors)
                                 {
                                     SkipNextErrors = false;
@@ -4111,6 +4121,7 @@ namespace DemoScanner.DG
                                 CurrentFrameTime = nf.RParms.Frametime;
                                 CurrentFrameLerp = nf.UCmd.LerpMsec;
                                 CurrentFramePunchangleZ = nf.RParms.Punchangle.Z;
+
                                 if (abs(CurrentTime) > EPSILON)
                                 {
                                     if (FrametimeMin > CurrentFrameTime && CurrentFrameTime > 0.0f)
@@ -4342,6 +4353,7 @@ namespace DemoScanner.DG
                                     //        InitAimMissingSearch = 0;
                                     //    }
                                     //}
+
                                     if (CurrentFrameAttacked)
                                     {
                                         if (InitAimMissingSearch > 0) InitAimMissingSearch = 0;
@@ -4373,25 +4385,31 @@ namespace DemoScanner.DG
                                 }
 
                                 if (!PreviousFrameAttacked2 && CurrentFrameAttacked2)
+                                {
                                     if (CurrentWeapon == WeaponIdType.WEAPON_KNIFE)
                                     {
                                         NewAttack2 = true;
                                         NewAttack2Frame = CurrentFrameIdAll;
                                     }
+                                }
 
                                 if (!PreviousFrameAttacked && CurrentFrameAttacked)
                                 {
-                                    if (IsUserAlive()) attackscounter3++;
+                                    if (IsUserAlive())
+                                        attackscounter3++;
 
                                     //if (abs(CurrentTime - IsNoAttackLastTime) > 240.0)
                                     //{
                                     //    UsingAnotherMethodWeaponDetection = !UsingAnotherMethodWeaponDetection;
                                     //}
-                                    if (DEBUG_ENABLED) Console.WriteLine("ATTACK:" + CurrentWeapon);
+
+                                    if (DEBUG_ENABLED)
+                                        Console.WriteLine("ATTACK:" + CurrentWeapon);
 
                                     FirstAttack = true;
                                     NewAttack = true;
                                     NewAttackFrame = CurrentFrameIdAll;
+
                                     if (IsForceCenterView())
                                     {
                                         if (abs(CurrentTime - LastForceCenterView) > 10.0f)
@@ -4458,10 +4476,12 @@ namespace DemoScanner.DG
                                     MoveLeftStrike = 0;
                                 }
 
-                                if (abs(nf.UCmd.Sidemove) > EPSILON) LastSideMoveTime = CurrentTime;
+                                if (abs(nf.UCmd.Sidemove) > EPSILON)
+                                    LastSideMoveTime = CurrentTime;
 
                                 if (abs(nf.UCmd.Forwardmove) < EPSILON)
                                 {
+
                                 }
                                 else if (nf.UCmd.Forwardmove > 0.1f)
                                 {
@@ -4472,138 +4492,139 @@ namespace DemoScanner.DG
                                     LastBackMoveTime = CurrentTime;
                                 }
 
-                                if (RealAlive)
-                                    //if (CurrentFrameAttacked)
-                                    //{
-                                    //    Console.WriteLine("AngleDirX111:" + GetAngleDirection(nf.RParms.ClViewangles.X, PreviousNetMsgFrame.RParms.ClViewangles.X) +
-                                    //        ". AngleDirY111:" + GetAngleDirection(nf.RParms.ClViewangles.Y, PreviousNetMsgFrame.RParms.ClViewangles.Y));
-                                    //    Console.WriteLine("AngleDirX222:" + GetAngleDirection(nf.RParms.Viewangles.X, PreviousNetMsgFrame.RParms.Viewangles.X) +
-                                    //        ". AngleDirY222:" + GetAngleDirection(nf.RParms.Viewangles.Y, PreviousNetMsgFrame.RParms.Viewangles.Y));
-                                    //    Console.WriteLine("AngleDirX333:" + GetAngleDirection(nf.UCmd.Viewangles.Y, PreviousNetMsgFrame.UCmd.Viewangles.Y) +
-                                    //        ". AngleDirY333:" + GetAngleDirection(nf.UCmd.Viewangles.Y, PreviousNetMsgFrame.UCmd.Viewangles.Y) + "\n");
-                                    //}
-                                    /* if (IsRoundEnd() || /*LastBackMoveTime == 0.0f ||*/
-                                    /*LastForwardMoveTime == 0.0f || LastMoveForward == 0.0f)
-                                             /*{
-                                                 DesyncHackWarns = 0;
-                                             }
+                                // if (RealAlive)
+                                //if (CurrentFrameAttacked)
+                                //{
+                                //    Console.WriteLine("AngleDirX111:" + GetAngleDirection(nf.RParms.ClViewangles.X, PreviousNetMsgFrame.RParms.ClViewangles.X) +
+                                //        ". AngleDirY111:" + GetAngleDirection(nf.RParms.ClViewangles.Y, PreviousNetMsgFrame.RParms.ClViewangles.Y));
+                                //    Console.WriteLine("AngleDirX222:" + GetAngleDirection(nf.RParms.Viewangles.X, PreviousNetMsgFrame.RParms.Viewangles.X) +
+                                //        ". AngleDirY222:" + GetAngleDirection(nf.RParms.Viewangles.Y, PreviousNetMsgFrame.RParms.Viewangles.Y));
+                                //    Console.WriteLine("AngleDirX333:" + GetAngleDirection(nf.UCmd.Viewangles.Y, PreviousNetMsgFrame.UCmd.Viewangles.Y) +
+                                //        ". AngleDirY333:" + GetAngleDirection(nf.UCmd.Viewangles.Y, PreviousNetMsgFrame.UCmd.Viewangles.Y) + "\n");
+                                //}
+                                /* if (IsRoundEnd() || /*LastBackMoveTime == 0.0f ||*/
+                                /*LastForwardMoveTime == 0.0f || LastMoveForward == 0.0f)
+                                         /*{
+                                             DesyncHackWarns = 0;
+                                         }
 
-                                             if (CurrentTime - LastJumpTime < 1.5 || !CurrentFrameOnGround)
-                                             {
-                                                 DesyncHackWarns = 0;
-                                             }
+                                         if (CurrentTime - LastJumpTime < 1.5 || !CurrentFrameOnGround)
+                                         {
+                                             DesyncHackWarns = 0;
+                                         }
 
-                                             if (CurrentTime - LastMoveBack < 1.5)
-                                             {
-                                                 DesyncHackWarns = 0;
-                                             }
+                                         if (CurrentTime - LastMoveBack < 1.5)
+                                         {
+                                             DesyncHackWarns = 0;
+                                         }
 
-                                             if (IsBigVelocity() || IsHookDetected())
-                                             {
-                                                 DesyncHackWarns = 0;
-                                             }
-                                             else if (IsPlayerLossConnection() && DesyncHackWarns > 0)
+                                         if (IsBigVelocity() || IsHookDetected())
+                                         {
+                                             DesyncHackWarns = 0;
+                                         }
+                                         else if (IsPlayerLossConnection() && DesyncHackWarns > 0)
+                                         {
+                                             DesyncHackWarns--;
+                                         }
+                                         else if (IsAngleEditByEngine() && DesyncHackWarns > 0)
+                                         {
+                                             DesyncHackWarns = 0;
+                                         }
+                                         if (abs(CurrentTime - LastScreenshotTime) < 30.0f)
+                                         {
+                                             DesyncHackWarns = 0;
+                                         }
+
+                                         if (InBack || CurrentTime - LastMoveBack < 2.0)
+                                         {
+                                             DesyncHackWarns = 0;
+                                         }
+
+                                         if (InForward || CurrentTime - LastMoveForward < 2.0)
+                                         {
+                                             DesyncHackWarns = 0;
+                                         }
+
+                                         if (abs(CurrentTime - GameEndTime2) < 30.0f)
+                                         {
+                                             DesyncHackWarns = 0;
+                                         }
+
+                                         if (abs(CurrentTime - GameStartTime) < 60.0f)
+                                         {
+                                             DesyncHackWarns = 0;
+                                         }
+
+                                         if (IsPlayerTeleport())
+                                         {
+                                             DesyncHackWarns = 0;
+                                         }
+
+                                         if (abs(nf.RParms.Simvel.X) > 100.0f ||
+                                                 abs(nf.RParms.Simvel.Y) > 100.0f || abs(nf.RParms.Simvel.X) < -100.0f ||
+                                                 abs(nf.RParms.Simvel.Y) < -100.0f || nf.RParms.Simvel.Z != 0.0f)
+                                         {
+                                             DesyncHackWarns = 0;
+                                         }
+
+                                         if (CurrentTime - LastSideMoveTime < 2.5 ||
+                                          CurrentTime - LastForwardMoveTime < 2.5 ||
+                                          CurrentTime - LastBackMoveTime < 2.5)
+                                         {
+                                             if (DesyncHackWarns > 0)
                                              {
                                                  DesyncHackWarns--;
                                              }
-                                             else if (IsAngleEditByEngine() && DesyncHackWarns > 0)
-                                             {
-                                                 DesyncHackWarns = 0;
-                                             }
-                                             if (abs(CurrentTime - LastScreenshotTime) < 30.0f)
-                                             {
-                                                 DesyncHackWarns = 0;
-                                             }
+                                         }
 
-                                             if (InBack || CurrentTime - LastMoveBack < 2.0)
-                                             {
-                                                 DesyncHackWarns = 0;
-                                             }
+                                         if (abs(nf.RParms.Simvel.X) > 0.1f ||
+                                             abs(nf.RParms.Simvel.Y) > 0.1f)
+                                         {
+                                             DesyncHackWarns++;
 
-                                             if (InForward || CurrentTime - LastMoveForward < 2.0)
+                                             if (DesyncHackWarns > 4 && CurrentTime - LastDesyncDetectTime > 0.1)
                                              {
-                                                 DesyncHackWarns = 0;
-                                             }
-
-                                             if (abs(CurrentTime - GameEndTime2) < 30.0f)
-                                             {
-                                                 DesyncHackWarns = 0;
-                                             }
-
-                                             if (abs(CurrentTime - GameStartTime) < 60.0f)
-                                             {
-                                                 DesyncHackWarns = 0;
-                                             }
-
-                                             if (IsPlayerTeleport())
-                                             {
-                                                 DesyncHackWarns = 0;
-                                             }
-
-                                             if (abs(nf.RParms.Simvel.X) > 100.0f ||
-                                                     abs(nf.RParms.Simvel.Y) > 100.0f || abs(nf.RParms.Simvel.X) < -100.0f ||
-                                                     abs(nf.RParms.Simvel.Y) < -100.0f || nf.RParms.Simvel.Z != 0.0f)
-                                             {
-                                                 DesyncHackWarns = 0;
-                                             }
-
-                                             if (CurrentTime - LastSideMoveTime < 2.5 ||
-                                              CurrentTime - LastForwardMoveTime < 2.5 ||
-                                              CurrentTime - LastBackMoveTime < 2.5)
-                                             {
-                                                 if (DesyncHackWarns > 0)
+                                                 LastDesyncDetectTime = CurrentTime;
+                                                 if (!IsAngleEditByEngine() && !IsPlayerLossConnection() && CurrentTime - LastSoundTime > 2.0)
                                                  {
-                                                     DesyncHackWarns--;
+                                                     DesyncDetects++;
+                                                     DemoScanner_AddWarn(
+                                                        "[DESYNC HACK] at (" +
+                                                        CurrentTime + ") " + CurrentTimeString);
                                                  }
+                                                 DesyncHackWarns = 0;
                                              }
-
-                                             if (abs(nf.RParms.Simvel.X) > 0.1f ||
-                                                 abs(nf.RParms.Simvel.Y) > 0.1f)
+                                         }
+                                         else
+                                         {
+                                             if (DesyncHackWarns > 0)
                                              {
-                                                 DesyncHackWarns++;
-
-                                                 if (DesyncHackWarns > 4 && CurrentTime - LastDesyncDetectTime > 0.1)
-                                                 {
-                                                     LastDesyncDetectTime = CurrentTime;
-                                                     if (!IsAngleEditByEngine() && !IsPlayerLossConnection() && CurrentTime - LastSoundTime > 2.0)
-                                                     {
-                                                         DesyncDetects++;
-                                                         DemoScanner_AddWarn(
-                                                            "[DESYNC HACK] at (" +
-                                                            CurrentTime + ") " + CurrentTimeString);
-                                                     }
-                                                     DesyncHackWarns = 0;
-                                                 }
+                                                 DesyncHackWarns--;
                                              }
-                                             else
-                                             {
-                                                 if (DesyncHackWarns > 0)
-                                                 {
-                                                     DesyncHackWarns--;
-                                                 }
-                                             }*/
-                                    if (nf.UCmd.Sidemove < -40.0f || nf.UCmd.Sidemove > 40.0f)
-                                        if (!InStrafe && !MoveLeft && !MoveRight &&
-                                            abs(CurrentTime - LastMoveLeft) > 0.5f &&
-                                            abs(CurrentTime - LastMoveRight) > 0.5f &&
-                                            abs(CurrentTime - LastUnMoveLeft) > 0.5f &&
-                                            abs(CurrentTime - LastUnMoveRight) > 0.5f &&
-                                            abs(CurrentTime - LastStrafeDisabled) > 0.5f &&
-                                            abs(CurrentTime - LastStrafeEnabled) > 0.5f)
-                                            if (abs(CurrentTime - LastMovementHackTime) > 2.5f)
-                                            {
-                                                DemoScanner_AddWarn(
-                                                    "[MOVEMENT HACK TYPE 2] at (" + CurrentTime + ") " + CurrentTimeString,
-                                                    IsValidMovement() && !IsPlayerLossConnection() &&
-                                                    (nf.UCmd.Sidemove < -100 || nf.UCmd.Sidemove > 100));
-                                                LastMovementHackTime = CurrentTime;
-                                                KreedzHacksCount++;
-                                            }
+                                         }*/
+                                if ((nf.UCmd.Sidemove < -40.0f || nf.UCmd.Sidemove > 40.0f) &&
+                                    !InStrafe && !MoveLeft && !MoveRight &&
+                                    abs(CurrentTime - LastMoveLeft) > 0.5f &&
+                                    abs(CurrentTime - LastMoveRight) > 0.5f &&
+                                    abs(CurrentTime - LastUnMoveLeft) > 0.5f &&
+                                    abs(CurrentTime - LastUnMoveRight) > 0.5f &&
+                                    abs(CurrentTime - LastStrafeDisabled) > 0.5f &&
+                                    abs(CurrentTime - LastStrafeEnabled) > 0.5f &&
+                                    abs(CurrentTime - LastMovementHackTime) > 2.5f)
+                                {
+                                    DemoScanner_AddWarn(
+                                        "[MOVEMENT HACK TYPE 2] at (" + CurrentTime + ") " + CurrentTimeString,
+                                        IsValidMovement() && !IsPlayerLossConnection() &&
+                                        (nf.UCmd.Sidemove < -100 || nf.UCmd.Sidemove > 100));
+                                    LastMovementHackTime = CurrentTime;
+                                    KreedzHacksCount++;
+                                }
 
                                 if (SearchMoveHack1)
                                 {
                                     if (CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_MOVELEFT) ||
                                         CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_MOVERIGHT))
+                                    {
                                         //Console.WriteLine("MovementPressed " +
                                         //    (MoveLeft ? "MOVELEFT PRESSED |" : "NO MOVELEFT |") + " " +
                                         //    (MoveRight ? "MOVERIGHT PRESSED |" : "NO MOVERIGHT |") + " " +
@@ -4620,6 +4641,7 @@ namespace DemoScanner.DG
                                                 !IsAngleEditByEngine() && !IsPlayerLossConnection());
                                             SearchMoveHack1 = false;
                                         }
+                                    }
 
                                     if (SearchMoveHack1)
                                     {
@@ -8650,7 +8672,7 @@ namespace DemoScanner.DG
                                 PluginEvents += events;
                             }
                         }
-                        else if (cmdList[1] == "EVENT" && !DisableJump5AndAim16)
+                        else if (cmdList[1] == "XEVENT" && !DisableJump5AndAim16)
                         {
                             if (DUMP_ALL_FRAMES) OutDumpString += "\n{ EVENT PLUGIN }\n";
 
