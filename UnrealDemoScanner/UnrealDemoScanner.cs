@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.72.3b";
+        public const string PROGRAMVERSION = "1.72.4b";
 
         public static bool DEMOSCANNER_HLTV = false;
 
@@ -176,6 +176,9 @@ namespace DemoScanner.DG
         public static float PreviousFrameTime;
         public static float Aim8CurrentFrameViewanglesX;
         public static float Aim8CurrentFrameViewanglesY;
+
+        public static int SearchFastZoom = -1;
+
         public static int AutoPistolStrikes;
         public static int AutoAttackStrikes;
         public static int AutoAttackStrikesID;
@@ -1163,6 +1166,8 @@ namespace DemoScanner.DG
             var sLower = s.ToLower();
             if (!isstuff) CheckConsoleCheat(s);
 
+            var wait = CurrentFrameId - LastCmdFrameId;
+
             if (isstuff)
             {
                 if (sLower.IndexOf("snapshot") > -1 || sLower.IndexOf("screenshot") > -1)
@@ -1190,7 +1195,7 @@ namespace DemoScanner.DG
             if (LastStuffCmdCommand != "" && s == LastStuffCmdCommand.Trim().TrimBad())
             {
                 LastStuffCmdCommand = "";
-                CommandsDump.Add("wait" + (CurrentFrameId - LastCmdFrameId) + ";");
+                CommandsDump.Add("wait" + wait + ";");
                 if (IsRussia)
                     CommandsDump.Add(CurrentTimeString + " [НОМЕР КАДРА: " + CurrentFrameId + "] : " + s + "(" +
                                      CurrentTime + ") --> ВЫПОЛНЕНО СЕРВЕРОМ");
@@ -1204,7 +1209,7 @@ namespace DemoScanner.DG
             LastStuffCmdCommand = "";
             if (isstuff)
             {
-                CommandsDump.Add("wait" + (CurrentFrameId - LastCmdFrameId) + ";");
+                CommandsDump.Add("wait" + wait + ";");
                 if (IsRussia)
                     CommandsDump.Add(CurrentTimeString + " [НОМЕР КАДРА: " + CurrentFrameId + "] : " + s + "(" +
                                      CurrentTime + ") --> ВЫПОЛНЕНО ЧЕРЕЗ STUFFTEXT");
@@ -1214,7 +1219,7 @@ namespace DemoScanner.DG
             }
             else
             {
-                CommandsDump.Add("wait" + (CurrentFrameId - LastCmdFrameId) + ";");
+                CommandsDump.Add("wait" + wait + ";");
                 if (IsRussia)
                     CommandsDump.Add(CurrentTimeString + " [НОМЕР КАДРА: " + CurrentFrameId + "] : " + s + "(" +
                                      CurrentTime + ")");
@@ -1344,6 +1349,8 @@ namespace DemoScanner.DG
                 IsAttack2 = true;
                 if (!IsUserAlive())
                     IsAttack2 = false;
+
+                SearchFastZoom = 1;
             }
             else if (sLower.IndexOf("-attack2") > -1)
             {
@@ -1353,6 +1360,48 @@ namespace DemoScanner.DG
                 InitAimMissingSearch = -1;
                 LastAttackCmdTime = CurrentTime;
                 IsAttack2 = false;
+
+                if (SearchFastZoom == 1 && wait == 1)
+                {
+                    SearchFastZoom = 2;
+                }
+                else
+                {
+                    SearchFastZoom = 0;
+                }
+            }
+            else if (sLower.IndexOf("attack2") == -1 && sLower.IndexOf("attack3") == -1)
+            {
+                if (sLower.IndexOf("+attack") > -1)
+                {
+                    if (SearchFastZoom == 2 && wait == 1)
+                    {
+                        SearchFastZoom = 3;
+                    }
+                    else
+                    {
+                        SearchFastZoom = 0;
+                    }
+                }
+                else if (sLower.IndexOf("-attack") > -1)
+                {
+                    if (SearchFastZoom == 3 && wait == 1)
+                    {
+                        SearchFastZoom = 4;
+                    }
+                    else
+                    {
+                        SearchFastZoom = 0;
+                    }
+                }
+                else
+                {
+                    SearchFastZoom = 0;
+                }
+            }
+            else
+            {
+                SearchFastZoom = 0;
             }
 
             if (sLower.IndexOf("attack2") == -1 && sLower.IndexOf("attack3") == -1)
@@ -1386,8 +1435,8 @@ namespace DemoScanner.DG
                     NeedSearchAim3 = false;
                     /* if (DEBUG_ENABLED)
                      {
-                         Console.WriteLine("User alive func:" + IsUserAlive() + ". User real alive ? : " + RealAlive + ". Weapon:" + CurrentWeapon + ".Frame:" + (CurrentFrameId - LastCmdFrameId)
-                             + ".Frame2: " + (CurrentFrameIdWeapon - WeaponAvaiabledFrameId) + ".Frame3: " + (CurrentFrameId - LastCmdFrameId));
+                         Console.WriteLine("User alive func:" + IsUserAlive() + ". User real alive ? : " + RealAlive + ". Weapon:" + CurrentWeapon + ".Frame:" + wait
+                             + ".Frame2: " + (CurrentFrameIdWeapon - WeaponAvaiabledFrameId) + ".Frame3: " + wait);
                      }*/
                     SearchPunch = abs(LastAttackCmdTime - CurrentTime) > 0.5f;
                     LastAttackCmdTime = CurrentTime;
@@ -8490,8 +8539,8 @@ namespace DemoScanner.DG
                                 }
                             }
                             else if (IsUserAlive() && CurrentWeapon != WeaponIdType.WEAPON_HEGRENADE
-                                && CurrentWeapon != WeaponIdType.WEAPON_SMOKEGRENADE 
-                                && CurrentWeapon != WeaponIdType.WEAPON_FLASHBANG 
+                                && CurrentWeapon != WeaponIdType.WEAPON_SMOKEGRENADE
+                                && CurrentWeapon != WeaponIdType.WEAPON_FLASHBANG
                                 && CurrentWeapon != WeaponIdType.WEAPON_C4)
                             {
                                 if (
@@ -12181,6 +12230,18 @@ namespace DemoScanner.DG
                                             Console.WriteLine("Select weapon method 3 (" +
                                                               UsingAnotherMethodWeaponDetection + "):" + weaponid +
                                                               ":" + CurrentTimeString);
+
+                                        if (SearchFastZoom == 4)
+                                        {
+                                            SearchFastZoom++;
+                                        }
+                                        else if (SearchFastZoom == 5)
+                                        {
+                                            SearchFastZoom = 0;
+                                            DemoScanner_AddWarn(
+                                                    "[BETA] [FASTZOOM ALIAS] at (" + CurrentTime +
+                                                    "):" + CurrentTimeString, false);
+                                        }
 
                                         if (DUMP_ALL_FRAMES)
                                         {
