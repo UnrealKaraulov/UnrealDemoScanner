@@ -8438,7 +8438,7 @@ namespace DemoScanner.DG
                                         "[AIM TYPE 1.6 " + CurrentWeapon + "] at (" + CurrentTime + "):" +
                                         CurrentTimeString,
                                         !IsCmdChangeWeapon() && !IsAngleEditByEngine() && !IsPlayerLossConnection() &&
-                                        !IsForceCenterView());
+                                        !IsForceCenterView(),true,false,true);
                                     TotalAimBotDetected++;
                                 }
 
@@ -8568,7 +8568,7 @@ namespace DemoScanner.DG
                                         {
                                             DemoScanner_AddWarn(
                                                 "[BETA] [AIM TYPE 12.1 " + CurrentWeapon + "] at (" + CurrentTime +
-                                                "):" + CurrentTimeString/*, !IsAngleEditByEngine()*/);
+                                                "):" + CurrentTimeString,true,true,false,true);
                                         }
                                         else if (abs(LastSCMD_Angles1[0] - tmp_ACMD_Angles3[0]) < EPSILON_2 &&
                                         abs(LastSCMD_Angles1[1] - tmp_ACMD_Angles3[1]) < EPSILON_2 &&
@@ -8579,7 +8579,7 @@ namespace DemoScanner.DG
                                         {
                                             DemoScanner_AddWarn(
                                                 "[BETA] [AIM TYPE 12.2 " + CurrentWeapon + "] at (" + CurrentTime +
-                                                "):" + CurrentTimeString/*, !IsAngleEditByEngine()*/);
+                                                "):" + CurrentTimeString, true, true, false, true);
                                         }
                                     }
                                 }
@@ -8614,7 +8614,7 @@ namespace DemoScanner.DG
                                         {
                                             DemoScanner_AddWarn(
                                                 "[BETA] [AIM TYPE 12.3 " + CurrentWeapon + "] at (" + CurrentTime +
-                                                "):" + CurrentTimeString/*, !IsAngleEditByEngine()*/);
+                                                "):" + CurrentTimeString, true, true, false, true);
                                         }
                                     }
                                 }
