@@ -9,12 +9,16 @@
 
 #define PLUGIN "Unreal Demo Plugin"
 #define AUTHOR "karaulov"
-#define VERSION "1.57"
+#define VERSION "1.58"
 
+// IF NEED REDUCE TRAFFIC USAGE UNCOMMENT THIS LINE
+// ЕСЛИ НЕОБХОДИМО МЕНЬШЕ ТРАФИКА, РАСКОММЕНТИРУЙТЕ ЭТУ СТРОКУ
+// #define SMALL_TRAFFIC
 
 new g_iDemoHelperInitStage[33] = {0,...};
 new g_iFrameNum[33] = {0,...};
 new Float:g_flLastEventTime[33] = {0.0,...};
+new Float:g_flLastSendTime[33] = {0.0,...};
 new Float:g_flPMoveTime[33] = {0.0,...};
 new Float:g_flPMovePrevPrevAngles[33][3];
 
@@ -31,10 +35,10 @@ public plugin_init()
 	register_forward(FM_PlaybackEvent, "fw_PlaybackEvent")	
 }
 
-
 public client_disconnected(id)
 {
 	g_flLastEventTime[id] = 0.0;
+	g_flLastSendTime[id] = 0.0;
 	g_flPMoveTime[id] = -1.0;
 	g_iFrameNum[id] = 0;
 	g_iDemoHelperInitStage[id] = 0;
@@ -109,11 +113,12 @@ public PM_Move(const id)
 		new button = get_entvar(id, var_button)
 		new oldbuttons = get_entvar(id, var_oldbuttons)
 		new cmdx = get_pmove(pm_cmd);
+		new Float:curtime = get_pmove(pm_time);
 
 		static Float:tmpAngles1[3];
 		static Float:tmpAngles2[3];
 		
-		if (g_flPMoveTime[id] == get_pmove(pm_time))
+		if (g_flPMoveTime[id] == curtime)
 		{
 			g_iFrameNum[id]++;
 		}
@@ -125,14 +130,17 @@ public PM_Move(const id)
 			WriteDemoInfo(id, "UDS/ACMD/%i/%i/%i/%f/%f/%f/%f/%f/%f", get_ucmd(cmdx, ucmd_lerp_msec), get_ucmd(cmdx, ucmd_msec),g_iFrameNum[id],tmpAngles1[0], tmpAngles1[1], 
 						tmpAngles2[0], tmpAngles2[1],g_flPMovePrevPrevAngles[id][0],g_flPMovePrevPrevAngles[id][1]);
 		}
-		if ((button & IN_ATTACK) && !(oldbuttons & IN_ATTACK))
+		if ((button & IN_ATTACK) && !(oldbuttons & IN_ATTACK) && floatabs(curtime - g_flLastSendTime[id]) > 1.0)
 		{
 			get_pmove(pm_oldangles, tmpAngles1);
 			get_pmove(pm_angles, tmpAngles2);
 			WriteDemoInfo(id, "UDS/SCMD/%i/%i/%i/%f/%f/%f/%f/%f/%f", get_ucmd(cmdx, ucmd_lerp_msec), get_ucmd(cmdx, ucmd_msec),g_iFrameNum[id],tmpAngles1[0], tmpAngles1[1], 
 							tmpAngles2[0], tmpAngles2[1],g_flPMovePrevPrevAngles[id][0],g_flPMovePrevPrevAngles[id][1]);
 			g_iFrameNum[id]++;
-			g_flPMoveTime[id] = get_pmove(pm_time);
+			g_flPMoveTime[id] = curtime;
+#if defined SMALL_TRAFFIC
+			g_flLastSendTime[id] = curtime;
+#endif
 		}
 		get_pmove(pm_oldangles, g_flPMovePrevPrevAngles[id]);
 	}
@@ -142,8 +150,13 @@ public PM_Move(const id)
 public UnrealDemoHelpInitialize(id) 
 {
 	g_flLastEventTime[id] = 0.0;
+	g_flLastSendTime[id] = 0.0;
+	g_flPMoveTime[id] = -1.0;
 	g_iFrameNum[id] = 0;
 	g_iDemoHelperInitStage[id] = 0;
+
+	g_flPMovePrevPrevAngles[id][0] = g_flPMovePrevPrevAngles[id][1] = g_flPMovePrevPrevAngles[id][2] = 0.0;
+
 	if (is_user_connected(id))
 	{
 		remove_task(id);
