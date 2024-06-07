@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.72.5b";
+        public const string PROGRAMVERSION = "1.72.6b";
 
         public static bool DEMOSCANNER_HLTV = false;
 
@@ -227,7 +227,8 @@ namespace DemoScanner.DG
         public static WeaponIdType CurrentWeapon = WeaponIdType.WEAPON_NONE;
         public static WeaponIdType StrikesWeapon = WeaponIdType.WEAPON_NONE;
         public static bool WeaponChanged;
-        public static bool IsAttack;
+        public static int IsAttack;
+        public static bool IsInAttack(){ return IsAttack > 0; }
         public static bool IsAttack2;
         public static int AmmoCount;
         public static int AttackErrors;
@@ -1528,7 +1529,8 @@ namespace DemoScanner.DG
                         NeedSearchViewAnglesAfterAttack++;
                         LerpBeforeAttack = CurrentFrameLerp;
                         NeedDetectLerpAfterAttack = true;
-                        if (IsAttack)
+
+                        if (IsInAttack())
                         {
                             AttackErrors++;
                             LastAttackHack = CurrentTime;
@@ -1545,7 +1547,7 @@ namespace DemoScanner.DG
 
                         Aim2AttackDetected = false;
                         NeedSearchAim2 = true;
-                        IsAttack = true;
+                        IsAttack = 5;
                         IsAttackLastTime = CurrentTime;
                     }
                     else
@@ -1556,7 +1558,7 @@ namespace DemoScanner.DG
                         NeedSearchViewAnglesAfterAttack = 0;
                         Aim2AttackDetected = false;
                         NeedSearchAim2 = false;
-                        IsAttack = true;
+                        IsAttack = 5;
                         IsAttackLastTime = 0.0f;
                     }
 
@@ -1591,7 +1593,7 @@ namespace DemoScanner.DG
                     // Если игрок жив, атакует, время атаки больше чем 150мс, атака остановлена на 2 кадра раньше чем нажат -attack
                     if (IsUserAlive() && !IsCmdChangeWeapon() && !IsRealChangeWeapon() && abs(CurrentTime) > EPSILON &&
                         abs(CurrentTime - IsAttackLastTime) > 0.15 && abs(CurrentTime - IsNoAttackLastTime) > 0.15 &&
-                        abs(IsAttackLastTime - CurrentTime) > EPSILON && IsAttack &&
+                        abs(IsAttackLastTime - CurrentTime) > EPSILON && IsInAttack() &&
                         CurrentNetMsgFrameId - StopAttackBtnFrameId > 2 && StopAttackBtnFrameId != 0 && NeedSearchAim3)
                     {
                         NeedSearchAim3 = false;
@@ -1605,7 +1607,7 @@ namespace DemoScanner.DG
                     NeedWriteAim = 0;
                     IsNoAttackLastTime = CurrentTime;
                     IsNoAttackLastTime2 = CurrentTime2;
-                    IsAttack = false;
+                    IsAttack = 0;
                     AttackCheck = -1;
                     Aim2AttackDetected = false;
                     SelectSlot--;
@@ -4187,7 +4189,7 @@ namespace DemoScanner.DG
                                     FrameUnattackStrike = 0;
                                     CurrentFrameAttacked = true;
                                     LastAttackPressed = CurrentTime;
-                                    if (!IsAttack && NeedIgnoreAttackFlag > 0)
+                                    if (!IsInAttack() && NeedIgnoreAttackFlag > 0)
                                     {
                                         if (CurrentFrameDuplicated <= 0)
                                             NeedIgnoreAttackFlag += 2;
@@ -4198,7 +4200,7 @@ namespace DemoScanner.DG
                                     {
                                         LastEventDetectTime = 0.0f;
                                     }
-                                    if (abs(LastEventDetectTime) > EPSILON && abs(LastAttackPressed - LastEventDetectTime) > 0.25)
+                                    if (!IsInAttack() && abs(LastEventDetectTime) > EPSILON && abs(LastAttackPressed - LastEventDetectTime) > 0.25)
                                     {
                                         DemoScanner_AddWarn("[BETA] [TRIGGER TYPE 3." + (LastEventId < 0 ? 2 : 1) + " " + CurrentWeapon + "] at (" + CurrentTime + ") " +
                                                 CurrentTimeString, false);
@@ -4221,6 +4223,7 @@ namespace DemoScanner.DG
                                 }
                                 else
                                 {
+                                    IsAttack--;
                                     FrameUnattackStrike++;
                                     FrameAttackStrike = 0;
                                     if (!NeedSearchAim3 && PreviousFrameAttacked && RealAlive &&
@@ -4238,7 +4241,7 @@ namespace DemoScanner.DG
                                         NeedSearchAim3 = false;
                                     }
 
-                                    if (!IsAttack) NeedIgnoreAttackFlag = 0;
+                                    if (!IsInAttack()) NeedIgnoreAttackFlag = 0;
 
                                     CurrentFrameAttacked = false;
                                 }
@@ -4675,7 +4678,7 @@ namespace DemoScanner.DG
                                     }
                                 }
 
-                                if (IsAttack)
+                                if (IsInAttack())
                                 {
                                     if (PreviousFrameAttacked && !CurrentFrameAttacked)
                                     {
@@ -5471,7 +5474,7 @@ namespace DemoScanner.DG
                                     //    //    ;// Console.WriteLine("PREVATT");
                                     //    //else if (!CurrentFrameOnGround)
                                     //    //    ;// Console.WriteLine("NOGROUND");
-                                    //    //else if (CurrentTime - IsAttackLastTime < 3.0f || IsAttack)
+                                    //    //else if (CurrentTime - IsAttackLastTime < 3.0f || IsInAttack())
                                     //    //    ;// Console.WriteLine("LASTATTACK");
                                     //    //else
                                     //    //{
@@ -5698,7 +5701,7 @@ namespace DemoScanner.DG
                                     //Console.WriteLine("Aim3 1:" + ViewanglesXBeforeAttack + ":" + ViewanglesYBeforeAttack);
                                     NeedSearchViewAnglesAfterAttack++;
                                 }
-                                else if (NeedSearchViewAnglesAfterAttack == 2 && IsAttack && RealAlive)
+                                else if (NeedSearchViewAnglesAfterAttack == 2 && IsInAttack() && RealAlive)
                                 {
                                     if (CurrentWeapon == WeaponIdType.WEAPON_C4 ||
                                         CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE ||
@@ -5720,7 +5723,7 @@ namespace DemoScanner.DG
                                 else
                                 {
                                     NeedSearchViewAnglesAfterAttack = 0;
-                                    if (NeedSearchViewAnglesAfterAttackNext && RealAlive && IsAttack)
+                                    if (NeedSearchViewAnglesAfterAttackNext && RealAlive && IsInAttack())
                                     {
                                         NeedSearchViewAnglesAfterAttackNext = false;
                                         ViewanglesXAfterAttackNext = CDFRAME_ViewAngles.X;
@@ -6072,7 +6075,7 @@ namespace DemoScanner.DG
                                     }
                                 }
 
-                                if (ShotFound > 0 && !IsReload && IsAttack && RealAlive && SelectSlot <= 0)
+                                if (ShotFound > 0 && !IsReload && IsInAttack() && RealAlive && SelectSlot <= 0)
                                 {
                                 }
                                 else
@@ -6149,7 +6152,7 @@ namespace DemoScanner.DG
                                         }
                                     }
 
-                                if (!IsPlayerBtnAttackedPressed() && !IsAttack && NeedIgnoreAttackFlag == 0)
+                                if (!IsPlayerBtnAttackedPressed() && !IsInAttack() && NeedIgnoreAttackFlag == 0)
                                     if (!TriggerAttackFound && CurrentFrameAttacked && FirstAttack)
                                     {
                                         if (CurrentWeapon == WeaponIdType.WEAPON_C4 ||
@@ -6285,7 +6288,7 @@ namespace DemoScanner.DG
 
                                 if (AttackCheck > -1)
                                 {
-                                    if (!CurrentFrameAttacked && !IsReload && SelectSlot <= 0 && IsAttack && RealAlive &&
+                                    if (!CurrentFrameAttacked && !IsReload && SelectSlot <= 0 && IsInAttack() && RealAlive &&
                                         IsRealWeapon() && CurrentWeapon != WeaponIdType.WEAPON_KNIFE &&
                                         CurrentWeapon != WeaponIdType.WEAPON_C4 &&
                                         CurrentWeapon != WeaponIdType.WEAPON_HEGRENADE &&
@@ -6333,7 +6336,7 @@ namespace DemoScanner.DG
                                         //{
                                         //    //if (SelectSlot > 0)
                                         //    //    Console.WriteLine("select slot...");
-                                        //    //if (!IsAttack)
+                                        //    //if (!IsInAttack())
                                         //    //    Console.WriteLine("not in attack...");
                                         //    //if (!UserAlive)
                                         //    //    Console.WriteLine("user invalid blya...");
@@ -12593,13 +12596,13 @@ namespace DemoScanner.DG
                                     //if (LastWatchWeapon == CurrentWeapon && UserAlive && AmmoCount > 0 && ammocount > 0 && AmmoCount - ammocount > 0 && AmmoCount - ammocount < 4)
                                     //{
                                     //    SkipNextAttack2--;
-                                    //    if (IsAttack || CurrentTime - IsNoAttackLastTime < 0.1)
+                                    //    if (IsInAttack() || CurrentTime - IsNoAttackLastTime < 0.1)
                                     //    {
                                     //        if (CurrentWeapon == WeaponIdType.WEAPON_FAMAS)
                                     //            SkipNextAttack2 = 3;
                                     //        // Console.WriteLine("Attack");
                                     //    }
-                                    //    else if (!IsAttack && !IsReload && SkipNextAttack2 <= 0)
+                                    //    else if (!IsInAttack() && !IsReload && SkipNextAttack2 <= 0)
                                     //    {
                                     //        // ShotFound = true;
                                     //        TextComments.Add("Detected [TRIGGER BOT] at (" + CurrentTime + ") " + CurrentTimeString);
