@@ -6,6 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Runtime.Serialization;
@@ -26,7 +27,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.72.6b";
+        public const string PROGRAMVERSION = "1.72.7b";
 
         public static bool DEMOSCANNER_HLTV = false;
 
@@ -228,7 +229,7 @@ namespace DemoScanner.DG
         public static WeaponIdType StrikesWeapon = WeaponIdType.WEAPON_NONE;
         public static bool WeaponChanged;
         public static int IsAttack;
-        public static bool IsInAttack(){ return IsAttack > 0; }
+        public static bool IsInAttack() { return IsAttack > 0; }
         public static bool IsAttack2;
         public static int AmmoCount;
         public static int AttackErrors;
@@ -2269,33 +2270,36 @@ namespace DemoScanner.DG
                 try
                 {
                     Console.WriteLine("Search for updates...(hint: to change language, need remove lang file!)");
-
-                    HttpWebRequest request = (HttpWebRequest)WebRequest.Create(
-                        "https://raw.githubusercontent.com/UnrealKaraulov/UnrealDemoScanner/main/UnrealDemoScanner/UnrealDemoScanner.cs");
-                    request.AddRange(0, 2048);
-                    request.Timeout = request.ContinueTimeout = request.ReadWriteTimeout = 3000;
-                    using (HttpWebResponse response = (HttpWebResponse)request.GetResponse())
-                    using (Stream stream = response.GetResponseStream())
-                    using (StreamReader reader = new StreamReader(stream))
+                    Task.Run(async () =>
                     {
-                        string str_from_github = reader.ReadToEnd();
-                        Console.Clear();
-                        if (str_from_github.IndexOf("PROGRAMVERSION") > 0)
-                        {
-                            var regex = new Regex(@"PROGRAMVERSION\s+=\s+""(.*?)"";");
-                            var match = regex.Match(str_from_github);
-                            if (match.Success)
-                                if (match.Groups[1].Value != PROGRAMVERSION)
-                                    Console.WriteLine("Found new version \"" + match.Groups[1].Value +
-                                                      "\"! Current version:\"" + PROGRAMVERSION + "\".");
-                        }
-                    }
+                        HttpClient client = new HttpClient();
+                        client.Timeout = TimeSpan.FromMilliseconds(3000);
+                        HttpRequestMessage request = new HttpRequestMessage(HttpMethod.Get, "https://raw.githubusercontent.com/UnrealKaraulov/UnrealDemoScanner/main/UnrealDemoScanner/UnrealDemoScanner.cs");
+                        request.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(0, 2048);
 
+                        using (HttpResponseMessage response = await client.SendAsync(request))
+                        {
+                            string str_from_github = await response.Content.ReadAsStringAsync();
+                            Console.Clear();
+                            if (str_from_github.IndexOf("PROGRAMVERSION") > 0)
+                            {
+                                var regex = new Regex(@"PROGRAMVERSION\s+=\s+""(.*?)"";");
+                                var match = regex.Match(str_from_github);
+                                if (match.Success)
+                                {
+                                    if (match.Groups[1].Value != PROGRAMVERSION)
+                                    {
+                                        Console.WriteLine($"Found new version \"{match.Groups[1].Value}\"! Current version:\"{PROGRAMVERSION}\".");
+                                    }
+                                }
+                            }
+                        }
+                    }).Wait();
                     Thread.Sleep(1000);
                 }
-                catch
+                catch (Exception ex)
                 {
-
+                    Console.WriteLine($"An error occurred: {ex.Message}");
                 }
             }
 
@@ -3599,7 +3603,7 @@ namespace DemoScanner.DG
 
                                 LastEventId = eframe.Index;
 
-                                if (abs(LastEventDetectTime) > EPSILON && abs(LastAttackPressed - LastEventDetectTime) > 0.25)
+                                if (abs(LastEventDetectTime) > EPSILON && abs(LastAttackPressed - LastEventDetectTime) > 0.25 && !IsInAttack())
                                 {
 
                                 }
@@ -4200,7 +4204,7 @@ namespace DemoScanner.DG
                                     {
                                         LastEventDetectTime = 0.0f;
                                     }
-                                    if (!IsInAttack() && abs(LastEventDetectTime) > EPSILON && abs(LastAttackPressed - LastEventDetectTime) > 0.25)
+                                    if (abs(LastEventDetectTime) > EPSILON && abs(LastAttackPressed - LastEventDetectTime) > 0.25)
                                     {
                                         DemoScanner_AddWarn("[BETA] [TRIGGER TYPE 3." + (LastEventId < 0 ? 2 : 1) + " " + CurrentWeapon + "] at (" + CurrentTime + ") " +
                                                 CurrentTimeString, false);
@@ -7204,21 +7208,48 @@ namespace DemoScanner.DG
                                                               : threads) + " threads.");
                                         }
 
-                                        WebClient myWebClient = new DownloadWebClient();
                                         try
                                         {
-                                            myWebClient.DownloadProgressChanged += MyWebClient_DownloadProgressChanged;
-                                            var tmptaskdata = myWebClient.DownloadDataTaskAsync(DownloadLocation + url)
-                                                .Result;
-                                            try
+                                            Task.Run(async () =>
                                             {
-                                                Directory.CreateDirectory(Path.GetDirectoryName(strikedir + "/" + res.res_path));
-                                            }
-                                            catch
-                                            {
-                                            }
+                                                HttpClient client = new HttpClient();
+                                                client.Timeout = TimeSpan.FromMilliseconds(3000);
 
-                                            File.WriteAllBytes(strikedir + "//" + res.res_path, tmptaskdata);
+                                                HttpResponseMessage response = await client.GetAsync(DownloadLocation + url, HttpCompletionOption.ResponseHeadersRead);
+
+                                                using (var stream = await response.Content.ReadAsStreamAsync())
+                                                {
+                                                    using (MemoryStream memoryStream = new MemoryStream())
+                                                    {
+                                                        byte[] buffer = new byte[8192];
+                                                        int bytesRead;
+                                                        long totalBytes = response.Content.Headers.ContentLength ?? -1;
+
+                                                        while ((bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length)) > 0)
+                                                        {
+                                                            memoryStream.Write(buffer, 0, bytesRead);
+
+                                                            var curthreadid = Thread.GetData(Thread.GetNamedDataSlot("int")) != null
+                                                                ? (int)Thread.GetData(Thread.GetNamedDataSlot("int"))
+                                                                : 0;
+                                                            UpdateThreadState(curthreadid, Environment.TickCount);
+                                                        }
+
+                                                        if (response.IsSuccessStatusCode)
+                                                        {
+                                                            try
+                                                            {
+                                                                Directory.CreateDirectory(Path.GetDirectoryName(strikedir + "/" + res.res_path));
+                                                            }
+                                                            catch
+                                                            {
+
+                                                            }
+                                                            File.WriteAllBytes(strikedir + "//" + res.res_path, memoryStream.ToArray());
+                                                        }
+                                                    }
+                                                }
+                                            }).Wait();
                                         }
                                         catch
                                         {
@@ -7969,13 +8000,6 @@ namespace DemoScanner.DG
             return new string(str.Where(c => !char.IsControl(c)).ToArray());
         }
 
-        private static void MyWebClient_DownloadProgressChanged(object sender, DownloadProgressChangedEventArgs e)
-        {
-            var threadid = Thread.GetData(Thread.GetNamedDataSlot("int")) != null
-                ? (int)Thread.GetData(Thread.GetNamedDataSlot("int"))
-                : 0;
-            UpdateThreadState(threadid, Environment.TickCount);
-        }
 
         private static void AddLerpAndMs(int lerpMsec, byte msec)
         {
@@ -8376,7 +8400,7 @@ namespace DemoScanner.DG
                                 {
                                     if (IsRussia)
                                     {
-                                        DemoScanner_AddWarn("[INFO] На сервере установлена старая версия плагина ["+PluginVersion+"]", true, false,
+                                        DemoScanner_AddWarn("[INFO] На сервере установлена старая версия плагина [" + PluginVersion + "]", true, false,
                                             true, true);
                                         DemoScanner_AddWarn(
                                             "[ERROR] Отключается обнаружение [JUMPHACK TYPE 5] и [AIM TYPE 1.6]", true,
@@ -8441,7 +8465,7 @@ namespace DemoScanner.DG
                                         "[AIM TYPE 1.6 " + CurrentWeapon + "] at (" + CurrentTime + "):" +
                                         CurrentTimeString,
                                         !IsCmdChangeWeapon() && !IsAngleEditByEngine() && !IsPlayerLossConnection() &&
-                                        !IsForceCenterView(),true,false,true);
+                                        !IsForceCenterView(), true, false, true);
                                     TotalAimBotDetected++;
                                 }
 
@@ -8571,7 +8595,7 @@ namespace DemoScanner.DG
                                         {
                                             DemoScanner_AddWarn(
                                                 "[BETA] [AIM TYPE 12.1 " + CurrentWeapon + "] at (" + CurrentTime +
-                                                "):" + CurrentTimeString,true,true,false,true);
+                                                "):" + CurrentTimeString, true, true, false, true);
                                         }
                                         else if (abs(LastSCMD_Angles1[0] - tmp_ACMD_Angles3[0]) < EPSILON_2 &&
                                         abs(LastSCMD_Angles1[1] - tmp_ACMD_Angles3[1]) < EPSILON_2 &&
@@ -8713,7 +8737,7 @@ namespace DemoScanner.DG
                                     int.TryParse(cmdList[2], out tmpEvent);
                                 LastEventId = -tmpEvent;
 
-                                if (abs(LastEventDetectTime) > EPSILON && abs(LastAttackPressed - LastEventDetectTime) > 0.5)
+                                if (abs(LastEventDetectTime) > EPSILON && abs(LastAttackPressed - LastEventDetectTime) > 0.5 && !IsInAttack())
                                 {
 
                                 }
@@ -12758,16 +12782,6 @@ namespace DemoScanner.DG
             public string Name;
             public uint nBits;
             public float PreMultiplier;
-        }
-    }
-
-    public class DownloadWebClient : WebClient
-    {
-        protected override WebRequest GetWebRequest(Uri address)
-        {
-            var w = base.GetWebRequest(address);
-            w.Timeout = 1000 * 180;
-            return w;
         }
     }
 

@@ -6,11 +6,11 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 
-[assembly: AssemblyTitle("Unreal Demo Scanner")]
-[assembly: AssemblyDescription("Analyze demo files")]
-[assembly: AssemblyCompany("https://github.com/UnrealKaraulov/UnrealDemoScanner")]
-[assembly: AssemblyProduct("Unreal Demo Scanner")]
-[assembly: AssemblyCopyright("Karaulov")]
+[assembly: AssemblyTitle("UnrealDemoScanner [https://github.com/UnrealKaraulov/UnrealDemoScanner]")]
+[assembly: AssemblyDescription("Antihack for CS 1.6 .dem files.\nAuthor: Karaulov")]
+[assembly: AssemblyCompany("—")]
+[assembly: AssemblyProduct("UnrealDemoScanner [https://github.com/UnrealKaraulov/UnrealDemoScanner]")]
+[assembly: AssemblyCopyright("—")]
 
 // Setting ComVisible to false makes the types in this assembly not visible 
 // to COM components.  If you need to access a type in this assembly from 

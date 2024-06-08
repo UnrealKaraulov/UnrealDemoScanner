@@ -73,9 +73,11 @@
       <WarningLevel>Level3</WarningLevel>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <SDLCheck>true</SDLCheck>
+      <SDLCheck>
+      </SDLCheck>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>true</ConformanceMode>
+      <ConformanceMode>
+      </ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
@@ -85,6 +87,7 @@
       <Optimization>Custom</Optimization>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <OmitFramePointers>true</OmitFramePointers>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -113,6 +116,7 @@
     <ClInclude Include="Buffer.hpp" />
     <ClInclude Include="header.h" />
     <ClInclude Include="IVoiceCodec.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="SteamP2PCodec.h" />
     <ClInclude Include="utlbuffer.h" />
     <ClInclude Include="utlmemory.h" />
@@ -121,6 +125,9 @@
     <ClInclude Include="VoiceEncoder_Speex.h" />
     <ClInclude Include="voice_codec_frame.h" />
     <ClInclude Include="wave_header.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="ReVoiceDecoder.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

@@ -216,109 +216,112 @@ std::vector<unsigned char> loadFile(const std::string& fileName)
 
 int main()
 {
-	std::vector<fs::path> files = {};
-
-	for (const auto& entry : fs::directory_iterator("input"))
+	if (fs::exists("input"))
 	{
-		if (fs::is_regular_file(entry))
+		std::vector<fs::path> files = {};
+
+		for (const auto& entry : fs::directory_iterator("input"))
 		{
-			files.push_back(entry.path());
+			if (fs::is_regular_file(entry))
+			{
+				files.push_back(entry.path());
+			}
 		}
-	}
 
-	auto processFile =
-		[&](const fs::path& filePath)
-		{
-			std::cout << std::endl << "Process " << filePath.string() << std::endl;
-
-			std::vector<unsigned char> fileData = loadFile(filePath.string());
-
-			if (fileData.size() < 6)
-				return;
-			fs::remove(filePath);
-
-			std::string filename = filePath.filename().string();
-			try
+		auto processFile =
+			[&](const fs::path& filePath)
 			{
-				std::vector<int16_t> samples = decode(fileData);
+				std::cout << std::endl << "Process " << filePath.string() << std::endl;
 
-				if (!bMixFiles)
+				std::vector<unsigned char> fileData = loadFile(filePath.string());
+
+				if (fileData.size() < 6)
+					return;
+				fs::remove(filePath);
+
+				std::string filename = filePath.filename().string();
+				try
 				{
-					if (samples.size() > 5)
+					std::vector<int16_t> samples = decode(fileData);
+
+					if (!bMixFiles)
 					{
-						FILE* file = NULL;
-						fopen_s(&file, ("output/" + filename).c_str(), "wb");
-						if (file)
+						if (samples.size() > 5)
 						{
-							waveFormatHeader_t* wh = NULL;
-							wh = mono16bit8khzWaveHeaderForLength(samples.size());
-							writeWaveHeaderToFile(wh, file);
-							free(wh);
-							fwrite(&samples[0], sizeof(int16_t), samples.size(), file);
-							fclose(file);
+							FILE* file = NULL;
+							fopen_s(&file, ("output/" + filename).c_str(), "wb");
+							if (file)
+							{
+								waveFormatHeader_t* wh = NULL;
+								wh = mono16bit8khzWaveHeaderForLength(samples.size());
+								writeWaveHeaderToFile(wh, file);
+								free(wh);
+								fwrite(&samples[0], sizeof(int16_t), samples.size(), file);
+								fclose(file);
+							}
+						}
+					}
+					else
+					{
+						if (mixed_samples.size() < samples.size())
+						{
+							mixed_samples.resize(samples.size() + 1, 0);
+						}
+
+						for (size_t i = 0; i < samples.size(); i++)
+						{
+							/*if (abs(samples[i]) > abs(mixed_samples[i]))
+								mixed_samples[i] = samples[i];*/
+							int a = samples[i];
+							int b = mixed_samples[i];
+
+							int mix;
+
+							a += 32768;
+							b += 32768;
+
+							if ((a < 32768) || (b < 32768))
+							{
+								mix = a * b / 32768;
+							}
+							else {
+								mix = 2 * (a + b) - (a * b) / 32768 - 65536;
+							}
+
+							if (mix >= 65536)
+								mix = 65535;
+
+							mix -= 32768;
+							mixed_samples[i] = (short)mix;
 						}
 					}
 				}
-				else
+				catch (...)
 				{
-					if (mixed_samples.size() < samples.size())
-					{
-						mixed_samples.resize(samples.size() + 1, 0);
-					}
-
-					for (size_t i = 0; i < samples.size(); i++)
-					{
-						/*if (abs(samples[i]) > abs(mixed_samples[i]))
-							mixed_samples[i] = samples[i];*/
-						int a = samples[i];
-						int b = mixed_samples[i];
-
-						int mix;
-
-						a += 32768;
-						b += 32768;
-
-						if ((a < 32768) || (b < 32768))
-						{
-							mix = a * b / 32768;
-						}
-						else {
-							mix = 2 * (a + b) - (a * b) / 32768 - 65536;
-						}
-
-						if (mix >= 65536)
-							mix = 65535;
-
-						mix -= 32768;
-						mixed_samples[i] = (short)mix;
-					}
+					std::cout << "Crash at \"" << filePath << "\"" << std::endl;
 				}
-			}
-			catch (...)
-			{
-				std::cout << "Crash at \"" << filePath << "\"" << std::endl;
-			}
-		};
+			};
 
-	for (auto file : files)
-		processFile(file);
+		for (auto file : files)
+			processFile(file);
 
-	if (bMixFiles && mixed_samples.size())
-	{
-		std::cout << "remove silence from merged voice..." << std::endl;
-		remove_silence(mixed_samples);
-		if (mixed_samples.size() > 0)
+		if (bMixFiles && mixed_samples.size())
 		{
-			FILE* file = NULL;
-			fopen_s(&file, "output/voice.wav", "wb");
-			if (file)
+			std::cout << "remove silence from merged voice..." << std::endl;
+			remove_silence(mixed_samples);
+			if (mixed_samples.size() > 0)
 			{
-				waveFormatHeader_t* wh = NULL;
-				wh = mono16bit8khzWaveHeaderForLength(mixed_samples.size());
-				writeWaveHeaderToFile(wh, file);
-				free(wh);
-				fwrite(&mixed_samples[0], sizeof(int16_t), mixed_samples.size(), file);
-				fclose(file);
+				FILE* file = NULL;
+				fopen_s(&file, "output/voice.wav", "wb");
+				if (file)
+				{
+					waveFormatHeader_t* wh = NULL;
+					wh = mono16bit8khzWaveHeaderForLength(mixed_samples.size());
+					writeWaveHeaderToFile(wh, file);
+					free(wh);
+					fwrite(&mixed_samples[0], sizeof(int16_t), mixed_samples.size(), file);
+					fclose(file);
+				}
 			}
 		}
 	}
