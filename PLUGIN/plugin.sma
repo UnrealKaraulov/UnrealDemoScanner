@@ -9,18 +9,23 @@
 
 #define PLUGIN "Unreal Demo Plugin"
 #define AUTHOR "karaulov"
-#define VERSION "1.58"
+#define VERSION "1.59"
 
 // IF NEED REDUCE TRAFFIC USAGE UNCOMMENT THIS LINE
-// ЕСЛИ НЕОБХОДИМО МЕНЬШЕ ТРАФИКА, РАСКОММЕНТИРУЙТЕ ЭТУ СТРОКУ
-// #define SMALL_TRAFFIC
+// ЕСЛИ НЕОБХОДИМО БОЛЬШЕ ДЕТЕКТОВ (НО ТАК ЖЕ БОЛЬШЕ ТРАФИКА) ЗАКОММЕНТИРУЙТЕ ЭТУ СТРОКУ
+#define SMALL_TRAFFIC
 
 new g_iDemoHelperInitStage[33] = {0,...};
 new g_iFrameNum[33] = {0,...};
 new Float:g_flLastEventTime[33] = {0.0,...};
-new Float:g_flLastSendTime[33] = {0.0,...};
+new Float:g_flLastSendTime[33] = {-1.0,...};
 new Float:g_flPMoveTime[33] = {0.0,...};
+new Float:g_flStartCmdTime[33] = {0.0,...};
+new Float:g_flDelay1Msec[33] = {-1.0,...};
+new Float:g_flDelay2Time[33] = {-1.0,...};
 new Float:g_flPMovePrevPrevAngles[33][3];
+
+new Float:g_flGameTimeReal = 0.0;
 
 public plugin_init() 
 {
@@ -29,19 +34,27 @@ public plugin_init()
 	
 	register_clcmd("fullupdate", "UnrealDemoHelpInitialize");
 	
-	RegisterHookChain(RG_PM_Move, "PM_Move")
+	RegisterHookChain(RG_PM_Move, "PM_Move", .post =false);
 	RegisterHookChain(RG_CBasePlayer_Jump, "HC_CBasePlayer_Jump_Pre", .post = false);
 	
-	register_forward(FM_PlaybackEvent, "fw_PlaybackEvent")	
+	register_forward(FM_PlaybackEvent, "fw_PlaybackEvent");
+}
+
+public server_frame()
+{
+	g_flGameTimeReal = get_gametime();
 }
 
 public client_disconnected(id)
 {
 	g_flLastEventTime[id] = 0.0;
-	g_flLastSendTime[id] = 0.0;
-	g_flPMoveTime[id] = -1.0;
+	g_flLastSendTime[id] = -1.0;
+	g_flStartCmdTime[id] = -1.0;
 	g_iFrameNum[id] = 0;
 	g_iDemoHelperInitStage[id] = 0;
+	g_flDelay1Msec[id] = -1.0;
+	g_flDelay2Time[id] = -1.0;
+	g_flPMoveTime[id] = 0.0;
 
 	g_flPMovePrevPrevAngles[id][0] = g_flPMovePrevPrevAngles[id][1] = g_flPMovePrevPrevAngles[id][2] = 0.0;
 
@@ -53,9 +66,9 @@ public fw_PlaybackEvent( iFlags, id, eventIndex )
 {
 	if(id > 0 && id < 33 && g_iDemoHelperInitStage[id] == -1 && iFlags == 1)
 	{
-		if (floatabs(get_gametime() - g_flLastEventTime[id]) > 1.0)
+		if (floatabs(g_flGameTimeReal - g_flLastEventTime[id]) > 1.0)
 		{
-			g_flLastEventTime[id] = get_gametime();
+			g_flLastEventTime[id] = g_flGameTimeReal;
 			WriteDemoInfo(id, "UDS/XEVENT/%i", eventIndex);
 		}
 	}
@@ -108,41 +121,50 @@ public HC_CBasePlayer_Jump_Pre(id)
 
 public PM_Move(const id)
 {
-	if (g_iDemoHelperInitStage[id] == -1)
+	if (!is_user_hltv(id) && !is_user_bot(id))
 	{
-		new button = get_entvar(id, var_button)
-		new oldbuttons = get_entvar(id, var_oldbuttons)
+		new button = get_entvar(id, var_button);
 		new cmdx = get_pmove(pm_cmd);
-		new Float:curtime = get_pmove(pm_time);
+		new Float:curtime = rh_get_gametime();
 
 		static Float:tmpAngles1[3];
 		static Float:tmpAngles2[3];
 		
-		if (g_flPMoveTime[id] == curtime)
-		{
-			g_iFrameNum[id]++;
-		}
-		else if (g_flPMoveTime[id] != -1.0)
-		{
-			g_flPMoveTime[id] = -1.0;
-			get_pmove(pm_oldangles, tmpAngles1);
-			get_pmove(pm_angles, tmpAngles2);
-			WriteDemoInfo(id, "UDS/ACMD/%i/%i/%i/%f/%f/%f/%f/%f/%f", get_ucmd(cmdx, ucmd_lerp_msec), get_ucmd(cmdx, ucmd_msec),g_iFrameNum[id],tmpAngles1[0], tmpAngles1[1], 
-						tmpAngles2[0], tmpAngles2[1],g_flPMovePrevPrevAngles[id][0],g_flPMovePrevPrevAngles[id][1]);
-		}
-		if ((button & IN_ATTACK) && !(oldbuttons & IN_ATTACK) && floatabs(curtime - g_flLastSendTime[id]) > 1.0)
+		if (g_flStartCmdTime[id] != -1.0)
 		{
 			get_pmove(pm_oldangles, tmpAngles1);
 			get_pmove(pm_angles, tmpAngles2);
-			WriteDemoInfo(id, "UDS/SCMD/%i/%i/%i/%f/%f/%f/%f/%f/%f", get_ucmd(cmdx, ucmd_lerp_msec), get_ucmd(cmdx, ucmd_msec),g_iFrameNum[id],tmpAngles1[0], tmpAngles1[1], 
-							tmpAngles2[0], tmpAngles2[1],g_flPMovePrevPrevAngles[id][0],g_flPMovePrevPrevAngles[id][1]);
+			WriteDemoInfo(id, "UDS/ACMD/%i/%i/%i/%f/%f/%f/%f/%f/%f/%f", get_ucmd(cmdx, ucmd_lerp_msec), get_ucmd(cmdx, ucmd_msec),g_iFrameNum[id],tmpAngles1[0], tmpAngles1[1], 
+						tmpAngles2[0], tmpAngles2[1],g_flPMovePrevPrevAngles[id][0],g_flPMovePrevPrevAngles[id][1], curtime - g_flStartCmdTime[id]);
+			g_flStartCmdTime[id] = -1.0;
+		}
+		
+		if (g_flDelay1Msec[id] != -1.0 && (button & IN_ATTACK) && floatabs(curtime - g_flLastSendTime[id]) > 1.0)
+		{
+			get_pmove(pm_oldangles, tmpAngles1);
+			get_pmove(pm_angles, tmpAngles2);
+			WriteDemoInfo(id, "UDS/SCMD/%i/%i/%i/%f/%f/%f/%f/%f/%f/%f/%f", get_ucmd(cmdx, ucmd_lerp_msec), get_ucmd(cmdx, ucmd_msec),g_iFrameNum[id],tmpAngles1[0], tmpAngles1[1], 
+							tmpAngles2[0], tmpAngles2[1],g_flPMovePrevPrevAngles[id][0],g_flPMovePrevPrevAngles[id][1], curtime - g_flDelay2Time[id], g_flDelay1Msec[id]);
 			g_iFrameNum[id]++;
-			g_flPMoveTime[id] = curtime;
-#if defined SMALL_TRAFFIC
+			g_flStartCmdTime[id] = curtime;
+	#if defined SMALL_TRAFFIC
 			g_flLastSendTime[id] = curtime;
-#endif
+	#endif
+			g_flDelay1Msec[id] = -1.0;
+			
+			get_pmove(pm_oldangles, g_flPMovePrevPrevAngles[id]);
 		}
-		get_pmove(pm_oldangles, g_flPMovePrevPrevAngles[id]);
+		
+		if (!(button & IN_ATTACK))
+		{
+			g_flDelay1Msec[id] = curtime - g_flPMoveTime[id];
+			g_flDelay2Time[id] = curtime;
+			get_pmove(pm_oldangles, g_flPMovePrevPrevAngles[id]);
+		}
+		
+		//server_print("[%i] %f = %i [PM gametime:] %f [PM frametime:] %f [MSEC:] %i = %i", id, curtime - g_flPMoveTime[id],button,g_flGameTimeReal,get_pmove(pm_frametime), get_ucmd(cmdx, ucmd_lerp_msec), get_ucmd(cmdx, ucmd_msec));
+		
+		g_flPMoveTime[id] = curtime;
 	}
 	return HC_CONTINUE;
 }
@@ -151,25 +173,26 @@ public UnrealDemoHelpInitialize(id)
 {
 	g_flLastEventTime[id] = 0.0;
 	g_flLastSendTime[id] = 0.0;
-	g_flPMoveTime[id] = -1.0;
 	g_iFrameNum[id] = 0;
 	g_iDemoHelperInitStage[id] = 0;
-
-	g_flPMovePrevPrevAngles[id][0] = g_flPMovePrevPrevAngles[id][1] = g_flPMovePrevPrevAngles[id][2] = 0.0;
 
 	if (is_user_connected(id))
 	{
 		remove_task(id);
-		set_task(1.0,"DemoHelperInitializeTask",id);
+		if (!is_user_hltv(id) && !is_user_bot(id))
+		{
+			set_task(1.0,"DemoHelperInitializeTask",id);
+		}
 	}
 }
 
 public DemoHelperInitializeTask(id)
-{
-	if (!is_user_connected(id) || g_iDemoHelperInitStage[id] == -1)
+{	
+	if (!is_user_connected(id))
 	{
 		return;
 	}
+	
 	g_iDemoHelperInitStage[id]++;
 	switch(g_iDemoHelperInitStage[id])
 	{
