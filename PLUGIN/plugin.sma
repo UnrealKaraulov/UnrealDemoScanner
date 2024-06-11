@@ -9,7 +9,7 @@
 
 #define PLUGIN "Unreal Demo Plugin"
 #define AUTHOR "karaulov"
-#define VERSION "1.59"
+#define VERSION "1.60"
 
 // IF NEED REDUCE TRAFFIC USAGE UNCOMMENT THIS LINE
 // ЕСЛИ НЕОБХОДИМО БОЛЬШЕ ДЕТЕКТОВ (НО ТАК ЖЕ БОЛЬШЕ ТРАФИКА) ЗАКОММЕНТИРУЙТЕ ЭТУ СТРОКУ
@@ -125,7 +125,7 @@ public PM_Move(const id)
 	{
 		new button = get_entvar(id, var_button);
 		new cmdx = get_pmove(pm_cmd);
-		new Float:curtime = rh_get_gametime();
+		new Float:curtime = g_flGameTimeReal;
 
 		static Float:tmpAngles1[3];
 		static Float:tmpAngles2[3];
