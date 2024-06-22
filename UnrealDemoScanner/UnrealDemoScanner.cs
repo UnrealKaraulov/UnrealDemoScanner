@@ -28,7 +28,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.72.10b";
+        public const string PROGRAMVERSION = "1.72.11b";
 
         public static bool DEMOSCANNER_HLTV = false;
 
@@ -513,9 +513,9 @@ namespace DemoScanner.DG
         public static float GameEndTime;
         public static int DuckHack2Strikes;
         public static int DuckHack1Strikes;
-        public static bool Intermission;
         public static int ViewEntity = -1;
         public static int ViewModel = -1;
+        public static int CL_Intermission = -1;
         public static uint LastPlayerEntity;
         public static uint LastEntity;
         public static int PlayerTeleportus;
@@ -638,6 +638,7 @@ namespace DemoScanner.DG
         public static DateTime StartScanTime;
         public static float HorAngleTime;
         public static int WarnsAfterGameEnd;
+        public static int WarnsDuringLevel;
 
         public static bool SKIP_RESULTS;
         public static bool LOG_MODE;
@@ -1051,6 +1052,13 @@ namespace DemoScanner.DG
             if (GameEnd && !uds_plugin)
             {
                 if (detected) WarnsAfterGameEnd++;
+
+                return;
+            }
+
+            if (CL_Intermission != 0)
+            {
+                if (detected) WarnsDuringLevel++;
 
                 return;
             }
@@ -6021,8 +6029,28 @@ namespace DemoScanner.DG
 
                                 if (nf.RParms.Intermission != 0)
                                 {
-                                    // Console.WriteLine("Intermiss");
-                                    Intermission = true;
+                                    if (CL_Intermission == 0)
+                                    {
+                                        if (!NewDirectory)
+                                        {
+                                        if (IsRussia)
+                                        {
+                                            Console.WriteLine("---------- Подготовка к смене уровня [" + CurrentTimeString +
+                                                         "] ----------");
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine("---------- Preparing to changelevel [" + CurrentTimeString +
+                                                         "] ----------");
+                                            }
+
+                                        }
+                                    }
+                                    CL_Intermission = 1;
+                                }
+                                else 
+                                {
+                                    CL_Intermission = 0;
                                 }
 
                                 if (DUMP_ALL_FRAMES)
@@ -6058,11 +6086,10 @@ namespace DemoScanner.DG
 
                                 if (!UserAlive && ViewEntity == nf.RParms.Viewentity)
                                 {
-                                    if (!Intermission && FirstUserAlive && nf.Viewmodel != 0)
+                                    if (CL_Intermission == 0 && FirstUserAlive && nf.Viewmodel != 0)
                                         NeedSearchUserAliveTime = CurrentTime;
 
-                                    // Console.WriteLine("Alive 4");
-                                    Intermission = false;
+                                    CL_Intermission = 0;
                                     ViewEntity = -1;
                                 }
 
@@ -6677,6 +6704,7 @@ namespace DemoScanner.DG
                 Console.WriteLine(PROGRAMNAME + " [ " + PROGRAMVERSION + " ] scan result:");
 
             GameEnd = false;
+            CL_Intermission = 0;
 
             if (NeedIgnoreAttackFlagCount > 0)
             {
@@ -6729,6 +6757,14 @@ namespace DemoScanner.DG
                     DemoScanner_AddInfo("Есть предупреждения после конца игры: " + WarnsAfterGameEnd);
                 else
                     DemoScanner_AddInfo("Possible demoscanner bypass. Detects after game end: " + WarnsAfterGameEnd);
+            }
+
+            if (WarnsDuringLevel > 8)
+            {
+                if (IsRussia)
+                    DemoScanner_AddInfo("Есть предупреждения во время смены уровня: " + WarnsDuringLevel);
+                else
+                    DemoScanner_AddInfo("Detects during changelevel: " + WarnsDuringLevel);
             }
 
             //if (AttackErrors > 0)
@@ -8056,7 +8092,6 @@ namespace DemoScanner.DG
         {
             return new string(str.Where(c => !char.IsControl(c)).ToArray());
         }
-
 
         private static void AddLerpAndMs(int lerpMsec, byte msec)
         {
@@ -9707,7 +9742,7 @@ namespace DemoScanner.DG
         private void MessageView()
         {
             int entityview = BitBuffer.ReadInt16();
-            if (!Intermission)
+            if (CL_Intermission == 0)
                 if (ViewModel > 0)
                     ViewEntity = entityview;
 
@@ -9884,6 +9919,7 @@ namespace DemoScanner.DG
             var tmpMapName = BitBuffer.ReadString();
 
             GameEnd = false;
+            CL_Intermission = 0;
             Console.WriteLine("---------- [Начало новой игры / Start new game ( END: " + CurrentTimeString +
                               ")] ----------");
 
@@ -9894,6 +9930,7 @@ namespace DemoScanner.DG
                 else
                     DemoScanner_AddInfo("Changelevel to \"" + tmpMapName + "\"( CRC " + mapcrc32 + " )");
                 MapName = tmpMapName;
+                CL_Intermission = 0;
             }
 
             if (demo.GsDemoInfo.Header.NetProtocol == 45)
@@ -9915,6 +9952,7 @@ namespace DemoScanner.DG
             }
 
             if (FirstMap)
+            {
                 if (!SKIP_RESULTS)
                 {
                     var tmpcursortop = Console.CursorTop;
@@ -9931,6 +9969,7 @@ namespace DemoScanner.DG
                     Console.CursorLeft = tmpcursorleft;
                     FirstMap = false;
                 }
+            }
         }
 
         private void MessageLightStyle()
@@ -10629,6 +10668,20 @@ namespace DemoScanner.DG
 
         private void MessageInterMission()
         {
+            if (CL_Intermission == 0)
+            {
+                if (IsRussia)
+                {
+                    Console.WriteLine("---------- Подготовка к смене уровня [" + CurrentTimeString +
+                                 "] ----------");
+                }
+                else
+                {
+                    Console.WriteLine("---------- Preparing to changelevel [" + CurrentTimeString +
+                                 "] ----------");
+                }
+            }
+            CL_Intermission = 1;
         }
 
         public void MessageNewUserMsg()
@@ -11403,6 +11456,7 @@ namespace DemoScanner.DG
                 {
                     DemoScanner_AddInfo("False game end message. Resetting game status.");
                     GameEnd = false;
+                    CL_Intermission = 0;
                 }
             }
             else if (iKiller == LocalPlayerId + 1 && iVictim != iKiller)
@@ -11441,6 +11495,7 @@ namespace DemoScanner.DG
                 {
                     DemoScanner_AddInfo("False game end message. Resetting game status.");
                     GameEnd = false;
+                    CL_Intermission = 0;
                 }
 
                 if (!UserAlive && (abs(CurrentTime - LastDeathTime) > 5.0f || FirstUserAlive))
@@ -12108,7 +12163,7 @@ namespace DemoScanner.DG
                                     if (entryList[index].Name == "gaitsequence")
                                     {
                                         var seqnum = value != null ? (uint)value : 0;
-                                        if (seqnum > 0 && !UserAlive && !Intermission && !FirstUserAlive)
+                                        if (seqnum > 0 && !UserAlive && CL_Intermission == 0 && !FirstUserAlive)
                                         {
                                             if (DEBUG_ENABLED) Console.WriteLine("Alive 4 at " + CurrentTimeString);
 

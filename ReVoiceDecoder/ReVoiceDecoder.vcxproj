@@ -80,7 +80,7 @@
       </ConformanceMode>
       <LanguageStandard>stdcpplatest</LanguageStandard>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
       <ExceptionHandling>Async</ExceptionHandling>
@@ -98,7 +98,8 @@
       <MinimumRequiredVersion>6</MinimumRequiredVersion>
       <Version>
       </Version>
-      <SetChecksum>true</SetChecksum>
+      <SetChecksum>
+      </SetChecksum>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
