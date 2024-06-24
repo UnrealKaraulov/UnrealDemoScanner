@@ -57,6 +57,7 @@
             // 
             // EntSelector
             // 
+            this.EntSelector.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.EntSelector.FormattingEnabled = true;
             this.EntSelector.Location = new System.Drawing.Point(483, 12);
             this.EntSelector.Name = "EntSelector";
@@ -65,6 +66,8 @@
             // 
             // frameSelector
             // 
+            this.frameSelector.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
             this.frameSelector.Location = new System.Drawing.Point(3, 390);
             this.frameSelector.Name = "frameSelector";
             this.frameSelector.Size = new System.Drawing.Size(689, 45);
@@ -72,6 +75,7 @@
             // 
             // EntData
             // 
+            this.EntData.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.EntData.FormattingEnabled = true;
             this.EntData.Location = new System.Drawing.Point(483, 37);
             this.EntData.Name = "EntData";
@@ -80,6 +84,7 @@
             // 
             // playBtn
             // 
+            this.playBtn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.playBtn.Location = new System.Drawing.Point(601, 337);
             this.playBtn.Name = "playBtn";
             this.playBtn.Size = new System.Drawing.Size(75, 23);
@@ -90,6 +95,7 @@
             // 
             // fpsSpeed
             // 
+            this.fpsSpeed.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.fpsSpeed.Location = new System.Drawing.Point(522, 339);
             this.fpsSpeed.Name = "fpsSpeed";
             this.fpsSpeed.Size = new System.Drawing.Size(73, 20);
@@ -100,6 +106,7 @@
             // 
             // fpsLabel
             // 
+            this.fpsLabel.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.fpsLabel.AutoSize = true;
             this.fpsLabel.Location = new System.Drawing.Point(489, 342);
             this.fpsLabel.Name = "fpsLabel";
@@ -109,6 +116,7 @@
             // 
             // NextBtn
             // 
+            this.NextBtn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.NextBtn.Location = new System.Drawing.Point(601, 365);
             this.NextBtn.Name = "NextBtn";
             this.NextBtn.Size = new System.Drawing.Size(75, 23);
@@ -119,6 +127,7 @@
             // 
             // PrevBtn
             // 
+            this.PrevBtn.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
             this.PrevBtn.Location = new System.Drawing.Point(492, 365);
             this.PrevBtn.Name = "PrevBtn";
             this.PrevBtn.Size = new System.Drawing.Size(75, 23);
@@ -147,9 +156,11 @@
             this.Controls.Add(this.frameSelector);
             this.Controls.Add(this.EntSelector);
             this.Controls.Add(this.entPreviewPicture);
+            this.MinimumSize = new System.Drawing.Size(720, 474);
             this.Name = "EntitiesPreviewWindow";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "EntitiesPreviewWindow";
+            this.Load += new System.EventHandler(this.EntitiesPreviewWindow_Load);
             ((System.ComponentModel.ISupportInitialize)(this.entPreviewPicture)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.frameSelector)).EndInit();
             this.ResumeLayout(false);

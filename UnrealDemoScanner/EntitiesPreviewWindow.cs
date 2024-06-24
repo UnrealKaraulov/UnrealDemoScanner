@@ -80,5 +80,10 @@ namespace DemoScanner
         {
 
         }
+
+        private void EntitiesPreviewWindow_Load(object sender, EventArgs e)
+        {
+
+        }
     }
 }
