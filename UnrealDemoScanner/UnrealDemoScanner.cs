@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.72.11b";
+        public const string PROGRAMVERSION = "1.72.12b";
 
         public static bool DEMOSCANNER_HLTV = false;
 
@@ -432,6 +432,14 @@ namespace DemoScanner.DG
         public static List<string> CommandsDump = new List<string>();
         public static string framecrashcmd = "";
         public static float[] CDFrameYAngleHistory = new float[3] { 0.0f, 0.0f, 0.0f };
+
+        public class CDAngleHistoryAim12item
+        {
+            public float[] tmp = new float[3];
+        }
+        public static List<CDAngleHistoryAim12item> CDAngleHistoryAim12List = new List<CDAngleHistoryAim12item>();
+
+        public static float[] CDFrameYAngleHistoryAim12 = new float[3] { 0.0f, 0.0f, 0.0f };
         public static List<WarnStruct> DemoScannerWarnList = new List<WarnStruct>();
         public static string LastWarnStr = "";
         public static float LastAnglePunchSearchTime;
@@ -741,7 +749,7 @@ namespace DemoScanner.DG
         public static float CmdHack10_origY;
         public static float CmdHack10_origZ;
         public static float CmdHack10_detecttime;
-        public static bool FoundNextClientPattern;
+        public static bool FoundCustomClientPattern;
         public static bool FoundNextClient;
         public static List<float> Punch0_Search = new List<float>();
         public static List<float> Punch0_Search_Time = new List<float>();
@@ -1572,6 +1580,15 @@ namespace DemoScanner.DG
 
                     FirstAttack = true;
                     FrameCrash = 0;
+                    //Console.WriteLine("+ATTACK!");
+                    CDAngleHistoryAim12item tmpCdAngles = new CDAngleHistoryAim12item();
+                    tmpCdAngles.tmp[0] = fullnormalizeangle(PREV_CDFRAME_ViewAngles.Y);
+                    tmpCdAngles.tmp[1] = fullnormalizeangle(CDFRAME_ViewAngles.Y);
+                    tmpCdAngles.tmp[2] = -99999.0f;
+                    CDAngleHistoryAim12List.Insert(0, tmpCdAngles);
+
+                    if (CDAngleHistoryAim12List.Count > 5)
+                        CDAngleHistoryAim12List.RemoveAt(CDAngleHistoryAim12List.Count - 1);
 
                     NeedIgnoreAttackFlag = 0;
 
@@ -1601,7 +1618,7 @@ namespace DemoScanner.DG
                         {
                             if (abs(CurrentTime - IsAttackLastTime) > 2.0)
                             {
-                                if (FirstAttack && IsRealWeapon())
+                                if (IsRealWeapon())
                                 {
                                     if (InitAimMissingSearch <= 0)
                                     {
@@ -3175,8 +3192,18 @@ namespace DemoScanner.DG
                                 }
 
                                 var cdframe = (GoldSource.ClientDataFrame)frame.Value;
-                                var tmpPrevViewAngles = CDFRAME_ViewAngles;
+
+                                PREV_CDFRAME_ViewAngles = CDFRAME_ViewAngles;
+
                                 CDFRAME_ViewAngles = cdframe.Viewangles;
+
+                                if (CDAngleHistoryAim12List.Count > 0 &&
+                                    abs(CDAngleHistoryAim12List[0].tmp[2] - (-99999.0f)) < 0.1f)
+                                {
+                                    CDAngleHistoryAim12List[0].tmp[2] =
+                                       fullnormalizeangle(CDFRAME_ViewAngles.Y);
+                                }
+
                                 oldoriginpos.X = curoriginpos.X;
                                 oldoriginpos.Y = curoriginpos.Y;
                                 curoriginpos.X = cdframe.Origin.X;
@@ -4006,7 +4033,6 @@ namespace DemoScanner.DG
                                 //Console.Write(" ");
                                 //Console.Write(SecondFound);
                                 //Console.Write("\n");
-                                PREV_CDFRAME_ViewAngles = tmpPrevViewAngles;
                                 break;
                             }
 
@@ -4840,10 +4866,8 @@ namespace DemoScanner.DG
                                 if (CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_ATTACK) &&
                                     !PreviousFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_ATTACK))
                                 {
-                                    //Console.WriteLine("+IN_ATTACK + " + CurrentTimeString);
+                                   // Console.WriteLine("+IN_ATTACK + " + CurrentTimeString + "[" + PREV_CDFRAME_ViewAngles.Y +"/" + CDFRAME_ViewAngles.Y + "]");
                                     LastAttackBtnTime = CurrentTime;
-
-
                                     //Console.WriteLine("ATTACK");
 
                                     //PrimaryCheckTimer--;
@@ -9511,24 +9535,34 @@ namespace DemoScanner.DG
                                 LastSCMD_Angles1 = new float[] { float.Parse(cmdList[5], NumberStyles.Any,
                       CultureInfo.InvariantCulture), float.Parse(cmdList[6], NumberStyles.Any,
                       CultureInfo.InvariantCulture) };
+                                LastSCMD_Angles1[0] = fullnormalizeangle(LastSCMD_Angles1[0]);
+                                LastSCMD_Angles1[1] = fullnormalizeangle(LastSCMD_Angles1[1]);
+
                                 LastSCMD_Angles2 = new float[] { float.Parse(cmdList[7], NumberStyles.Any,
                       CultureInfo.InvariantCulture), float.Parse(cmdList[8], NumberStyles.Any,
                       CultureInfo.InvariantCulture) };
+
+                                LastSCMD_Angles2[0] = fullnormalizeangle(LastSCMD_Angles2[0]);
+                                LastSCMD_Angles2[1] = fullnormalizeangle(LastSCMD_Angles2[1]);
+
                                 LastSCMD_Angles3 = new float[] { float.Parse(cmdList[9], NumberStyles.Any,
                       CultureInfo.InvariantCulture), float.Parse(cmdList[10], NumberStyles.Any,
                       CultureInfo.InvariantCulture) };
+
+                                LastSCMD_Angles3[0] = fullnormalizeangle(LastSCMD_Angles3[0]);
+                                LastSCMD_Angles3[1] = fullnormalizeangle(LastSCMD_Angles3[1]);
 
                                 LastSCMD_Msec1 = float.Parse(cmdList[11], NumberStyles.Any,
                       CultureInfo.InvariantCulture);
                                 LastSCMD_Msec2 = float.Parse(cmdList[12], NumberStyles.Any,
                       CultureInfo.InvariantCulture);
 
-                                Console.WriteLine("SCMD");
-                                 Console.WriteLine(LastSCMD_Angles1[0].ToString() + "/" + LastSCMD_Angles1[1].ToString() + " " +
-                                    LastSCMD_Angles2[0].ToString() + "/" + LastSCMD_Angles2[1].ToString() + " " +
-                                     LastSCMD_Angles3[0].ToString() + "/" + LastSCMD_Angles3[1].ToString() + "[" + incomingframenum + "] = " + LastSCMD_Msec1 + "/" + LastSCMD_Msec2);
-                                
-                                if (!IsPlayerBtnAttackedPressed() && /*abs(CurrentTime - LastLostAttackTime2) < 1.0f &&*/
+                                //Console.WriteLine("SCMD");
+                                //Console.WriteLine(LastSCMD_Angles1[0].ToString() + "/" + LastSCMD_Angles1[1].ToString() + " " +
+                                //   LastSCMD_Angles2[0].ToString() + "/" + LastSCMD_Angles2[1].ToString() + " " +
+                                //    LastSCMD_Angles3[0].ToString() + "/" + LastSCMD_Angles3[1].ToString() + "[" + incomingframenum + "] = " + LastSCMD_Msec1 + "/" + LastSCMD_Msec2);
+
+                                if (abs(CurrentTime - LastAttackStartCmdTime) > 1.0f &&
                                     FirstAttack && IsUserAlive() && !DisableJump5AndAim16)
                                 {
                                     // first detection can be false if demo started in +attack
@@ -9539,11 +9573,12 @@ namespace DemoScanner.DG
                                             "[AIM TYPE 1.6 " + CurrentWeapon + "] at (" + CurrentTime + "):" +
                                             CurrentTimeString,
                                             !IsCmdChangeWeapon() && !IsAngleEditByEngine() && !IsPlayerLossConnection() &&
-                                            !IsForceCenterView(), true, false, true);
+                                            !IsForceCenterView() && IsPlayerBtnAttackedPressed(), true, false, true);
                                         TotalAimBotDetected++;
                                     }
                                     FirstAim16skip = false;
                                 }
+                                FirstAttack = true;
 
                                 if (IsUserAlive() && FirstJump && abs(CurrentTime) > EPSILON)
                                 {
@@ -9622,24 +9657,48 @@ namespace DemoScanner.DG
                                 var tmp_ACMD_Angles1 = new float[] { float.Parse(cmdList[5], NumberStyles.Any,
                       CultureInfo.InvariantCulture), float.Parse(cmdList[6], NumberStyles.Any,
                       CultureInfo.InvariantCulture) };
+
+                                tmp_ACMD_Angles1[0] = fullnormalizeangle(tmp_ACMD_Angles1[0]);
+                                tmp_ACMD_Angles1[1] = fullnormalizeangle(tmp_ACMD_Angles1[1]);
+
                                 var tmp_ACMD_Angles2 = new float[] { float.Parse(cmdList[7], NumberStyles.Any,
                       CultureInfo.InvariantCulture), float.Parse(cmdList[8], NumberStyles.Any,
                       CultureInfo.InvariantCulture) };
+
+                                tmp_ACMD_Angles2[0] = fullnormalizeangle(tmp_ACMD_Angles2[0]);
+                                tmp_ACMD_Angles2[1] = fullnormalizeangle(tmp_ACMD_Angles2[1]);
+
                                 var tmp_ACMD_Angles3 = new float[] { float.Parse(cmdList[9], NumberStyles.Any,
                       CultureInfo.InvariantCulture), float.Parse(cmdList[10], NumberStyles.Any,
                       CultureInfo.InvariantCulture) };
 
+                                tmp_ACMD_Angles3[0] = fullnormalizeangle(tmp_ACMD_Angles3[0]);
+                                tmp_ACMD_Angles3[1] = fullnormalizeangle(tmp_ACMD_Angles3[1]);
+
                                 float time_msec = float.Parse(cmdList[11], NumberStyles.Any,
                       CultureInfo.InvariantCulture);
 
-                                 Console.WriteLine("ACMD");
-                                 Console.WriteLine(tmp_ACMD_Angles1[0].ToString() + "/" + tmp_ACMD_Angles1[1].ToString() + " " +
-                                    tmp_ACMD_Angles2[0].ToString() + "/" + tmp_ACMD_Angles2[1].ToString() + " " +
-                                     tmp_ACMD_Angles3[0].ToString() + "/" + tmp_ACMD_Angles3[1].ToString() + "[" + incomingframenum + "] = " + time_msec);
+                                //Console.WriteLine("ACMD");
+                                //Console.WriteLine(tmp_ACMD_Angles1[0].ToString() + "/" + tmp_ACMD_Angles1[1].ToString() + " " +
+                                //   tmp_ACMD_Angles2[0].ToString() + "/" + tmp_ACMD_Angles2[1].ToString() + " " +
+                                //    tmp_ACMD_Angles3[0].ToString() + "/" + tmp_ACMD_Angles3[1].ToString() + "[" + incomingframenum + "] = " + time_msec);
 
-                                Console.WriteLine("CD History: " + CDFrameYAngleHistory[0] + " / "
-                                    + CDFrameYAngleHistory[1] + " / " + CDFrameYAngleHistory[2]);
+                                //Console.WriteLine("CD History: ");
+                                //foreach (var v in CDAngleHistoryAim12List)
+                                //{
+                                //    Console.WriteLine(v.tmp[0] + "/" + v.tmp[1] + "/" + v.tmp[2]);
+                                //}
 
+                                bool mir_found = false;
+
+                                foreach (var v in CDAngleHistoryAim12List)
+                                {
+                                    mir_found = v.tmp[0] == v.tmp[1]
+                                    && v.tmp[1] == v.tmp[2] &&
+                                    v.tmp[0] == LastSCMD_Angles1[1];
+                                    if (mir_found)
+                                        break;
+                                }
 
                                 if (IsUserAlive() && FirstJump && abs(CurrentTime) > EPSILON)
                                 {
@@ -9677,7 +9736,7 @@ namespace DemoScanner.DG
                                         {
                                             DemoScanner_AddWarn(
                                                 "[BETA] [AIM TYPE 12.1 " + CurrentWeapon + "] at (" + CurrentTime +
-                                                "):" + CurrentTimeString, abs(CurrentTime - LastBadMsecTime) > 1.0f, true, false, true);
+                                                "):" + CurrentTimeString, abs(CurrentTime - LastBadMsecTime) > 1.0f, mir_found, false, true);
                                         }
                                         else if (abs(LastSCMD_Angles1[0] - tmp_ACMD_Angles3[0]) < EPSILON_2 &&
                                         abs(LastSCMD_Angles1[1] - tmp_ACMD_Angles3[1]) < EPSILON_2 &&
@@ -9688,7 +9747,7 @@ namespace DemoScanner.DG
                                         {
                                             DemoScanner_AddWarn(
                                                 "[BETA] [AIM TYPE 12.2 " + CurrentWeapon + "] at (" + CurrentTime +
-                                                "):" + CurrentTimeString, abs(CurrentTime - LastBadMsecTime) > 1.0f, true, false, true);
+                                                "):" + CurrentTimeString, abs(CurrentTime - LastBadMsecTime) > 1.0f, mir_found, false, true);
                                         }
                                         else if (abs(LastSCMD_Angles1[0] - tmp_ACMD_Angles3[0]) < EPSILON_2 &&
                                         abs(LastSCMD_Angles1[1] - tmp_ACMD_Angles3[1]) < EPSILON_2 &&
@@ -9697,12 +9756,9 @@ namespace DemoScanner.DG
                                         abs(LastSCMD_Angles3[0] - tmp_ACMD_Angles2[0]) > EPSILON_2 &&
                                         abs(LastSCMD_Angles3[1] - tmp_ACMD_Angles2[1]) > EPSILON_2)
                                         {
-                                            if (!IsAngleEditByEngine() && !IsPlayerUnDuck() && !IsPlayerUnDuck() && !IsPlayerAnyJumpPressed())
-                                            {
-                                                DemoScanner_AddWarn(
+                                             DemoScanner_AddWarn(
                                                 "[BETA] [AIM TYPE 12.3 " + CurrentWeapon + "] at (" + CurrentTime +
-                                                "):" + CurrentTimeString, false, true, false, true);
-                                            }
+                                                "):" + CurrentTimeString, mir_found && !IsAngleEditByEngine() && !IsPlayerUnDuck() && !IsPlayerUnDuck() && !IsPlayerAnyJumpPressed(), true, false, true);
                                         }
                                     }
                                     if (
@@ -9732,12 +9788,9 @@ namespace DemoScanner.DG
                                         abs(tmp_ACMD_Angles2[0] - tmp_ACMD_Angles3[0]) < EPSILON_2 &&
                                         abs(tmp_ACMD_Angles2[1] - tmp_ACMD_Angles3[1]) < EPSILON_2)
                                         {
-                                            if (!IsAngleEditByEngine() && !IsPlayerUnDuck() && !IsPlayerUnDuck() && !IsPlayerAnyJumpPressed())
-                                            {
-                                                DemoScanner_AddWarn(
-                                                "[BETA] [AIM TYPE 12.4 " + CurrentWeapon + "] at (" + CurrentTime +
-                                                "):" + CurrentTimeString, false, true, false, true);
-                                            }
+                                            DemoScanner_AddWarn(
+                                            "[BETA] [AIM TYPE 12.4 " + CurrentWeapon + "] at (" + CurrentTime +
+                                            "):" + CurrentTimeString, mir_found && !IsAngleEditByEngine() && !IsPlayerUnDuck() && !IsPlayerUnDuck() && !IsPlayerAnyJumpPressed(), true, false, true);
                                         }
                                         else if (abs(LastSCMD_Angles1[0] - tmp_ACMD_Angles2[0]) < EPSILON_2 &&
                                         abs(LastSCMD_Angles1[1] - tmp_ACMD_Angles2[1]) < EPSILON_2 &&
@@ -9752,7 +9805,7 @@ namespace DemoScanner.DG
                                         {
                                             DemoScanner_AddWarn(
                                                 "[BETA] [AIM TYPE 12.5 " + CurrentWeapon + "] at (" + CurrentTime +
-                                                "):" + CurrentTimeString, abs(CurrentTime - LastBadMsecTime) > 1.0f, true, false, true);
+                                                "):" + CurrentTimeString, mir_found && abs(CurrentTime - LastBadMsecTime) > 1.0f, true, false, true);
                                         }
                                     }
                                 }
@@ -10728,7 +10781,7 @@ namespace DemoScanner.DG
                     BitBuffer.Data[BitBuffer.CurrentByte + 3] == (byte)MessageId.svc_nop &&
                     BitBuffer.Data[BitBuffer.CurrentByte + 4] == (byte)MessageId.svc_print)
                 {
-                    FoundNextClientPattern = true;
+                    FoundCustomClientPattern = true;
                 }
             }
         }
@@ -10939,19 +10992,26 @@ namespace DemoScanner.DG
         {
             CurrentMsgPrintCount++;
             var message = BitBuffer.ReadString();
-            if (FoundNextClientPattern)
+            if (FoundCustomClientPattern)
             {
-                FoundNextClientPattern = false;
-                FoundNextClient = true;
+                FoundCustomClientPattern = false;
                 if (!IsRussia)
                 {
-                    DemoScanner_AddInfo("Found NextClient version: [" + message + "]");
-                    DemoScanner_AddInfo("Skip detect custom FOV");
+                    DemoScanner_AddInfo("Found custom client version: [" + message + "]");
+                    if (message.ToLower().IndexOf("nextclient") >= 0)
+                    {
+                        FoundNextClient = true;
+                        DemoScanner_AddInfo("Skip detect custom FOV");
+                    }
                 }
                 else
                 {
-                    DemoScanner_AddInfo("Обнаружен клиент NextClient версии: [" + message + "]");
-                    DemoScanner_AddInfo("Пропускается обнаружение FOV");
+                    DemoScanner_AddInfo("Обнаружен кастомный клиент: [" + message + "]");
+                    if (message.ToLower().IndexOf("nextclient") >= 0)
+                    {
+                        FoundNextClient = true;
+                        DemoScanner_AddInfo("Пропускается обнаружение FOV");
+                    }
                 }
             }
 

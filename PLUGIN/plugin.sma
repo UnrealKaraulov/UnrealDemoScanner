@@ -9,7 +9,7 @@
 
 #define PLUGIN "Unreal Demo Plugin"
 #define AUTHOR "karaulov"
-#define VERSION "1.60"
+#define VERSION "1.61"
 
 // IF NEED REDUCE TRAFFIC USAGE UNCOMMENT THIS LINE
 // ЕСЛИ НЕОБХОДИМО БОЛЬШЕ ДЕТЕКТОВ (НО ТАК ЖЕ БОЛЬШЕ ТРАФИКА) ЗАКОММЕНТИРУЙТЕ ЭТУ СТРОКУ
@@ -130,7 +130,7 @@ public PM_Move(const id)
 		static Float:tmpAngles1[3];
 		static Float:tmpAngles2[3];
 		
-		if (g_flStartCmdTime[id] != -1.0)
+		if (g_flStartCmdTime[id] > 0.0)
 		{
 			get_pmove(pm_oldangles, tmpAngles1);
 			get_pmove(pm_angles, tmpAngles2);
@@ -139,7 +139,7 @@ public PM_Move(const id)
 			g_flStartCmdTime[id] = -1.0;
 		}
 		
-		if (g_flDelay1Msec[id] != -1.0 && (button & IN_ATTACK) && floatabs(curtime - g_flLastSendTime[id]) > 1.0)
+		if (g_flDelay1Msec[id] > 0.0 && (button & IN_ATTACK) && floatabs(curtime - g_flLastSendTime[id]) > 1.0)
 		{
 			get_pmove(pm_oldangles, tmpAngles1);
 			get_pmove(pm_angles, tmpAngles2);
