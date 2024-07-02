@@ -4866,7 +4866,7 @@ namespace DemoScanner.DG
                                 if (CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_ATTACK) &&
                                     !PreviousFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_ATTACK))
                                 {
-                                   // Console.WriteLine("+IN_ATTACK + " + CurrentTimeString + "[" + PREV_CDFRAME_ViewAngles.Y +"/" + CDFRAME_ViewAngles.Y + "]");
+                                    // Console.WriteLine("+IN_ATTACK + " + CurrentTimeString + "[" + PREV_CDFRAME_ViewAngles.Y +"/" + CDFRAME_ViewAngles.Y + "]");
                                     LastAttackBtnTime = CurrentTime;
                                     //Console.WriteLine("ATTACK");
 
@@ -9756,9 +9756,9 @@ namespace DemoScanner.DG
                                         abs(LastSCMD_Angles3[0] - tmp_ACMD_Angles2[0]) > EPSILON_2 &&
                                         abs(LastSCMD_Angles3[1] - tmp_ACMD_Angles2[1]) > EPSILON_2)
                                         {
-                                             DemoScanner_AddWarn(
-                                                "[BETA] [AIM TYPE 12.3 " + CurrentWeapon + "] at (" + CurrentTime +
-                                                "):" + CurrentTimeString, mir_found && !IsAngleEditByEngine() && !IsPlayerUnDuck() && !IsPlayerUnDuck() && !IsPlayerAnyJumpPressed(), true, false, true);
+                                            DemoScanner_AddWarn(
+                                               "[BETA] [AIM TYPE 12.3 " + CurrentWeapon + "] at (" + CurrentTime +
+                                               "):" + CurrentTimeString, mir_found && !IsAngleEditByEngine() && !IsPlayerUnDuck() && !IsPlayerUnDuck() && !IsPlayerAnyJumpPressed(), true, false, true);
                                         }
                                     }
                                     if (
@@ -12220,8 +12220,11 @@ namespace DemoScanner.DG
                 {
                     DownloadedResources.Add(new RESOURCE_STRUCT(type, downloadname, index, flags));
                 }
-
                 DownloadResourcesSize += downloadsize;
+                if (downloadname.Length >= 64)
+                {
+                    Console.WriteLine("[Server issue] Filename \"" + downloadname + "\" length > 63.");
+                }
             }
 
             var CleanDownloadedResources = DownloadedResources.OrderBy(r => r.res_type).ThenBy(r => r.res_index).ToList();
