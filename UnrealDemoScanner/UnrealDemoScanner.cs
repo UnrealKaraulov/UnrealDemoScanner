@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.72.13b";
+        public const string PROGRAMVERSION = "1.72.14b";
 
         public static bool DEMOSCANNER_HLTV = false;
 
@@ -675,7 +675,6 @@ namespace DemoScanner.DG
         public static List<string> FileDirectories = new List<string>();
         public static string SteamID = "";
         public static string RecordDate = "";
-        public static bool NeedReportDateAndAuth = true;
         /*
           var type = BitBuffer.ReadUnsignedBits(4);
                 var downloadname = BitBuffer.ReadString();
@@ -3426,12 +3425,12 @@ namespace DemoScanner.DG
                                             {
                                                 MaxHudMsgPerSecond = CurrentMsgHudCount;
                                             }
-											
+
                                             if (MaxDHudMsgPerSecond < CurrentMsgDHudCount)
                                             {
                                                 MaxDHudMsgPerSecond = CurrentMsgDHudCount;
                                             }
-											
+
 
                                             if (MaxStuffCmdMsgPerSecond < CurrentMsgStuffCmdCount)
                                             {
@@ -5294,7 +5293,7 @@ namespace DemoScanner.DG
                                         //    +CurrentTime + " " +
                                         //    LastMoveLeft + " " + LastMoveRight + " " + LastUnMoveLeft + " " + LastUnMoveRight + 
                                         //    " -> " + nf.UCmd.Sidemove);
-                                        if (!MoveLeft && !MoveRight && 
+                                        if (!MoveLeft && !MoveRight &&
                                             abs(CurrentTime - LastMoveLeft) > 0.5f &&
                                             abs(CurrentTime - LastMoveRight) > 0.5f &&
                                             abs(CurrentTime - LastUnMoveLeft) > 0.5f &&
@@ -9461,22 +9460,20 @@ namespace DemoScanner.DG
                     {
                         if (cmdList[1] == "AUTH")
                         {
-                            if (PluginVersion.Length != 0)
+                            if (SteamID.Length == 0)
                             {
                                 SteamID = cmdList[2];
+                                DemoScanner_AddWarn("[INFO] SteamID: " + SteamID, true, false,
+                                        true, true);
                             }
                         }
                         else if (cmdList[1] == "DATE")
                         {
-                            if (PluginVersion.Length != 0)
+                            if (RecordDate.Length == 0)
                             {
                                 RecordDate = cmdList[2];
-                                if (NeedReportDateAndAuth)
-                                {
-                                    NeedReportDateAndAuth = false;
-                                    DemoScanner_AddWarn("[INFO] " + SteamID + ". Record date:" + RecordDate, true, false,
-                                        true, true);
-                                }
+                                DemoScanner_AddWarn("[INFO] Record date:" + RecordDate, true, false,
+                                    true, true);
                             }
                         }
                         else if (cmdList[1] == "VER" || cmdList[1] == "UCMD")
@@ -10139,6 +10136,24 @@ namespace DemoScanner.DG
                                  OutDumpString += "\n{ATTACK ANGLE: " + angle + " " + CurrentTimeString + " " + CurrentTime + " }\n";
                              }
                          }*/
+                    }
+                    else
+                    {
+                        if (abs(CurrentTime - LastCmdHack) > 3.0)
+                        {
+                            DemoScanner_AddWarn("[INTERIUM HACK 2024] at (" + CurrentTime +
+                                                                                ") : " + CurrentTimeString);
+                            LastCmdHack = CurrentTime;
+                        }
+                    }
+                }
+                else
+                {
+                    if (abs(CurrentTime - LastCmdHack) > 3.0)
+                    {
+                        DemoScanner_AddWarn("[INTERIUM HACK 2023] at (" + CurrentTime +
+                                                                            ") : " + CurrentTimeString);
+                        LastCmdHack = CurrentTime;
                     }
                 }
             }
