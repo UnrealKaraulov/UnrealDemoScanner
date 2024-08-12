@@ -12426,7 +12426,7 @@ namespace DemoScanner.DG
                 BitBuffer.ReadSingle(); // fxtime
                 var dhudstr = BitBuffer.ReadString();
                 DemoScanner_AddTextMessage(dhudstr, "DIRECTOR_HUD", CurrentTime, CurrentTimeString);
-                MaxDHudMsgPerSecond++;
+                CurrentMsgDHudCount++;
             }
             else if (len > 0)
             {
