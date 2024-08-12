@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.72.12b";
+        public const string PROGRAMVERSION = "1.72.13b";
 
         public static bool DEMOSCANNER_HLTV = false;
 
@@ -730,9 +730,11 @@ namespace DemoScanner.DG
         public static int MaxBytesPerSecond;
         public static int MsgOverflowSecondsCount;
         public static int CurrentMsgHudCount;
+        public static int CurrentMsgDHudCount;
         public static int CurrentMsgPrintCount;
         public static int CurrentMsgStuffCmdCount;
         public static int MaxHudMsgPerSecond;
+        public static int MaxDHudMsgPerSecond;
         public static int MaxStuffCmdMsgPerSecond;
         public static int MaxPrintCmdMsgPerSecond;
         public static int SkipChangeWeapon;
@@ -3406,7 +3408,7 @@ namespace DemoScanner.DG
                                         if (abs(CurrentTime) <= EPSILON || abs(CurrentTime2) <= EPSILON)
                                         {
                                             CurrentMsgBytes = CurrentMsgHudCount =
-                                                CurrentMsgStuffCmdCount = CurrentMsgPrintCount = 0;
+                                                CurrentMsgStuffCmdCount = CurrentMsgPrintCount = CurrentMsgDHudCount = 0;
                                         }
                                         else
                                         {
@@ -3415,7 +3417,7 @@ namespace DemoScanner.DG
                                                 MaxBytesPerSecond = CurrentMsgBytes;
                                             }
 
-                                            if (CurrentMsgBytes * 8 > 100000)
+                                            if (CurrentMsgBytes >= 100000)
                                             {
                                                 MsgOverflowSecondsCount++;
                                             }
@@ -3424,6 +3426,12 @@ namespace DemoScanner.DG
                                             {
                                                 MaxHudMsgPerSecond = CurrentMsgHudCount;
                                             }
+											
+                                            if (MaxDHudMsgPerSecond < CurrentMsgDHudCount)
+                                            {
+                                                MaxDHudMsgPerSecond = CurrentMsgDHudCount;
+                                            }
+											
 
                                             if (MaxStuffCmdMsgPerSecond < CurrentMsgStuffCmdCount)
                                             {
@@ -3436,8 +3444,7 @@ namespace DemoScanner.DG
                                             }
                                         }
 
-                                        CurrentMsgBytes = CurrentMsgHudCount =
-                                            CurrentMsgStuffCmdCount = CurrentMsgPrintCount = 0;
+                                        CurrentMsgBytes = CurrentMsgHudCount = CurrentMsgStuffCmdCount = CurrentMsgPrintCount = CurrentMsgDHudCount = 0;
                                         SecondFound = true;
                                         averagefps.Add(CurrentFps);
                                         CurrentFps = 0;
@@ -5287,7 +5294,8 @@ namespace DemoScanner.DG
                                         //    +CurrentTime + " " +
                                         //    LastMoveLeft + " " + LastMoveRight + " " + LastUnMoveLeft + " " + LastUnMoveRight + 
                                         //    " -> " + nf.UCmd.Sidemove);
-                                        if (!MoveLeft && !MoveRight && abs(CurrentTime - LastMoveLeft) > 0.5f &&
+                                        if (!MoveLeft && !MoveRight && 
+                                            abs(CurrentTime - LastMoveLeft) > 0.5f &&
                                             abs(CurrentTime - LastMoveRight) > 0.5f &&
                                             abs(CurrentTime - LastUnMoveLeft) > 0.5f &&
                                             abs(CurrentTime - LastUnMoveRight) > 0.5f)
@@ -8971,8 +8979,9 @@ namespace DemoScanner.DG
                     }
 
                     Console.WriteLine("Max input bytes per second : " + MaxBytesPerSecond);
-                    Console.WriteLine("Max channel overflows ( > 100000bits rate) : " + MsgOverflowSecondsCount);
+                    Console.WriteLine("Max channel overflows ( > 100kbytes rate) : " + MsgOverflowSecondsCount);
                     Console.WriteLine("Max HUD messages per seconds : " + MaxHudMsgPerSecond);
+                    Console.WriteLine("Max DHUD messages per seconds : " + MaxDHudMsgPerSecond);
                     Console.WriteLine("Max PRINT messages per seconds : " + MaxPrintCmdMsgPerSecond);
                     Console.WriteLine("Max STUFFCMD messages per seconds : " + MaxStuffCmdMsgPerSecond);
                     Console.WriteLine("Server lags found(DROP FPS): " + ServerLagCount);
@@ -9788,9 +9797,11 @@ namespace DemoScanner.DG
                                         abs(tmp_ACMD_Angles2[0] - tmp_ACMD_Angles3[0]) < EPSILON_2 &&
                                         abs(tmp_ACMD_Angles2[1] - tmp_ACMD_Angles3[1]) < EPSILON_2)
                                         {
-                                            DemoScanner_AddWarn(
+                                            /*
+                                             * DemoScanner_AddWarn(
                                             "[BETA] [AIM TYPE 12.4 " + CurrentWeapon + "] at (" + CurrentTime +
                                             "):" + CurrentTimeString, mir_found && !IsAngleEditByEngine() && !IsPlayerUnDuck() && !IsPlayerUnDuck() && !IsPlayerAnyJumpPressed(), true, false, true);
+                                            */
                                         }
                                         else if (abs(LastSCMD_Angles1[0] - tmp_ACMD_Angles2[0]) < EPSILON_2 &&
                                         abs(LastSCMD_Angles1[1] - tmp_ACMD_Angles2[1]) < EPSILON_2 &&
@@ -12415,7 +12426,7 @@ namespace DemoScanner.DG
                 BitBuffer.ReadSingle(); // fxtime
                 var dhudstr = BitBuffer.ReadString();
                 DemoScanner_AddTextMessage(dhudstr, "DIRECTOR_HUD", CurrentTime, CurrentTimeString);
-                CurrentMsgHudCount++;
+                MaxDHudMsgPerSecond++;
             }
             else if (len > 0)
             {
