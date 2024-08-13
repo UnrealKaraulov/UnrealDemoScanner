@@ -9,7 +9,7 @@
 
 #define PLUGIN "Unreal Demo Plugin"
 #define AUTHOR "karaulov"
-#define VERSION "1.61"
+#define VERSION "1.62"
 
 // IF NEED REDUCE TRAFFIC USAGE UNCOMMENT THIS LINE
 // ЕСЛИ НЕОБХОДИМО БОЛЬШЕ ДЕТЕКТОВ (НО ТАК ЖЕ БОЛЬШЕ ТРАФИКА) ЗАКОММЕНТИРУЙТЕ ЭТУ СТРОКУ
@@ -17,6 +17,8 @@
 
 new g_iDemoHelperInitStage[33] = {0,...};
 new g_iFrameNum[33] = {0,...};
+new g_bNeedResend[33] = {false,...};
+
 new Float:g_flLastEventTime[33] = {0.0,...};
 new Float:g_flLastSendTime[33] = {-1.0,...};
 new Float:g_flPMoveTime[33] = {0.0,...};
@@ -24,20 +26,28 @@ new Float:g_flStartCmdTime[33] = {0.0,...};
 new Float:g_flDelay1Msec[33] = {-1.0,...};
 new Float:g_flDelay2Time[33] = {-1.0,...};
 new Float:g_flPMovePrevPrevAngles[33][3];
-
 new Float:g_flGameTimeReal = 0.0;
 
 public plugin_init() 
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
-	register_cvar( "unreal_demoplug", VERSION, FCVAR_SERVER | FCVAR_SPONLY | FCVAR_UNLOGGED );
-	
+	register_cvar("unreal_demoplug", VERSION, FCVAR_SERVER | FCVAR_SPONLY | FCVAR_UNLOGGED);
 	register_clcmd("fullupdate", "UnrealDemoHelpInitialize");
 	
-	RegisterHookChain(RG_PM_Move, "PM_Move", .post =false);
+	RegisterHookChain(RG_PM_Move, "PM_Move", .post = false);
 	RegisterHookChain(RG_CBasePlayer_Jump, "HC_CBasePlayer_Jump_Pre", .post = false);
 	
 	register_forward(FM_PlaybackEvent, "fw_PlaybackEvent");
+
+	new plugin_id = get_plugin(-1);
+	log_amx("Unreal Demo Plugin Loaded. ID: %i. Author: %s. Version: %s", plugin_id, AUTHOR, VERSION);
+	
+	if (plugin_id != 0)
+	{
+		log_error("Error! Unreal Demo Plugin need install at start of plugins.ini file!");
+		log_error("Error! Unreal Demo Plugin need install at start of plugins.ini file!");
+		log_error("Error! Unreal Demo Plugin need install at start of plugins.ini file!");
+	}
 }
 
 public server_frame()
@@ -55,6 +65,7 @@ public client_disconnected(id)
 	g_flDelay1Msec[id] = -1.0;
 	g_flDelay2Time[id] = -1.0;
 	g_flPMoveTime[id] = 0.0;
+	g_bNeedResend[id] = false;
 
 	g_flPMovePrevPrevAngles[id][0] = g_flPMovePrevPrevAngles[id][1] = g_flPMovePrevPrevAngles[id][2] = 0.0;
 
@@ -171,17 +182,24 @@ public PM_Move(const id)
 
 public UnrealDemoHelpInitialize(id) 
 {
-	g_flLastEventTime[id] = 0.0;
-	g_flLastSendTime[id] = 0.0;
-	g_iFrameNum[id] = 0;
-	g_iDemoHelperInitStage[id] = 0;
-
 	if (is_user_connected(id))
 	{
-		remove_task(id);
-		if (!is_user_hltv(id) && !is_user_bot(id))
+		if (task_exists(id))
 		{
-			set_task(1.0,"DemoHelperInitializeTask",id);
+			g_bNeedResend[id] = true;
+		}
+		else 
+		{
+			g_flLastEventTime[id] = 0.0;
+			g_flLastSendTime[id] = 0.0;
+			g_iFrameNum[id] = 0;
+			g_iDemoHelperInitStage[id] = 0;
+
+			remove_task(id);
+			if (!is_user_hltv(id) && !is_user_bot(id))
+			{
+				set_task(1.25,"DemoHelperInitializeTask",id);
+			}
 		}
 	}
 }
@@ -206,7 +224,6 @@ public DemoHelperInitializeTask(id)
 			new szAuth[64];
 			get_user_authid(id,szAuth,charsmax(szAuth));
 			WriteDemoInfo(id,"UDS/AUTH/%s",szAuth);
-			
 			new szDate[64];
 			get_time( "%d.%m.%Y %H:%M:%S", szDate, charsmax( szDate ) );
 			WriteDemoInfo(id,"UDS/DATE/%s",szDate);
@@ -216,34 +233,45 @@ public DemoHelperInitializeTask(id)
 		{
 			WriteDemoInfo(id,"UDS/MINR/%i",get_cvar_num("sv_minrate"));
 			WriteDemoInfo(id,"UDS/MAXR/%i",get_cvar_num("sv_maxrate"));
-		
 			WriteDemoInfo(id,"UDS/MINUR/%i",get_cvar_num("sv_minupdaterate"));
 			WriteDemoInfo(id,"UDS/MAXUR/%i",get_cvar_num("sv_maxupdaterate"));
-			
-			g_flLastEventTime[id] = 0.0;
-			g_iDemoHelperInitStage[id] = -1;
+			set_task(1.0,"DemoHelperInitializeTask",id);
+		}
+		case 4:
+		{
+			if (g_bNeedResend[id])
+			{
+				g_bNeedResend[id] = false;
+				g_iDemoHelperInitStage[id] = 0;
+				set_task(1.0,"DemoHelperInitializeTask",id);
+			}
+			else 
+			{
+				g_flLastEventTime[id] = 0.0;
+				g_iDemoHelperInitStage[id] = -1;
+			}
 		}
 	}
 }
 
 // SVC_RESOURCELOCATION ignore all strings not started with http or https
 // and can be used to save any info to demo
+// Updated to more stable
 public WriteDemoInfo(const index, const message[], any:... )
 {
-	new buffer[ 256 ];
+	static buffer[256];
+	buffer[0] = EOS;
+
+	message_begin(MSG_ONE, SVC_RESOURCELOCATION, _, index);
 	new numArguments = numargs();
-	
 	if (numArguments == 2)
 	{
-		message_begin(MSG_ONE, SVC_RESOURCELOCATION, _, index)
-		write_string(message)
-		message_end()
+		formatex(buffer, charsmax(buffer), "%s", message);
 	}
 	else 
 	{
-		vformat( buffer, charsmax( buffer ), message, 3 );
-		message_begin(MSG_ONE, SVC_RESOURCELOCATION, _, index)
-		write_string(buffer)
-		message_end()
+		vformat(buffer, charsmax(buffer), message, 3);
 	}
+	write_string(buffer);
+	message_end();
 }

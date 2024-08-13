@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.72.14b";
+        public const string PROGRAMVERSION = "1.72.15b";
 
         public static bool DEMOSCANNER_HLTV = false;
 
@@ -275,11 +275,13 @@ namespace DemoScanner.DG
         public static bool SecondFound;
         public static string LastSecondString = "";
         public static int CurrentFps;
+        public static int CurrentFpsSecond;
         public static int RealFpsMin = int.MaxValue;
         public static int RealFpsMax = int.MinValue;
         public static float LastFpsCheckTime = -1.0f;
         public static bool SecondFound2;
         public static int CurrentFps2;
+        public static int CurrentFps2Second;
         public static int RealFpsMin2 = int.MaxValue;
         public static int RealFpsMax2 = int.MinValue;
         public static float LastFpsCheckTime2 = -1.0f;
@@ -3416,7 +3418,7 @@ namespace DemoScanner.DG
                                                 MaxBytesPerSecond = CurrentMsgBytes;
                                             }
 
-                                            if (CurrentMsgBytes >= 100000)
+                                            if (CurrentMsgBytes >= 970000)
                                             {
                                                 MsgOverflowSecondsCount++;
                                             }
@@ -3446,6 +3448,7 @@ namespace DemoScanner.DG
                                         CurrentMsgBytes = CurrentMsgHudCount = CurrentMsgStuffCmdCount = CurrentMsgPrintCount = CurrentMsgDHudCount = 0;
                                         SecondFound = true;
                                         averagefps.Add(CurrentFps);
+                                        CurrentFpsSecond = CurrentFps;
                                         CurrentFps = 0;
                                         CurrentGameSecond++;
                                     }
@@ -6043,6 +6046,7 @@ namespace DemoScanner.DG
                                             averagefps2.Add(1000.0f / (1000.0f * nf.RParms.Frametime));
                                         }
 
+                                        CurrentFps2Second = CurrentFps2;
                                         CurrentFps2 = 0;
                                     }
                                     else
@@ -8940,6 +8944,7 @@ namespace DemoScanner.DG
                     }
 
                     Console.WriteLine("Codecname:" + VoiceCodec);
+
                     if (CheatKey > 0)
                     {
                         Console.WriteLine("Possible press cheat key " + CheatKey + " times. (???)");
@@ -8977,26 +8982,73 @@ namespace DemoScanner.DG
                         }
                     }
 
-                    Console.WriteLine("Max input bytes per second : " + MaxBytesPerSecond);
-                    Console.WriteLine("Max channel overflows ( > 100kbytes rate) : " + MsgOverflowSecondsCount);
-                    Console.WriteLine("Max HUD messages per seconds : " + MaxHudMsgPerSecond);
-                    Console.WriteLine("Max DHUD messages per seconds : " + MaxDHudMsgPerSecond);
-                    Console.WriteLine("Max PRINT messages per seconds : " + MaxPrintCmdMsgPerSecond);
-                    Console.WriteLine("Max STUFFCMD messages per seconds : " + MaxStuffCmdMsgPerSecond);
-                    Console.WriteLine("Server lags found(DROP FPS): " + ServerLagCount);
-                    Console.WriteLine("Loss count:" + LossPackets);
-                    Console.WriteLine("Frameskip count:" + LossPackets2);
-                    Console.WriteLine("Choke count(small sv_minrate) : " + ChokePackets);
-                    if (PlayerSensUsageList.Count > 1)
+                    if (IsRussia)
                     {
-                        Console.WriteLine("Player 'sensitivity' cvar: " +
-                                          (PlayerSensUsageList[0].sens / 0.022).ToString("F2") + "(or " +
-                                          (PlayerSensUsageList[1].sens / 0.022).ToString("F2") + ")");
+                        if (PlayerSensUsageList.Count > 1)
+                        {
+                            Console.WriteLine("Player 'sensitivity' cvar: " +
+                                              (PlayerSensUsageList[0].sens / 0.022).ToString("F2") + "(or " +
+                                              (PlayerSensUsageList[1].sens / 0.022).ToString("F2") + ")");
+                        }
+                        else if (PlayerSensUsageList.Count == 1)
+                        {
+                            Console.WriteLine("Player 'sensitivity' cvar: " +
+                                              (PlayerSensUsageList[0].sens / 0.022).ToString("F2"));
+                        }
+                        else
+                        {
+                            Console.WriteLine("Can't detect player 'sensitivity' cvar!");
+                        }
                     }
-                    else if (PlayerSensUsageList.Count == 1)
+                    else
                     {
-                        Console.WriteLine("Player 'sensitivity' cvar: " +
-                                          (PlayerSensUsageList[0].sens / 0.022).ToString("F2"));
+                        if (PlayerSensUsageList.Count > 1)
+                        {
+                            Console.WriteLine("Квар 'sensitivity'(сенс) игрока: " +
+                                              (PlayerSensUsageList[0].sens / 0.022).ToString("F2") + "(or " +
+                                              (PlayerSensUsageList[1].sens / 0.022).ToString("F2") + ")");
+                        }
+                        else if (PlayerSensUsageList.Count == 1)
+                        {
+                            Console.WriteLine("Квар 'sensitivity'(сенс) игрока: " +
+                                              (PlayerSensUsageList[0].sens / 0.022).ToString("F2"));
+                        }
+                        else
+                        {
+                            Console.WriteLine("Не удалось определить 'sensitivity' игрока.");
+                        }
+                    }
+
+
+                    if (!IsRussia)
+                    {
+                        Console.WriteLine("[SERVER DIAGNOSTIC DATA]");
+                        Console.WriteLine("Max input bytes per second: " + MaxBytesPerSecond);
+                        Console.WriteLine("Max channel overflows (100kbytes rate): " + MsgOverflowSecondsCount);
+                        Console.WriteLine("Max HUD messages per seconds: " + MaxHudMsgPerSecond);
+                        Console.WriteLine("Max DHUD messages per seconds: " + MaxDHudMsgPerSecond);
+                        Console.WriteLine("Max PRINT messages per seconds: " + MaxPrintCmdMsgPerSecond);
+                        Console.WriteLine("Max STUFFCMD messages per seconds: " + MaxStuffCmdMsgPerSecond);
+                        Console.WriteLine("Server lags found(DROP FPS): " + ServerLagCount);
+                        Console.WriteLine("Loss count: " + LossPackets);
+                        Console.WriteLine("Frameskip count: " + LossPackets2);
+                        Console.WriteLine("Choke count(small sv_minrate): " + ChokePackets);
+                        Console.WriteLine("[END SERVER DIAGNOSTIC DATA]");
+                    }
+                    else
+                    {
+                        Console.WriteLine("[БЛОК ДАННЫХ ДЛЯ ДИАГНОСТИКИ СЕРВЕРА]");
+                        Console.WriteLine("Максимальное количество байт в секунду: " + MaxBytesPerSecond);
+                        Console.WriteLine("Количество перегрузок канала (100кбайт): " + MsgOverflowSecondsCount);
+                        Console.WriteLine("Количество HUD сообщений в секунду: " + MaxHudMsgPerSecond);
+                        Console.WriteLine("Количество DHUD сообщений в секунду: " + MaxDHudMsgPerSecond);
+                        Console.WriteLine("Количество PRINT сообщений в секунду: " + MaxPrintCmdMsgPerSecond);
+                        Console.WriteLine("Количество STUFFCMD сообщений в секунду: " + MaxStuffCmdMsgPerSecond);
+                        Console.WriteLine("Количество подвисаний сервера (низкий фпс): " + ServerLagCount);
+                        Console.WriteLine("Игрок отправил потерянных пакетов: " + LossPackets);
+                        Console.WriteLine("Игрок сделал пропуск кадров: " + LossPackets2);
+                        Console.WriteLine("Количество CHOKE(слишком низкий sv_minrate): " + ChokePackets);
+                        Console.WriteLine("[КОНЕЦ БЛОКА ДАННЫХ ДИАГНОСТИКИ СЕРВЕРА]");
                     }
 
                     ForceFlushScanResults();
@@ -9472,7 +9524,7 @@ namespace DemoScanner.DG
                             if (RecordDate.Length == 0)
                             {
                                 RecordDate = cmdList[2];
-                                DemoScanner_AddWarn("[INFO] Record date:" + RecordDate, true, false,
+                                DemoScanner_AddWarn("[INFO] Record date: " + RecordDate, true, false,
                                     true, true);
                             }
                         }
@@ -9590,7 +9642,7 @@ namespace DemoScanner.DG
                                 {
                                     if (ms <= 1)
                                     {
-                                        if (abs(CurrentTime - LastCmdHack) > 5.0 && CurrentFps < 500 && CurrentFps2 < 500)
+                                        if (abs(CurrentTime - LastCmdHack) > 5.0 && CurrentFpsSecond < 450 && CurrentFps2Second < 450)
                                         {
                                             DemoScanner_AddWarn(
                                                 "[CMD HACK TYPE 3.1] at (" + CurrentTime + ") " + CurrentTimeString,
@@ -9710,7 +9762,7 @@ namespace DemoScanner.DG
                                 {
                                     if (ms <= 1)
                                     {
-                                        if (abs(CurrentTime - LastCmdHack) > 5.0 && CurrentFps < 500 && CurrentFps2 < 500)
+                                        if (abs(CurrentTime - LastCmdHack) > 5.0 && CurrentFpsSecond < 450 && CurrentFps2Second < 450)
                                         {
                                             DemoScanner_AddWarn(
                                                 "[CMD HACK TYPE 3.2] at (" + CurrentTime + ") " + CurrentTimeString,
@@ -10151,8 +10203,21 @@ namespace DemoScanner.DG
                 {
                     if (abs(CurrentTime - LastCmdHack) > 3.0)
                     {
-                        DemoScanner_AddWarn("[INTERIUM HACK 2023] at (" + CurrentTime +
+                        string smallcmd = (cmdList[0].Length > 3 ? cmdList[0].Remove(3) : cmdList[0]).Trim();
+                        if (smallcmd.Length > 0 && smallcmd[0] == 'v')
+                        {
+                            DemoScanner_AddWarn("[ALTERNATIVE HACK 2023 version:\"" + smallcmd + "\"] at (" + CurrentTime +
                                                                             ") : " + CurrentTimeString);
+                        }
+                        else
+                        {
+                            if (smallcmd.Length == 0)
+                            {
+                                smallcmd = "UNK";
+                            }
+                            DemoScanner_AddWarn("[INTERIUM HACK 2023 version:\"" + smallcmd + "\"] at (" + CurrentTime +
+                                                                            ") : " + CurrentTimeString);
+                        }
                         LastCmdHack = CurrentTime;
                     }
                 }
