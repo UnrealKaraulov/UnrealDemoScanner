@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.72.16b";
+        public const string PROGRAMVERSION = "1.72.17b";
 
         public static bool DEMOSCANNER_HLTV = false;
 
@@ -4753,6 +4753,9 @@ namespace DemoScanner.DG
 
                                 CurrentFrameAlive = UserAlive;
                                 RealAlive = CurrentFrameAlive && PreviousFrameAlive;
+
+                                //Console.WriteLine((RealAlive ? "ALIVE!" : "DEAD!") + "at " + CurrentTimeString);
+
                                 if (SkipNextAttack == 2)
                                 {
                                     SkipNextAttack = 1;
@@ -13093,12 +13096,12 @@ namespace DemoScanner.DG
                     CL_Intermission = 0;
                 }
 
-                if (!UserAlive && (abs(CurrentTime - LastDeathTime) > 5.0f || FirstUserAlive))
+                if (!UserAlive && (abs(CurrentTime - LastDeathTime) > 10.0f || FirstUserAlive))
                 {
                     DemoScanner_AddTextMessage("Respawn[2]", "USER_INFO", CurrentTime, CurrentTimeString);
-                    UserAlive = true;
                     if (FirstUserAlive)
                     {
+                        UserAlive = true;
                         if (DEBUG_ENABLED)
                         {
                             Console.WriteLine("Alive 2 at " + CurrentTimeString);
