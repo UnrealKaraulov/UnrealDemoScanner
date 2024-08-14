@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.72.15b";
+        public const string PROGRAMVERSION = "1.72.16b";
 
         public static bool DEMOSCANNER_HLTV = false;
 
@@ -519,8 +519,6 @@ namespace DemoScanner.DG
         public static byte StartPlayerID = 255;
         public static bool DealthMatch;
         public static float GameEndTime;
-        public static int DuckHack2Strikes;
-        public static int DuckHack1Strikes;
         public static int ViewEntity = -1;
         public static int ViewModel = -1;
         public static int CL_Intermission = -1;
@@ -1077,7 +1075,7 @@ namespace DemoScanner.DG
             Console.ForegroundColor = tmpcol;
         }
 
-        public static void DemoScanner_AddWarn(string warn, bool detected = true, bool unused1 = true,
+        public static bool DemoScanner_AddWarn(string warn, bool detected = true, bool unused1 = true,
             bool skipallchecks = false, bool uds_plugin = false)
         {
             if (IsRussia)
@@ -1092,7 +1090,7 @@ namespace DemoScanner.DG
                     WarnsAfterGameEnd++;
                 }
 
-                return;
+                return false;
             }
 
             if (CL_Intermission != 0)
@@ -1102,12 +1100,12 @@ namespace DemoScanner.DG
                     WarnsDuringLevel++;
                 }
 
-                return;
+                return false;
             }
 
             if (LastWarnStr == warn)
             {
-                return;
+                return true;
             }
 
             LastWarnStr = warn;
@@ -1122,6 +1120,7 @@ namespace DemoScanner.DG
             };
 
             DemoScannerWarnList.Add(warnStruct);
+            return true;
         }
 
         public static void UpdateWarnList(bool force = false)
@@ -1458,9 +1457,11 @@ namespace DemoScanner.DG
                     {
                         if (abs(CurrentTime - LastKreedzHackTime) > 2.5f)
                         {
-                            DemoScanner_AddWarn("[JUMPHACK XTREME] at (" + CurrentTime + ") " + CurrentTimeString);
-                            LastKreedzHackTime = CurrentTime;
-                            KreedzHacksCount++;
+                            if (DemoScanner_AddWarn("[JUMPHACK XTREME] at (" + CurrentTime + ") " + CurrentTimeString))
+                            {
+                                LastKreedzHackTime = CurrentTime;
+                                KreedzHacksCount++;
+                            }
                         }
                     }
 
@@ -1573,9 +1574,11 @@ namespace DemoScanner.DG
                     {
                         if (abs(CurrentTime - LastFloodAttackTime) > 20.0)
                         {
-                            DemoScanner_AddWarn("[ATTACK FLOOD TYPE 1] at (" + CurrentTime + ") " + CurrentTimeString);
-                            TotalAimBotDetected++;
-                            LastFloodAttackTime = CurrentTime;
+                            if (DemoScanner_AddWarn("[ATTACK FLOOD TYPE 1] at (" + CurrentTime + ") " + CurrentTimeString))
+                            {
+                                TotalAimBotDetected++;
+                                LastFloodAttackTime = CurrentTime;
+                            }
                         }
 
                         AttackFloodTimes = 0;
@@ -1840,9 +1843,11 @@ namespace DemoScanner.DG
                 {
                     if (abs(CurrentTime - LastKreedzHackTime) > 20.0)
                     {
-                        DemoScanner_AddWarn("[DUCK FLOOD TYPE 1] at (" + CurrentTime + ") " + CurrentTimeString);
-                        KreedzHacksCount++;
-                        LastKreedzHackTime = CurrentTime;
+                        if (DemoScanner_AddWarn("[DUCK FLOOD TYPE 1] at (" + CurrentTime + ") " + CurrentTimeString))
+                        {
+                            KreedzHacksCount++;
+                            LastKreedzHackTime = CurrentTime;
+                        }
                     }
                 }
             }
@@ -1859,10 +1864,12 @@ namespace DemoScanner.DG
             {
                 if (!StrafeOptimizerFalse && StrafeAngleDirectionChanges > 4)
                 {
-                    DemoScanner_AddWarn(
+                    if (DemoScanner_AddWarn(
                         "[STRAFE OPTIMIZER" + /*(DetectStrafeOptimizerStrikes <= 5 ? " ( WARN ) " : "") +*/ "] at (" +
-                        CurrentTime + ") : " + CurrentTimeString);
-                    KreedzHacksCount++;
+                        CurrentTime + ") : " + CurrentTimeString))
+                    {
+                        KreedzHacksCount++;
+                    }
                 }
 
                 /* if (DEBUG_ENABLED)
@@ -2069,11 +2076,13 @@ namespace DemoScanner.DG
                     {
                         if (abs(CurrentTime - LastBhopTime) > 1.0f)
                         {
-                            BHOPcount += BHOP_JumpWarn - 1;
-                            DemoScanner_AddWarn("[BHOP TYPE 1.2] at (" + CurrentTime + ") " + CurrentTimeString + " [" +
-                                                (BHOP_JumpWarn - 1) + "]" + " times.");
-                            LastBhopTime = CurrentTime;
-                            BHOP_JumpWarn = 0;
+                            if (DemoScanner_AddWarn("[BHOP TYPE 1.2] at (" + CurrentTime + ") " + CurrentTimeString + " [" +
+                                                (BHOP_JumpWarn - 1) + "]" + " times."))
+                            {
+                                BHOPcount += BHOP_JumpWarn - 1;
+                                LastBhopTime = CurrentTime;
+                                BHOP_JumpWarn = 0;
+                            }
                         }
                     }
 
@@ -2081,12 +2090,14 @@ namespace DemoScanner.DG
                     {
                         if (abs(CurrentTime - LastBhopTime) > 0.75f && abs(CurrentTime - LastBhopTime) < 2.5f)
                         {
-                            BHOPcount += BHOP_GroundWarn - 1;
-                            DemoScanner_AddWarn(
+                            if (DemoScanner_AddWarn(
                                 "[BHOP TYPE 2.2] at (" + CurrentTime + ") " + CurrentTimeString + " [" +
-                                (BHOP_GroundWarn - 1) + "]" + " times.", BHOP_GroundWarn > 3, BHOP_GroundWarn > 3);
-                            LastBhopTime = CurrentTime;
-                            BHOP_GroundWarn = 0;
+                                (BHOP_GroundWarn - 1) + "]" + " times.", BHOP_GroundWarn > 3, BHOP_GroundWarn > 3))
+                            {
+                                BHOPcount += BHOP_GroundWarn - 1;
+                                LastBhopTime = CurrentTime;
+                                BHOP_GroundWarn = 0;
+                            }
                         }
                     }
 
@@ -2137,11 +2148,13 @@ namespace DemoScanner.DG
                     {
                         if (abs(CurrentTime - LastBhopTime) > 1.0f)
                         {
-                            BHOPcount += BHOP_JumpWarn - 1;
-                            DemoScanner_AddWarn("[BHOP TYPE 1.1] at (" + CurrentTime + ") " + CurrentTimeString + " [" +
-                                                (BHOP_JumpWarn - 1) + "]" + " times.");
-                            LastBhopTime = CurrentTime;
-                            BHOP_JumpWarn = 0;
+                            if (DemoScanner_AddWarn("[BHOP TYPE 1.1] at (" + CurrentTime + ") " + CurrentTimeString + " [" +
+                                                (BHOP_JumpWarn - 1) + "]" + " times."))
+                            {
+                                BHOPcount += BHOP_JumpWarn - 1;
+                                LastBhopTime = CurrentTime;
+                                BHOP_JumpWarn = 0;
+                            }
                         }
                     }
 
@@ -2149,12 +2162,14 @@ namespace DemoScanner.DG
                     {
                         if (abs(CurrentTime - LastBhopTime) > 0.75f && abs(CurrentTime - LastBhopTime) < 2.5f)
                         {
-                            BHOPcount += BHOP_GroundWarn - 1;
-                            DemoScanner_AddWarn(
+                            if (DemoScanner_AddWarn(
                                 "[BHOP TYPE 2.1] at (" + CurrentTime + ") " + CurrentTimeString + " [" +
-                                (BHOP_GroundWarn - 1) + "]" + " times.", BHOP_GroundWarn > 3, BHOP_GroundWarn > 3);
-                            LastBhopTime = CurrentTime;
-                            BHOP_GroundWarn = 0;
+                                (BHOP_GroundWarn - 1) + "]" + " times.", BHOP_GroundWarn > 3, BHOP_GroundWarn > 3))
+                            {
+                                BHOPcount += BHOP_GroundWarn - 1;
+                                LastBhopTime = CurrentTime;
+                                BHOP_GroundWarn = 0;
+                            }
                         }
                     }
 
@@ -3613,35 +3628,36 @@ namespace DemoScanner.DG
                                             abs(LastAim5DetectedReal) > EPSILON &&
                                             abs(CurrentTime - LastAim5DetectedReal) < 0.5f)
                                         {
-                                            DemoScanner_AddWarn(
+                                            if (DemoScanner_AddWarn(
                                                 "[AIM TYPE 5.1 " + CurrentWeapon + "] at (" + LastAim5DetectedReal + "):" +
                                                 GetTimeString(LastAim5DetectedReal),
                                                 !IsTakeDamage() && !IsPlayerLossConnection() && !IsAngleEditByEngine() &&
-                                                !IsCmdChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck());
-
-                                            if (!IsTakeDamage() && !IsPlayerLossConnection() && !IsAngleEditByEngine() &&
-                                                !IsCmdChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck())
+                                                !IsCmdChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck()))
                                             {
-                                                TotalAimBotDetected++;
+                                                if (!IsTakeDamage() && !IsPlayerLossConnection() && !IsAngleEditByEngine() &&
+                                                    !IsCmdChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck())
+                                                {
+                                                    TotalAimBotDetected++;
+                                                }
+                                                LastAim5DetectedReal = 0.0f;
+                                                LastAim5Detected = 0.0f;
                                             }
-
-                                            LastAim5DetectedReal = 0.0f;
-                                            LastAim5Detected = 0.0f;
                                         }
                                         else if (PlayerSensitivityWarning == 0 && abs(LastAim5DetectedReal) > EPSILON &&
                                                  abs(CurrentTime - LastAim5DetectedReal) < 0.5f)
                                         {
-                                            DemoScanner_AddWarn(
+                                            if (DemoScanner_AddWarn(
                                                 "[AIM TYPE 5.9 " + CurrentWeapon + "] at (" + LastAim5DetectedReal + "):" +
                                                 GetTimeString(LastAim5DetectedReal),
                                                 !IsTakeDamage() && !IsPlayerLossConnection() && !IsAngleEditByEngine() &&
-                                                !IsCmdChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck());
-                                            if (!IsTakeDamage() && !IsPlayerLossConnection() && !IsAngleEditByEngine() &&
-                                                !IsCmdChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck())
+                                                !IsCmdChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck()))
                                             {
-                                                TotalAimBotDetected++;
+                                                if (!IsTakeDamage() && !IsPlayerLossConnection() && !IsAngleEditByEngine() &&
+                                                    !IsCmdChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck())
+                                                {
+                                                    TotalAimBotDetected++;
+                                                }
                                             }
-
                                             LastAim5DetectedReal = 0.0f;
                                             LastAim5Detected = 0.0f;
                                         }
@@ -3650,10 +3666,12 @@ namespace DemoScanner.DG
                                         {
                                             if (!IsAngleEditByEngine() && !IsTakeDamage() && !IsCmdChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck())
                                             {
-                                                DemoScanner_AddWarn(
+                                                if (DemoScanner_AddWarn(
                                                     "[AIM TYPE 5.2 " + CurrentWeapon + "] at (" + LastAim5Detected + "):" +
-                                                    GetTimeString(LastAim5Detected), !IsPlayerLossConnection());
-                                                TotalAimBotDetected++;
+                                                    GetTimeString(LastAim5Detected), !IsPlayerLossConnection()))
+                                                {
+                                                    TotalAimBotDetected++;
+                                                }
                                             }
                                             else
                                             {
@@ -3912,16 +3930,17 @@ namespace DemoScanner.DG
                                                             ref Aim7var3, AimType7Event, tmpangle2, ref Aim7detected);
                                                         if (Aim7detected && abs(OldAimType7Time) > EPSILON)
                                                         {
-                                                            if (Aim7var3 > 50)
-                                                            {
-                                                                TotalAimBotDetected++;
-                                                            }
-
-                                                            DemoScanner_AddWarn(
+                                                            if (DemoScanner_AddWarn(
                                                                 Aim7str + " at (" + OldAimType7Time + "):" +
                                                                 GetTimeString(OldAimType7Time),
                                                                 Aim7detected && Aim7var3 > 50 && Aim7var1 >= 20 &&
-                                                                Aim7var2 >= 20 && !IsCmdChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck() && !IsPlayerLossConnection());
+                                                                Aim7var2 >= 20 && !IsCmdChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck() && !IsPlayerLossConnection()))
+                                                            {
+                                                                if (Aim7var3 > 50)
+                                                                {
+                                                                    TotalAimBotDetected++;
+                                                                }
+                                                            }
                                                         }
                                                     }
                                                     else if (AimType7Event != 4)
@@ -4779,10 +4798,12 @@ namespace DemoScanner.DG
                                     }
                                     if (abs(LastEventDetectTime) > EPSILON && abs(LastAttackPressed - LastEventDetectTime) > 0.25)
                                     {
-                                        DemoScanner_AddWarn("[BETA] [TRIGGER TYPE 3." + (LastEventId < 0 ? 2 : 1) + " " + CurrentWeapon + "] at (" + CurrentTime + ") " +
-                                                CurrentTimeString, false);
-                                        TriggerAimAttackCount++;
-                                        LastTriggerAttack = CurrentTime;
+                                        if (DemoScanner_AddWarn("[BETA] [TRIGGER TYPE 3." + (LastEventId < 0 ? 2 : 1) + " " + CurrentWeapon + "] at (" + CurrentTime + ") " +
+                                                CurrentTimeString, false))
+                                        {
+                                            TriggerAimAttackCount++;
+                                            LastTriggerAttack = CurrentTime;
+                                        }
 
                                         foreach (var res in DownloadedResources)
                                         {
@@ -4981,12 +5002,14 @@ namespace DemoScanner.DG
                                         {
                                             if (InitAimMissingSearch == 1)
                                             {
-                                                DemoScanner_AddWarn(
+                                                if (DemoScanner_AddWarn(
                                                     "[AIM TYPE 4.2 " + CurrentWeapon + "] at (" + IsAttackLastTime + "):" +
                                                     GetTimeString(IsAttackLastTime),
                                                     !IsCmdChangeWeapon() && !IsAngleEditByEngine() && !IsReload &&
-                                                    SelectSlot <= 0 && !IsPlayerLossConnection() && !IsForceCenterView() && !IsPlayerInDuck() && !IsPlayerUnDuck());
-                                                TotalAimBotDetected++;
+                                                    SelectSlot <= 0 && !IsPlayerLossConnection() && !IsForceCenterView() && !IsPlayerInDuck() && !IsPlayerUnDuck()))
+                                                {
+                                                    TotalAimBotDetected++;
+                                                }
                                                 InitAimMissingSearch = 0;
                                             }
                                         }
@@ -5245,12 +5268,14 @@ namespace DemoScanner.DG
                                     abs(CurrentTime - LastStrafeEnabled) > 0.5f &&
                                     abs(CurrentTime - LastMovementHackTime) > 2.5f)
                                 {
-                                    DemoScanner_AddWarn(
+                                    if (DemoScanner_AddWarn(
                                         "[MOVEMENT HACK TYPE 2] at (" + CurrentTime + ") " + CurrentTimeString,
                                         IsValidMovement() && !IsPlayerLossConnection() &&
-                                        (nf.UCmd.Sidemove < -100 || nf.UCmd.Sidemove > 100));
-                                    LastMovementHackTime = CurrentTime;
-                                    KreedzHacksCount++;
+                                        (nf.UCmd.Sidemove < -100 || nf.UCmd.Sidemove > 100)))
+                                    {
+                                        KreedzHacksCount++;
+                                        LastMovementHackTime = CurrentTime;
+                                    }
                                 }
 
                                 if (SearchMoveHack1)
@@ -5272,16 +5297,18 @@ namespace DemoScanner.DG
                                             DemoScanner_AddWarn(
                                                 "[MOVEMENT HACK TYPE 1] at (" + CurrentTime + ") " + CurrentTimeString,
                                                 !IsAngleEditByEngine() && !IsPlayerLossConnection());
-                                            SearchMoveHack1 = false;
                                         }
+                                        SearchMoveHack1 = false;
                                     }
 
                                     if (SearchMoveHack1)
                                     {
-                                        DemoScanner_AddWarn(
-                                            "[MOVEMENT HACK TYPE 1] at (" + CurrentTime + ") " + CurrentTimeString, false);
+                                        if (DemoScanner_AddWarn(
+                                            "[MOVEMENT HACK TYPE 1] at (" + CurrentTime + ") " + CurrentTimeString, false))
+                                        {
+                                            KreedzHacksCount++;
+                                        }
                                         SearchMoveHack1 = false;
-                                        KreedzHacksCount++;
                                     }
                                 }
 
@@ -5454,11 +5481,13 @@ namespace DemoScanner.DG
                                         {
                                             if (abs(CurrentTime - LastBhopTime) > 1.0f)
                                             {
-                                                BHOPcount += BHOP_JumpWarn - 1;
-                                                DemoScanner_AddWarn("[BHOP TYPE 1.3] at (" + CurrentTime + ") " + CurrentTimeString + " [" +
-                                                                    (BHOP_JumpWarn - 1) + "]" + " times.");
-                                                LastBhopTime = CurrentTime;
-                                                BHOP_JumpWarn = 0;
+                                                if (DemoScanner_AddWarn("[BHOP TYPE 1.3] at (" + CurrentTime + ") " + CurrentTimeString + " [" +
+                                                                    (BHOP_JumpWarn - 1) + "]" + " times."))
+                                                {
+                                                    BHOPcount += BHOP_JumpWarn - 1;
+                                                    LastBhopTime = CurrentTime;
+                                                    BHOP_JumpWarn = 0;
+                                                }
                                             }
                                         }
                                     }
@@ -5525,11 +5554,13 @@ namespace DemoScanner.DG
                                     {
                                         if (abs(CurrentTime - LastKreedzHackTime) > 2.5f)
                                         {
-                                            DemoScanner_AddWarn(
+                                            if (DemoScanner_AddWarn(
                                                 "[DUCK HACK TYPE 3] at (" + CurrentTime + ") " + CurrentTimeString,
-                                                !IsPlayerLossConnection());
-                                            LastKreedzHackTime = CurrentTime;
-                                            KreedzHacksCount++;
+                                                !IsPlayerLossConnection()))
+                                            {
+                                                LastKreedzHackTime = CurrentTime;
+                                                KreedzHacksCount++;
+                                            }
                                         }
                                     }
                                     else
@@ -5540,21 +5571,15 @@ namespace DemoScanner.DG
                                     if (CurrentFrameDuck && PreviousFrameDuck && LastDuckTime > LastUnDuckTime &&
                                         abs(CurrentTime - LastUnDuckTime) > 1.5f && abs(CurrentTime - LastDuckTime) > 5.0f)
                                     {
-                                        DuckHack2Strikes++;
-                                        if ( /*DuckHack2Strikes > 5 &&*/abs(CurrentTime - LastKreedzHackTime) > 2.5f)
+                                        if (abs(CurrentTime - LastKreedzHackTime) > 2.5f)
                                         {
-                                            //Console.WriteLine("1:" + (CurrentTime - LastUnDuckTime));
-                                            //Console.WriteLine("2:" + (CurrentTime - LastDuckTime));
-                                            DemoScanner_AddWarn(
-                                                "[DUCK HACK TYPE 2] at (" + CurrentTime + ") " + CurrentTimeString, false);
-                                            LastKreedzHackTime = CurrentTime;
-                                            KreedzHacksCount++;
-                                            DuckHack2Strikes = 0;
+                                            if (DemoScanner_AddWarn(
+                                                "[DUCK HACK TYPE 2] at (" + CurrentTime + ") " + CurrentTimeString, false))
+                                            {
+                                                LastKreedzHackTime = CurrentTime;
+                                                KreedzHacksCount++;
+                                            }
                                         }
-                                    }
-                                    else
-                                    {
-                                        DuckHack2Strikes = 0;
                                     }
 
                                     if (CurrentFrameDuck && !PreviousFrameDuck && LastUnDuckTime > LastDuckTime &&
@@ -5562,34 +5587,22 @@ namespace DemoScanner.DG
                                     {
                                         if (DuckStrikes < 2)
                                         {
-                                            //DuckHack1Strikes++;
-                                            if ( /*DuckHack1Strikes > 1 && */abs(CurrentTime - LastKreedzHackTime) > 2.5f)
+                                            if (abs(CurrentTime - LastKreedzHackTime) > 2.5f)
                                             {
-                                                //Console.WriteLine("11:" + (CurrentTime - LastUnDuckTime));
-                                                //Console.WriteLine("22:" + (CurrentTime - LastDuckTime));
-                                                DemoScanner_AddWarn(
+                                                if (DemoScanner_AddWarn(
                                                     "[DUCK HACK TYPE 1] at (" + CurrentTime + ") " + CurrentTimeString,
-                                                    !IsPlayerLossConnection());
-                                                LastKreedzHackTime = CurrentTime;
-                                                KreedzHacksCount++;
-                                                DuckHack1Strikes = 0;
+                                                    !IsPlayerLossConnection()))
+                                                {
+                                                    LastKreedzHackTime = CurrentTime;
+                                                    KreedzHacksCount++;
+                                                }
                                             }
                                         }
-                                        else
-                                        {
-                                            DuckHack1Strikes = 0;
-                                        }
-                                    }
-                                    else
-                                    {
-                                        DuckHack1Strikes = 0;
                                     }
                                 }
                                 else
                                 {
                                     SearchOneFrameDuck = false;
-                                    DuckHack2Strikes = 0;
-                                    DuckHack1Strikes = 0;
                                 }
 
                                 CurrentFrameOnGround = nf.RParms.Onground != 0;
@@ -5653,9 +5666,11 @@ namespace DemoScanner.DG
                                             {
                                                 if (abs(CurrentTime - LastJumpBtnTime) > 0.2)
                                                 {
-                                                    KreedzHacksCount++;
-                                                    DemoScanner_AddWarn("[BETA] [JUMPHACK HPP] at (" + CurrentTime +
-                                                                        ") : " + CurrentTimeString);
+                                                    if (DemoScanner_AddWarn("[BETA] [JUMPHACK HPP] at (" + CurrentTime +
+                                                                        ") : " + CurrentTimeString))
+                                                    {
+                                                        KreedzHacksCount++;
+                                                    }
                                                 }
                                             }
 
@@ -5701,10 +5716,12 @@ namespace DemoScanner.DG
                                                 AirStuckWarnTimes++;
                                                 if (AirStuckWarnTimes > 50)
                                                 {
-                                                    KreedzHacksCount++;
-                                                    DemoScanner_AddWarn("[BETA] [AIRSTUCK HACK] at (" + CurrentTime +
-                                                                        ") : " + CurrentTimeString);
-                                                    AirStuckWarnTimes = 0;
+                                                    if (DemoScanner_AddWarn("[BETA] [AIRSTUCK HACK] at (" + CurrentTime +
+                                                                        ") : " + CurrentTimeString))
+                                                    {
+                                                        KreedzHacksCount++;
+                                                        AirStuckWarnTimes = 0;
+                                                    }
                                                 }
                                             }
                                         }
@@ -6088,30 +6105,32 @@ namespace DemoScanner.DG
 
                                         if (abs(AimType8WarnTime) > EPSILON && abs(CurrentTime - AimType8WarnTime) < 0.350f)
                                         {
-                                            DemoScanner_AddWarn(
+                                            if (DemoScanner_AddWarn(
                                                 "[AIM TYPE 8.1 " + CurrentWeapon + "] at (" + AimType8WarnTime + "):" +
-                                                GetTimeString(AimType8WarnTime), !AimType8False && !IsCmdChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck());
-                                            if (!AimType8False && !IsCmdChangeWeapon())
+                                                GetTimeString(AimType8WarnTime), !AimType8False && !IsCmdChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck()))
                                             {
-                                                TotalAimBotDetected++;
+                                                if (!AimType8False && !IsCmdChangeWeapon())
+                                                {
+                                                    TotalAimBotDetected++;
+                                                }
                                             }
-
                                             AimType8WarnTime = 0.0f;
                                             AimType8False = false;
                                         }
                                         else if (abs(AimType8WarnTime2) > EPSILON &&
                                                  abs(CurrentTime - AimType8WarnTime2) < 0.350f)
                                         {
-                                            DemoScanner_AddWarn(
+                                            if (DemoScanner_AddWarn(
                                                 "[AIM TYPE 8.2 " + CurrentWeapon + "] at (" + AimType8WarnTime2 + "):" +
                                                 GetTimeString(AimType8WarnTime2), /*CurrentWeapon != WeaponIdType.WEAPON_AWP
                                     && CurrentWeapon != WeaponIdType.WEAPON_SCOUT &&*/
-                                                !AimType8False && !IsCmdChangeWeapon());
-                                            if (!AimType8False && !IsCmdChangeWeapon())
+                                                !AimType8False && !IsCmdChangeWeapon()))
                                             {
-                                                TotalAimBotDetected++;
+                                                if (!AimType8False && !IsCmdChangeWeapon())
+                                                {
+                                                    TotalAimBotDetected++;
+                                                }
                                             }
-
                                             AimType8WarnTime2 = 0.0f;
                                             AimType8False = false;
                                         }
@@ -6480,11 +6499,13 @@ namespace DemoScanner.DG
                                             {
                                                 if (CurrentFrameLerp == LerpBeforeAttack && RealAlive && FirstAttack)
                                                 {
-                                                    DemoScanner_AddWarn(
+                                                    if (DemoScanner_AddWarn(
                                                         "[AIM TYPE 4.1 " + CurrentWeapon + "] at (" + CurrentTime + "):" +
                                                         CurrentTimeString,
-                                                        !IsPlayerLossConnection() && !IsCmdChangeWeapon());
-                                                    TotalAimBotDetected++;
+                                                        !IsPlayerLossConnection() && !IsCmdChangeWeapon()))
+                                                    {
+                                                        TotalAimBotDetected++;
+                                                    }
                                                 }
                                             }
                                         }
@@ -6609,11 +6630,13 @@ namespace DemoScanner.DG
                                                     if (abs(CurrentTime - LastKreedzHackTime) > 2.5f &&
                                                         abs(LastJumpHackFalseDetectionTime) < EPSILON)
                                                     {
-                                                        DemoScanner_AddWarn(
+                                                        if (DemoScanner_AddWarn(
                                                             "[JUMPHACK TYPE 1] at (" + CurrentTime + ") " +
-                                                            CurrentTimeString, !IsAngleEditByEngine());
-                                                        LastKreedzHackTime = CurrentTime;
-                                                        KreedzHacksCount++;
+                                                            CurrentTimeString, !IsAngleEditByEngine()))
+                                                        {
+                                                            LastKreedzHackTime = CurrentTime;
+                                                            KreedzHacksCount++;
+                                                        }
                                                     }
                                                 }
                                                 else if (abs(CurrentTime - LastUnJumpTime) > 0.5f &&
@@ -6623,11 +6646,13 @@ namespace DemoScanner.DG
                                                         !IsAngleEditByEngine() &&
                                                         abs(LastJumpHackFalseDetectionTime) < EPSILON)
                                                     {
-                                                        DemoScanner_AddWarn(
+                                                        if (DemoScanner_AddWarn(
                                                             "[JUMPHACK TYPE 3] at (" + CurrentTime + ") " +
-                                                            CurrentTimeString, false);
-                                                        LastKreedzHackTime = CurrentTime;
-                                                        KreedzHacksCount++;
+                                                            CurrentTimeString, false))
+                                                        {
+                                                            LastKreedzHackTime = CurrentTime;
+                                                            KreedzHacksCount++;
+                                                        }
                                                     }
                                                 }
                                                 else if (abs(CurrentTime - LastUnJumpTime) > 0.3f &&
@@ -6637,11 +6662,13 @@ namespace DemoScanner.DG
                                                         !IsAngleEditByEngine() &&
                                                         abs(LastJumpHackFalseDetectionTime) < EPSILON)
                                                     {
-                                                        DemoScanner_AddWarn(
+                                                        if (DemoScanner_AddWarn(
                                                             "[JUMPHACK TYPE 4] at (" + CurrentTime + ") " +
-                                                            CurrentTimeString, false, false);
-                                                        LastKreedzHackTime = CurrentTime;
-                                                        KreedzHacksCount++;
+                                                            CurrentTimeString, false, false))
+                                                        {
+                                                            LastKreedzHackTime = CurrentTime;
+                                                            KreedzHacksCount++;
+                                                        }
                                                     }
                                                 }
                                             }
@@ -6947,16 +6974,18 @@ namespace DemoScanner.DG
                                             }
                                             else
                                             {
-                                                DemoScanner_AddWarn(
+                                                if (DemoScanner_AddWarn(
                                                     "[AIM TYPE 2.1 " + CurrentWeapon + "] at (" + CurrentTime + "):" +
                                                     CurrentTimeString,
                                                     !IsPlayerLossConnection() &&
                                                     !IsCmdChangeWeapon() /* && !IsForceCenterView() */ &&
-                                                    !IsAngleEditByEngine());
-                                                if (!IsPlayerLossConnection() && !IsCmdChangeWeapon() &&
-                                                    !IsAngleEditByEngine())
+                                                    !IsAngleEditByEngine()))
                                                 {
-                                                    TotalAimBotDetected++;
+                                                    if (!IsPlayerLossConnection() && !IsCmdChangeWeapon() &&
+                                                        !IsAngleEditByEngine())
+                                                    {
+                                                        TotalAimBotDetected++;
+                                                    }
                                                 }
                                             }
                                             //FirstAttack = false;
@@ -7045,11 +7074,13 @@ namespace DemoScanner.DG
                                 {
                                     if (TriggerAttackFound && !IsPlayerBtnAttackedPressed())
                                     {
-                                        DemoScanner_AddWarn(
+                                        if (DemoScanner_AddWarn(
                                             "[TRIGGER TYPE 1 " + CurrentWeapon + "] at (" + LastTriggerAttack + ") " +
                                             GetTimeString(LastTriggerAttack),
-                                            !IsCmdChangeWeapon() && !IsAngleEditByEngine());
-                                        TriggerAimAttackCount++;
+                                            !IsCmdChangeWeapon() && !IsAngleEditByEngine()))
+                                        {
+                                            TriggerAimAttackCount++;
+                                        }
                                     }
 
                                     TriggerAttackFound = false;
@@ -7059,11 +7090,13 @@ namespace DemoScanner.DG
                                 {
                                     if (KnifeTriggerAttackFound && !IsPlayerBtnAttackedPressed())
                                     {
-                                        DemoScanner_AddWarn(
+                                        if (DemoScanner_AddWarn(
                                             "[KNIFEBOT TYPE 1 " + CurrentWeapon + "] at (" + LastTriggerAttack + ") " +
                                             GetTimeString(LastTriggerAttack),
-                                            !IsCmdChangeWeapon() && !IsAngleEditByEngine());
-                                        TriggerAimAttackCount++;
+                                            !IsCmdChangeWeapon() && !IsAngleEditByEngine()))
+                                        {
+                                            TriggerAimAttackCount++;
+                                        }
                                     }
 
                                     KnifeTriggerAttackFound = false;
@@ -7103,12 +7136,14 @@ namespace DemoScanner.DG
                                         {
                                             if ((TotalAimBotDetected > 0 || KreedzHacksCount > 0) && !IsAngleEditByEngine())
                                             {
-                                                DemoScanner_AddWarn(
+                                                if (DemoScanner_AddWarn(
                                                     "[AIM TYPE 1.2 " + CurrentWeapon + "] at (" + NeedWriteAimTime + "):" +
                                                     GetTimeString(NeedWriteAimTime),
                                                     NeedWriteAim == 2 && !IsCmdChangeWeapon() &&
-                                                    !IsPlayerLossConnection() && !IsForceCenterView());
-                                                TotalAimBotDetected++;
+                                                    !IsPlayerLossConnection() && !IsForceCenterView()))
+                                                {
+                                                    TotalAimBotDetected++;
+                                                }
                                             }
                                             else
                                             {
@@ -7122,15 +7157,17 @@ namespace DemoScanner.DG
                                     {
                                         if (FirstAttack)
                                         {
-                                            DemoScanner_AddWarn(
+                                            if (DemoScanner_AddWarn(
                                                 "[AIM TYPE 1.1 " + CurrentWeapon + "] at (" + NeedWriteAimTime + "):" +
                                                 GetTimeString(NeedWriteAim),
                                                 NeedWriteAim == 2 && !IsCmdChangeWeapon() && !IsPlayerLossConnection() &&
-                                                !IsForceCenterView() && !IsAngleEditByEngine());
-                                            if (!IsCmdChangeWeapon() && !IsPlayerLossConnection() && !IsForceCenterView() &&
-                                                !IsAngleEditByEngine())
+                                                !IsForceCenterView() && !IsAngleEditByEngine()))
                                             {
-                                                TotalAimBotDetected++;
+                                                if (!IsCmdChangeWeapon() && !IsPlayerLossConnection() && !IsForceCenterView() &&
+                                                    !IsAngleEditByEngine())
+                                                {
+                                                    TotalAimBotDetected++;
+                                                }
                                             }
                                         }
                                     }
@@ -7357,7 +7394,7 @@ namespace DemoScanner.DG
                                 LastIncomingAcknowledged = nf.IncomingAcknowledged;
                                 if (abs(LastChokePacket - CurrentTime) > 0.5 && abs(CurrentTime) > EPSILON &&
                                     nf.OutgoingSequence > 0 && LastOutgoingSequence > 0 &&
-                                    nf.OutgoingSequence - LastOutgoingSequence > 2)
+                                    nf.OutgoingSequence - LastOutgoingSequence > 3)
                                 {
                                     ServerLagCount++;
                                 }
@@ -9627,12 +9664,14 @@ namespace DemoScanner.DG
                                     // just skip it
                                     if (!FirstAim16skip)
                                     {
-                                        DemoScanner_AddWarn(
+                                        if (DemoScanner_AddWarn(
                                             "[AIM TYPE 1.6 " + CurrentWeapon + "] at (" + CurrentTime + "):" +
                                             CurrentTimeString,
                                             !IsCmdChangeWeapon() && !IsAngleEditByEngine() && !IsPlayerLossConnection() &&
-                                            !IsForceCenterView() && IsPlayerBtnAttackedPressed(), true, false, true);
-                                        TotalAimBotDetected++;
+                                            !IsForceCenterView() && IsPlayerBtnAttackedPressed(), true, false, true))
+                                        {
+                                            TotalAimBotDetected++;
+                                        }
                                     }
                                     FirstAim16skip = false;
                                 }
@@ -13030,10 +13069,12 @@ namespace DemoScanner.DG
                         }
                         else
                         {
-                            DemoScanner_AddWarn("[TRIGGER TYPE 2 " + wpntype + "] at (" + CurrentTime + ") " +
-                                                CurrentTimeString, !IsPlayerLossConnection());
-                            TriggerAimAttackCount++;
-                            LastTriggerAttack = CurrentTime;
+                            if (DemoScanner_AddWarn("[TRIGGER TYPE 2 " + wpntype + "] at (" + CurrentTime + ") " +
+                                                CurrentTimeString, !IsPlayerLossConnection()))
+                            {
+                                TriggerAimAttackCount++;
+                                LastTriggerAttack = CurrentTime;
+                            }
                         }
                     }
 
@@ -13871,11 +13912,13 @@ namespace DemoScanner.DG
                                                         if (abs(CurrentTime - LastKreedzHackTime) > 2.5f &&
                                                             abs(LastJumpHackFalseDetectionTime) < EPSILON)
                                                         {
-                                                            DemoScanner_AddWarn(
+                                                            if (DemoScanner_AddWarn(
                                                                 "[BHOP TYPE 3] at (" + CurrentTime + ") " +
-                                                                CurrentTimeString, false, false);
-                                                            LastKreedzHackTime = CurrentTime;
-                                                            KreedzHacksCount++;
+                                                                CurrentTimeString, false, false))
+                                                            {
+                                                                LastKreedzHackTime = CurrentTime;
+                                                                KreedzHacksCount++;
+                                                            }
                                                         }
                                                     }
                                                     else
@@ -13883,11 +13926,13 @@ namespace DemoScanner.DG
                                                         if (abs(CurrentTime - LastKreedzHackTime) > 2.5f &&
                                                             abs(LastJumpHackFalseDetectionTime) < EPSILON)
                                                         {
-                                                            DemoScanner_AddWarn(
+                                                            if (DemoScanner_AddWarn(
                                                                 "[BETA] [BHOP TYPE 3] at (" + CurrentTime + ") " +
-                                                                CurrentTimeString, false, false);
-                                                            LastKreedzHackTime = CurrentTime;
-                                                            KreedzHacksCount++;
+                                                                CurrentTimeString, false, false))
+                                                            {
+                                                                LastKreedzHackTime = CurrentTime;
+                                                                KreedzHacksCount++;
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -14171,11 +14216,13 @@ namespace DemoScanner.DG
                                                 {
                                                     if (abs(CurrentTime - LastKreedzHackTime) > 2.5f)
                                                     {
-                                                        DemoScanner_AddWarn(
+                                                        if (DemoScanner_AddWarn(
                                                             "[JUMPHACK TYPE 2] at (" + CurrentTime + ") " +
-                                                            CurrentTimeString, !IsAngleEditByEngine() && !IsPlayerLossConnection());
-                                                        LastKreedzHackTime = CurrentTime;
-                                                        KreedzHacksCount++;
+                                                            CurrentTimeString, !IsAngleEditByEngine() && !IsPlayerLossConnection()))
+                                                        {
+                                                            LastKreedzHackTime = CurrentTime;
+                                                            KreedzHacksCount++;
+                                                        }
                                                     }
                                                 }
                                             }
@@ -14221,11 +14268,13 @@ namespace DemoScanner.DG
                                         if (IsUserAlive() && abs(CurrentTime - LastKreedzHackTime) > 1.0 &&
                                             !IsPlayerTeleport())
                                         {
-                                            DemoScanner_AddWarn(
+                                            if (DemoScanner_AddWarn(
                                                 "[DUCK HACK TYPE 5.1] at (" + CurrentTime + ") " + CurrentTimeString,
-                                                !IsPlayerLossConnection());
-                                            KreedzHacksCount++;
-                                            LastKreedzHackTime = CurrentTime;
+                                                !IsPlayerLossConnection()))
+                                            {
+                                                KreedzHacksCount++;
+                                                LastKreedzHackTime = CurrentTime;
+                                            }
                                         }
                                     }
                                     //else if (!isDuck && abs(CurrentTime - LastUnDuckTime) > 1.0f)
