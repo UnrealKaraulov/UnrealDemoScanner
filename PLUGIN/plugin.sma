@@ -44,9 +44,9 @@ public plugin_init()
 	
 	if (plugin_id != 0)
 	{
-		log_error("Error! Unreal Demo Plugin need install at start of plugins.ini file!");
-		log_error("Error! Unreal Demo Plugin need install at start of plugins.ini file!");
-		log_error("Error! Unreal Demo Plugin need install at start of plugins.ini file!");
+		log_error(AMX_ERR_GENERAL, "Error! Unreal Demo Plugin need install at start of plugins.ini file!");
+		log_error(AMX_ERR_GENERAL, "Error! Unreal Demo Plugin need install at start of plugins.ini file!");
+		log_error(AMX_ERR_GENERAL, "Error! Unreal Demo Plugin need install at start of plugins.ini file!");
 	}
 }
 
