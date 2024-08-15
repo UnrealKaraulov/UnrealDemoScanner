@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.73.0b";
+        public const string PROGRAMVERSION = "1.73.1b";
 
         public static bool DEMOSCANNER_HLTV = false;
 
@@ -2761,6 +2761,8 @@ namespace DemoScanner.DG
             whiteListCMDLIST.Add("buy_preset_edit");
             whiteListCMDLIST.Add("voice_showbanned");
             whiteListCMDLIST.Add("vgui_runscript");
+            // csldr
+            whiteListCMDLIST.Add("lookat");
 
             if (IsRussia)
             {
@@ -12774,7 +12776,7 @@ namespace DemoScanner.DG
                 if (!FoundFirstPluginPacket)
                 {
                     FoundFirstPluginPacket = true;
-                    if (!IsRussia)
+                    if (IsRussia)
                     {
                         DemoScanner_AddWarn("[HELLO] На сервере установлен демо-плагин! Поможет найти больше читов :)", true, false,
                                        true, true);
