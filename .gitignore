@@ -175,3 +175,5 @@ FalsePositive/FalseAIM82_OPENDOOR.dem
 /SourceCode/.vs
 .vs/UnrealDemoScanner/v17/DocumentLayout.json
 /.vs
+/ReVoiceDecoder/Release/microsoft
+/ReVoiceDecoder/Release/microsoft/STL

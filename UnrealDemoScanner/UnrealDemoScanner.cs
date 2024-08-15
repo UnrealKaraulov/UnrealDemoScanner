@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.72.17b";
+        public const string PROGRAMVERSION = "1.73.0b";
 
         public static bool DEMOSCANNER_HLTV = false;
 
@@ -114,6 +114,10 @@ namespace DemoScanner.DG
         public const float MIN_SENS_DETECTED = 0.0004f; //SENS < 0.02 (0.018)
         public const float MIN_SENS_WARNING = 0.004f; //SENS < 0.2 (0.18)
         public const float MIN_PLAYABLE_SENS = 0.004f;
+
+        public static bool FoundFirstPluginPacket;
+        public static int plugin_all_packets;
+        public static int plugin_valid_packets;
 
         public static bool SkipNextErrors;
         public static int[] myThreadStates = new int[RESOURCE_DOWNLOAD_THREADS + 1];
@@ -254,7 +258,7 @@ namespace DemoScanner.DG
         public static bool SearchPunch;
         public static int SkipNextAttack;
         public static int attackscounter;
-        public static int attackscounter2;
+        public static int attackscounter6;
         public static int attackscounter3;
         public static int attackscounter4;
         public static int attackscounter5;
@@ -671,7 +675,8 @@ namespace DemoScanner.DG
         public static int FPS_OVERFLOW;
         public static bool FoundFpsHack1;
         public static float FpsOverflowTime;
-        public static string DownloadLocation = "http://";
+        public static string DownloadLocation = "";
+        public static int downloadlocationchanged;
         public static List<string> FileDirectories = new List<string>();
         public static string SteamID = "";
         public static string RecordDate = "";
@@ -4808,13 +4813,13 @@ namespace DemoScanner.DG
                                             LastTriggerAttack = CurrentTime;
                                         }
 
-                                        foreach (var res in DownloadedResources)
+                                        /*foreach (var res in DownloadedResources)
                                         {
                                             if (res.res_index == Math.Abs(LastEventId) && res.res_type == 5)
                                             {
                                                 Console.WriteLine("[Debug] event:" + res.res_path + " at " + CurrentTimeString);
                                             }
-                                        }
+                                        }*/
                                         LastEventDetectTime = 0.0f;
                                     }
                                     else
@@ -7513,16 +7518,22 @@ namespace DemoScanner.DG
             {
                 if (!DisableJump5AndAim16)
                 {
-                    if (JumpCount3 > 20 && JumpCount6 <= 1)
+                    if (JumpCount3 > 10 && JumpCount3 - JumpCount6 > 5)
                     {
-                        DemoScanner_AddWarn("[UNKNOWN BHOP/JUMPHACK] in demo file!", true, true, !DisableJump5AndAim16,
+                        DemoScanner_AddWarn("[UNKNOWN BHOP/JUMPHACK TYPE 1.1] in demo file!", true, true, !DisableJump5AndAim16,
                             true);
                     }
 
-                    if (attackscounter3 > 20 && attackscounter2 <= 1)
+                    if (attackscounter3 > 20 && attackscounter6 <= 5)
                     {
-                        DemoScanner_AddWarn("[UNKNOWN AIM/TRIGGER HACK] in demo file!", true, true, !DisableJump5AndAim16,
+                        DemoScanner_AddWarn("[UNKNOWN AIM/TRIGGER HACK TYPE 1.1] in demo file!", true, true, !DisableJump5AndAim16,
                             true);
+                    }
+
+                    if (attackscounter4 > 100 && attackscounter6 <= 2)
+                    {
+                        DemoScanner_AddWarn("[UNKNOWN AIM/TRIGGER HACK TYPE 1.2] in demo file!", true, true, !DisableJump5AndAim16,
+                           true);
                     }
                 }
             }
@@ -7558,6 +7569,31 @@ namespace DemoScanner.DG
                 else
                 {
                     DemoScanner_AddInfo("Lost attack flag: " + NeedIgnoreAttackFlagCount + ".");
+                }
+            }
+
+            if (attackscounter == 0 || attackscounter3 == 0 || attackscounter4 == 0 || (PluginVersion.Length > 0 && flPluginVersion > 1.59 && attackscounter4 == 0))
+            {
+                if (IsRussia)
+                {
+                    DemoScanner_AddInfo("Игрок не совершал выстрелы в данном демо файле!");
+                }
+                else
+                {
+                    DemoScanner_AddInfo("The player did not fire shots in this demo file!");
+                }
+            }
+
+            if (JumpCount == 0 || JumpCount2 == 0 || JumpCount3 == 0
+                 || JumpCount4 == 0 || JumpCount5 == 0 || (PluginVersion.Length > 0 && flPluginVersion >= 1.54 && JumpCount6 == 0))
+            {
+                if (IsRussia)
+                {
+                    DemoScanner_AddInfo("Игрок не совершал прыжков в данном демо файле!");
+                }
+                else
+                {
+                    DemoScanner_AddInfo("The player did not jump in this demo file!");
                 }
             }
 
@@ -8846,7 +8882,7 @@ namespace DemoScanner.DG
                     table = new ConsoleTable("ТИП/TYPE", "ПРЫЖКИ/JUMPS", "АТАКА/ATTACKS");
                     table.AddRow(1, JumpCount, attackscounter).AddRow(2, JumpCount2, attackscounter3)
                         .AddRow(3, JumpCount3, attackscounter4).AddRow(4, JumpCount4, attackscounter5)
-                        .AddRow(5, JumpCount5, attackscounter2).AddRow(6, JumpCount6, "SKIP");
+                        .AddRow(5, JumpCount5, attackscounter6).AddRow(6, JumpCount6, "SKIP");
                     table.Write(Format.Alternative);
                     if (IsRussia)
                     {
@@ -9535,11 +9571,16 @@ namespace DemoScanner.DG
         {
             if (DUMP_ALL_FRAMES)
             {
-                OutDumpString += "\n{ UCMD PLUGIN MESSAGE:" + cmd + "}\n";
+                OutDumpString += "\n{ UCMD PLUGIN MESSAGE:" + (cmd.Length > 0 ? cmd : "INVALID MSG!") + "}\n";
             }
 
             if (cmd.Length <= 0)
             {
+                if (abs(CurrentTime - LastCmdHack) > 10.0f)
+                {
+                    DemoScanner_AddWarn("[PLUGINHACK TYPE 1.1] at (" + CurrentTime + ") " + CurrentTimeString, true, true, true, true);
+                    LastCmdHack = CurrentTime;
+                }
                 return;
             }
 
@@ -9554,8 +9595,9 @@ namespace DemoScanner.DG
                         {
                             if (SteamID.Length == 0)
                             {
+                                plugin_valid_packets++;
                                 SteamID = cmdList[2];
-                                DemoScanner_AddWarn("[INFO] SteamID: " + SteamID, true, false,
+                                DemoScanner_AddWarn("[INFO] SteamID игрока: " + SteamID, true, false,
                                         true, true);
                             }
                         }
@@ -9563,21 +9605,40 @@ namespace DemoScanner.DG
                         {
                             if (RecordDate.Length == 0)
                             {
+                                plugin_valid_packets++;
                                 RecordDate = cmdList[2];
-                                DemoScanner_AddWarn("[INFO] Record date: " + RecordDate, true, false,
-                                    true, true);
+                                if (IsRussia)
+                                {
+                                    DemoScanner_AddWarn("[INFO] Дата записи: " + RecordDate, true, false,
+                                        true, true);
+                                }
+                                else
+                                {
+                                    DemoScanner_AddWarn("[INFO] Record date: " + RecordDate, true, false,
+                                        true, true);
+                                }
                             }
                         }
                         else if (cmdList[1] == "VER" || cmdList[1] == "UCMD")
                         {
                             if (PluginVersion.Length == 0)
                             {
+                                plugin_valid_packets++;
                                 PluginVersion = cmdList[1] == "UCMD" ? "1.5" : cmdList[2];
                                 flPluginVersion = 0.0f;
                                 float.TryParse(PluginVersion, NumberStyles.Any, CultureInfo.InvariantCulture, out flPluginVersion);
 
-                                DemoScanner_AddWarn("[INFO] Found module version " + PluginVersion, true, false, true,
-                                    true);
+                                if (IsRussia)
+                                {
+                                    DemoScanner_AddWarn("[INFO] Найден демо-плагин версии " + PluginVersion, true, false, true,
+                                        true);
+                                }
+                                else
+                                {
+                                    DemoScanner_AddWarn("[INFO] Found module version " + PluginVersion, true, false, true,
+                                        true);
+                                }
+
                                 if (flPluginVersion < 1.59)
                                 {
                                     if (IsRussia)
@@ -9603,6 +9664,7 @@ namespace DemoScanner.DG
                         }
                         else if (cmdList[1] == "JMP")
                         {
+                            plugin_valid_packets++;
                             if (PluginVersion.Length != 0)
                             {
                                 var id = int.Parse(cmdList[2]);
@@ -9619,11 +9681,12 @@ namespace DemoScanner.DG
                         }
                         else if (cmdList[1] == "SCMD")
                         {
+                            plugin_valid_packets++;
                             if (PluginVersion.Length != 0 && !DisableJump5AndAim16)
                             {
                                 if (IsUserAlive())
                                 {
-                                    attackscounter2++;
+                                    attackscounter6++;
                                 }
 
                                 var lerpms = int.Parse(cmdList[2]);
@@ -9740,14 +9803,42 @@ namespace DemoScanner.DG
                                     }
                                 }
                             }
+                            else if (plugin_valid_packets > 2)
+                            {
+                                if (IsRussia)
+                                {
+                                    DemoScanner_AddWarn("[Ошибка] Не получено приветствие от плагина!", true, false, true,
+                                        true);
+                                }
+                                else
+                                {
+                                    DemoScanner_AddWarn("[Error] No found 'auth' message from module!", true, false, true,
+                                        true);
+                                }
+
+                                if (IsRussia)
+                                {
+                                    DemoScanner_AddWarn("[WARN] Автоматический сброс версии плагина в 1.60", true, false, true,
+                                        true);
+                                }
+                                else
+                                {
+                                    DemoScanner_AddWarn("[WARN] Auto detect module version set to 1.60", true, false, true,
+                                        true);
+                                }
+
+                                PluginVersion = "1.60";
+                                flPluginVersion = 1.60f;
+                            }
                         }
                         else if (cmdList[1] == "ACMD")
                         {
+                            plugin_valid_packets++;
                             if (PluginVersion.Length != 0 && !DisableJump5AndAim16)
                             {
                                 if (IsUserAlive())
                                 {
-                                    attackscounter2++;
+                                    attackscounter6++;
                                 }
 
                                 var lerpms = int.Parse(cmdList[2]);
@@ -9960,8 +10051,9 @@ namespace DemoScanner.DG
                                 }
                             }
                         }
-                        else if (cmdList[1] == "EVENTS")
+                        else if (cmdList[1] == "EVENTS" && (PluginVersion.Length == 0 || flPluginVersion < 1.56))
                         {
+                            plugin_valid_packets++;
                             if (PluginVersion.Length != 0 && !DisableJump5AndAim16)
                             {
                                 var events = int.Parse(cmdList[2]);
@@ -10005,6 +10097,7 @@ namespace DemoScanner.DG
                         }
                         else if (cmdList[1] == "XEVENT")
                         {
+                            plugin_valid_packets++;
                             if (PluginVersion.Length != 0 && !DisableJump5AndAim16)
                             {
                                 if (DUMP_ALL_FRAMES)
@@ -10057,6 +10150,7 @@ namespace DemoScanner.DG
                         else if (cmdList[1] == "MINR" || cmdList[1] == "MINUR"
                             || cmdList[1] == "MAXR" || cmdList[1] == "MAXUR")
                         {
+                            plugin_valid_packets++;
                             if (PluginVersion.Length != 0)
                             {
                                 var rate = int.Parse(cmdList[2]);
@@ -10230,39 +10324,52 @@ namespace DemoScanner.DG
                                  OutDumpString += "\n{ATTACK ANGLE: " + angle + " " + CurrentTimeString + " " + CurrentTime + " }\n";
                              }
                          }*/
+                        else if (flPluginVersion >= 1.59)
+                        {
+                            if (abs(CurrentTime - LastCmdHack) > 10.0f)
+                            {
+                                DemoScanner_AddWarn("[PLUGINHACK TYPE 1.2] at (" + CurrentTime + ") " + CurrentTimeString, true, true, true, true);
+                                LastCmdHack = CurrentTime;
+                            }
+                        }
                     }
                     else
                     {
-                        if (abs(CurrentTime - LastCmdHack) > 3.0)
+                        if (abs(CurrentTime - LastCmdHack) > 10.0f)
                         {
-                            DemoScanner_AddWarn("[INTERIUM HACK 2024] at (" + CurrentTime +
-                                                                                ") : " + CurrentTimeString);
+                            DemoScanner_AddWarn("[PLUGINHACK TYPE 1.3] at (" + CurrentTime + ") " + CurrentTimeString, true, true, true, true);
                             LastCmdHack = CurrentTime;
                         }
                     }
                 }
                 else
                 {
-                    if (abs(CurrentTime - LastCmdHack) > 3.0)
+                    if (abs(CurrentTime - LastCmdHack) > 10.0)
                     {
                         string smallcmd = (cmdList[0].Length > 3 ? cmdList[0].Remove(3) : cmdList[0]).Trim();
                         if (smallcmd.Length > 0 && smallcmd[0] == 'v')
                         {
                             DemoScanner_AddWarn("[ALTERNATIVE HACK 2023 version:\"" + smallcmd + "\"] at (" + CurrentTime +
-                                                                            ") : " + CurrentTimeString);
+                                                                            ") : " + CurrentTimeString, true, true, true, true);
+                        }
+                        else if (smallcmd.Length > 0 && smallcmd[0] == 'X')
+                        {
+                            DemoScanner_AddWarn("[INTERIUM HACK 2023 version:\"" + smallcmd + "\"] at (" + CurrentTime +
+                                                                            ") : " + CurrentTimeString, true, true, true, true);
                         }
                         else
                         {
-                            if (smallcmd.Length == 0)
-                            {
-                                smallcmd = "UNK";
-                            }
-                            DemoScanner_AddWarn("[INTERIUM HACK 2023 version:\"" + smallcmd + "\"] at (" + CurrentTime +
-                                                                            ") : " + CurrentTimeString);
+                            DemoScanner_AddWarn("[PLUGINHACK TYPE 1.4] at (" + CurrentTime + ") " + CurrentTimeString, true, true, true, true);
+                            LastCmdHack = CurrentTime;
                         }
                         LastCmdHack = CurrentTime;
                     }
                 }
+            }
+            else if (abs(CurrentTime - LastCmdHack) > 10.0f)
+            {
+                DemoScanner_AddWarn("[PLUGINHACK TYPE 1.6] at (" + CurrentTime + ") " + CurrentTimeString, true, true, true, true);
+                LastCmdHack = CurrentTime;
             }
         }
 
@@ -10915,7 +11022,13 @@ namespace DemoScanner.DG
                     BitBuffer.Data[BitBuffer.CurrentByte + 4] == (byte)MessageId.svc_print)
                 {
                     FoundCustomClientPattern = true;
+                    return;
                 }
+            }
+
+            if (BitBuffer.Data.Length >= 16)
+            {
+                DemoScanner_AddWarn("[BETA] [PLUGINHACK TYPE 1.5] at (" + CurrentTime + ") " + CurrentTimeString, false, true, true, true);
             }
         }
 
@@ -12632,13 +12745,47 @@ namespace DemoScanner.DG
         {
             // string: location?
             var tmpDownLocation = BitBuffer.ReadString();
-            if (tmpDownLocation.ToLower().StartsWith("http"))
+            if (tmpDownLocation.Length > 0 && tmpDownLocation.ToLower().StartsWith("http"))
             {
                 DemoScanner_AddTextMessage(tmpDownLocation, "DOWNLOAD_URL", CurrentTime, CurrentTimeString);
+                if (DownloadLocation.Length > 0)
+                {
+                    downloadlocationchanged++;
+                    tmpDownLocation = tmpDownLocation.Trim();
+                    if (downloadlocationchanged > 1)
+                    {
+                        if (!IsRussia)
+                        {
+                            DemoScanner_AddInfo("[WARN] Download URL changed during game!");
+                            DemoScanner_AddInfo("[WARN] New download location: " + tmpDownLocation);
+                        }
+                        else
+                        {
+                            DemoScanner_AddInfo("[WARN] Ссылка на загрузку ресурсов изменена во время игры!");
+                            DemoScanner_AddInfo("[WARN] Новый адрес: " + tmpDownLocation);
+                        }
+                    }
+                }
                 DownloadLocation = tmpDownLocation;
             }
             else
             {
+                plugin_all_packets++;
+                if (!FoundFirstPluginPacket)
+                {
+                    FoundFirstPluginPacket = true;
+                    if (!IsRussia)
+                    {
+                        DemoScanner_AddWarn("[HELLO] На сервере установлен демо-плагин! Поможет найти больше читов :)", true, false,
+                                       true, true);
+                    }
+                    else
+                    {
+                        DemoScanner_AddWarn("[HELLO] Found unreal demo plugin! It can help to find more cheats :)", true, false,
+                                       true, true);
+                    }
+                }
+
                 try
                 {
                     ProcessPluginMessage(tmpDownLocation);

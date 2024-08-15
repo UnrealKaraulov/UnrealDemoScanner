@@ -1,7 +1,7 @@
 {
     "Version": "1.2",
     "Data": {
-        "Source": "d:\\program files\\microsoft visual studio\\2022\\community\\vc\\tools\\msvc\\14.39.33519\\modules\\std.compat.ixx",
+        "Source": "d:\\program files\\microsoft visual studio\\2022\\community\\vc\\tools\\msvc\\14.40.33807\\modules\\std.compat.ixx",
         "ProvidedModule": "std.compat",
         "Includes": [],
         "ImportedModules": [],
