@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.73.1b";
+        public const string PROGRAMVERSION = "1.73.2b";
 
         public static bool DEMOSCANNER_HLTV = false;
 
@@ -1073,6 +1073,13 @@ namespace DemoScanner.DG
                 return;
             }
 
+            Console.Write(prefix);
+
+            if (is_plugin)
+            {
+                Console.ForegroundColor = ConsoleColor.DarkYellow;
+            }
+
             OutTextDetects.Add(prefix + info);
             AddViewDemoHelperComment(prefix + info);
 
@@ -1081,7 +1088,7 @@ namespace DemoScanner.DG
         }
 
         public static bool DemoScanner_AddWarn(string warn, bool detected = true, bool unused1 = true,
-            bool skipallchecks = false, bool uds_plugin = false)
+            bool skipallchecks = false, bool uds_plugin = false, bool hide_prefix = false)
         {
             if (IsRussia)
             {
@@ -1121,7 +1128,8 @@ namespace DemoScanner.DG
                 Detected = detected,
                 SkipAllChecks = skipallchecks,
                 Visited = false,
-                Plugin = uds_plugin
+                Plugin = uds_plugin,
+                HidePrefix = hide_prefix
             };
 
             DemoScannerWarnList.Add(warnStruct);
@@ -1157,7 +1165,8 @@ namespace DemoScanner.DG
 
                             Console.Write(prefix);
                         }
-                        else
+
+                        if (!curwarn.Plugin || !curwarn.HidePrefix)
                         {
                             Console.ForegroundColor = ConsoleColor.Cyan;
                             if (IsRussia)
@@ -1192,7 +1201,7 @@ namespace DemoScanner.DG
 
                             Console.Write(prefix);
                         }
-                        else
+                        if (!curwarn.Plugin || !curwarn.HidePrefix)
                         {
                             Console.ForegroundColor = ConsoleColor.Gray;
                             if (IsRussia)
@@ -9599,8 +9608,7 @@ namespace DemoScanner.DG
                             {
                                 plugin_valid_packets++;
                                 SteamID = cmdList[2];
-                                DemoScanner_AddWarn("[INFO] SteamID игрока: " + SteamID, true, false,
-                                        true, true);
+                                DemoScanner_AddInfo("[INFO] SteamID игрока: " + SteamID, true);
                             }
                         }
                         else if (cmdList[1] == "DATE")
@@ -9611,13 +9619,11 @@ namespace DemoScanner.DG
                                 RecordDate = cmdList[2];
                                 if (IsRussia)
                                 {
-                                    DemoScanner_AddWarn("[INFO] Дата записи: " + RecordDate, true, false,
-                                        true, true);
+                                    DemoScanner_AddInfo("[INFO] Дата записи: " + RecordDate, true);
                                 }
                                 else
                                 {
-                                    DemoScanner_AddWarn("[INFO] Record date: " + RecordDate, true, false,
-                                        true, true);
+                                    DemoScanner_AddInfo("[INFO] Record date: " + RecordDate, true);
                                 }
                             }
                         }
@@ -9632,13 +9638,11 @@ namespace DemoScanner.DG
 
                                 if (IsRussia)
                                 {
-                                    DemoScanner_AddWarn("[INFO] Найден демо-плагин версии " + PluginVersion, true, false, true,
-                                        true);
+                                    DemoScanner_AddInfo("[INFO] Найден демо-плагин версии " + PluginVersion, true);
                                 }
                                 else
                                 {
-                                    DemoScanner_AddWarn("[INFO] Found module version " + PluginVersion, true, false, true,
-                                        true);
+                                    DemoScanner_AddInfo("[INFO] Found module version " + PluginVersion, true);
                                 }
 
                                 if (flPluginVersion < 1.59)
@@ -10330,7 +10334,15 @@ namespace DemoScanner.DG
                         {
                             if (abs(CurrentTime - LastCmdHack) > 10.0f)
                             {
-                                DemoScanner_AddWarn("[PLUGINHACK TYPE 1.2] at (" + CurrentTime + ") " + CurrentTimeString, true, true, true, true);
+                                if (cmdList[1][0] == 'X')
+                                {
+                                    DemoScanner_AddWarn("[ALTERNATIVE HACK 2024 version:\"CMD\"] at (" + Math.Round(CurrentTime) +
+                                                                           ")", true, true, true, true);
+                                }
+                                else
+                                {
+                                    DemoScanner_AddWarn("[PLUGINHACK TYPE 1.2] at (" + CurrentTime + ") " + CurrentTimeString, true, true, true, true);
+                                }
                                 LastCmdHack = CurrentTime;
                             }
                         }
@@ -10400,6 +10412,7 @@ namespace DemoScanner.DG
             public bool SkipAllChecks;
             public float WarnTime;
             public bool Plugin;
+            public bool HidePrefix;
         }
 
         public struct UcmdLerpAndMs
@@ -12778,13 +12791,11 @@ namespace DemoScanner.DG
                     FoundFirstPluginPacket = true;
                     if (IsRussia)
                     {
-                        DemoScanner_AddWarn("[HELLO] На сервере установлен демо-плагин! Поможет найти больше читов :)", true, false,
-                                       true, true);
+                        DemoScanner_AddInfo("[HELLO] На сервере установлен демо-плагин! Поможет найти больше читов :)", true);
                     }
                     else
                     {
-                        DemoScanner_AddWarn("[HELLO] Found unreal demo plugin! It can help to find more cheats :)", true, false,
-                                       true, true);
+                        DemoScanner_AddInfo("[HELLO] Found unreal demo plugin! It can help to find more cheats :)", true);
                     }
                 }
 
