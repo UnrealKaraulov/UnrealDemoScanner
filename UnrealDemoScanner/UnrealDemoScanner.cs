@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.73.2b";
+        public const string PROGRAMVERSION = "1.73.3b";
 
         public static bool DEMOSCANNER_HLTV = false;
 
@@ -9814,23 +9814,23 @@ namespace DemoScanner.DG
                                 if (IsRussia)
                                 {
                                     DemoScanner_AddWarn("[Ошибка] Не получено приветствие от плагина!", true, false, true,
-                                        true);
+                                        true, true);
                                 }
                                 else
                                 {
                                     DemoScanner_AddWarn("[Error] No found 'auth' message from module!", true, false, true,
-                                        true);
+                                        true, true);
                                 }
 
                                 if (IsRussia)
                                 {
                                     DemoScanner_AddWarn("[WARN] Автоматический сброс версии плагина в 1.60", true, false, true,
-                                        true);
+                                        true, true);
                                 }
                                 else
                                 {
                                     DemoScanner_AddWarn("[WARN] Auto detect module version set to 1.60", true, false, true,
-                                        true);
+                                        true, true);
                                 }
 
                                 PluginVersion = "1.60";

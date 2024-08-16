@@ -9,7 +9,7 @@
 
 #define PLUGIN "Unreal Demo Plugin"
 #define AUTHOR "karaulov"
-#define VERSION "1.62"
+#define VERSION "1.63"
 
 // IF NEED REDUCE TRAFFIC USAGE UNCOMMENT THIS LINE
 // ЕСЛИ НЕОБХОДИМО БОЛЬШЕ ДЕТЕКТОВ (НО ТАК ЖЕ БОЛЬШЕ ТРАФИКА) ЗАКОММЕНТИРУЙТЕ ЭТУ СТРОКУ
@@ -17,6 +17,7 @@
 
 new g_iDemoHelperInitStage[33] = {0,...};
 new g_iFrameNum[33] = {0,...};
+new g_iJumpCount[33] = {0,...};
 new g_bNeedResend[33] = {false,...};
 
 new Float:g_flLastEventTime[33] = {0.0,...};
@@ -32,7 +33,12 @@ public plugin_init()
 {
 	register_plugin(PLUGIN, VERSION, AUTHOR);
 	register_cvar("unreal_demoplug", VERSION, FCVAR_SERVER | FCVAR_SPONLY | FCVAR_UNLOGGED);
-	register_clcmd("fullupdate", "UnrealDemoHelpInitialize");
+	
+	#if REAPI_VERSION < 524309
+	RegisterHookChain(RH_SV_AllowPhysent, "UnrealDemoHelpInitialize");
+	#else 
+	RegisterHookChain(RH_ExecuteServerStringCmd, "UnrealDemoHelpInitialize");
+	#endif
 	
 	RegisterHookChain(RG_PM_Move, "PM_Move", .post = false);
 	RegisterHookChain(RG_CBasePlayer_Jump, "HC_CBasePlayer_Jump_Pre", .post = false);
@@ -61,6 +67,7 @@ public client_disconnected(id)
 	g_flLastSendTime[id] = -1.0;
 	g_flStartCmdTime[id] = -1.0;
 	g_iFrameNum[id] = 0;
+	g_iJumpCount[id] = 0;
 	g_iDemoHelperInitStage[id] = 0;
 	g_flDelay1Msec[id] = -1.0;
 	g_flDelay2Time[id] = -1.0;
@@ -92,11 +99,6 @@ public HC_CBasePlayer_Jump_Pre(id)
 {
 	new iFlags = get_entvar(id,var_flags);
 	
-	if (g_iDemoHelperInitStage[id] != -1)
-	{
-		return HC_CONTINUE;
-	}
-	
 	if (iFlags & FL_WATERJUMP)
 	{
 		return HC_CONTINUE;
@@ -123,9 +125,11 @@ public HC_CBasePlayer_Jump_Pre(id)
 	}
 	
 	if (get_entvar(id, var_oldbuttons) & IN_JUMP || get_entvar(id, var_button) & IN_JUMP)
-		WriteDemoInfo(id, "UDS/JMP/2");
+		WriteDemoInfo(id, "UDS/JMP/2/%i", g_iJumpCount[id]);
 	else 
-		WriteDemoInfo(id, "UDS/JMP/1");
+		WriteDemoInfo(id, "UDS/JMP/1/%i", g_iJumpCount[id]);
+
+	g_iJumpCount[id]++;
 
 	return HC_CONTINUE;
 }
@@ -180,25 +184,30 @@ public PM_Move(const id)
 	return HC_CONTINUE;
 }
 
-public UnrealDemoHelpInitialize(id) 
+public UnrealDemoHelpInitialize(const cmd[], source, id)
 {
-	if (is_user_connected(id))
+	if (id > 0 && id <= MaxClients)
 	{
-		if (task_exists(id))
+		new fullcmd[256];
+		read_argv(0, fullcmd, charsmax(fullcmd));
+		if (equal(fullcmd,"fullupdate"))
 		{
-			g_bNeedResend[id] = true;
-		}
-		else 
-		{
-			g_flLastEventTime[id] = 0.0;
-			g_flLastSendTime[id] = 0.0;
-			g_iFrameNum[id] = 0;
-			g_iDemoHelperInitStage[id] = 0;
-
-			remove_task(id);
-			if (!is_user_hltv(id) && !is_user_bot(id))
+			if (task_exists(id))
 			{
-				set_task(1.25,"DemoHelperInitializeTask",id);
+				g_bNeedResend[id] = true;
+			}
+			else 
+			{
+				g_flLastEventTime[id] = 0.0;
+				g_flLastSendTime[id] = 0.0;
+				g_iFrameNum[id] = 0;
+				g_iDemoHelperInitStage[id] = 0;
+
+				remove_task(id);
+				if (!is_user_hltv(id) && !is_user_bot(id))
+				{
+					set_task(1.25,"DemoHelperInitializeTask",id);
+				}
 			}
 		}
 	}
