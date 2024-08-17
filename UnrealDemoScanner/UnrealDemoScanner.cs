@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.73.3b";
+        public const string PROGRAMVERSION = "1.73.4b";
 
         public static bool DEMOSCANNER_HLTV = false;
 
@@ -5799,7 +5799,8 @@ namespace DemoScanner.DG
                                     FirstJump = true;
                                     if (IsUserAlive())
                                     {
-                                        if (nf.RParms.Simvel.Z > 100.0)
+                                        if (nf.RParms.Simvel.Z > 100.0
+                                            && abs(LastJumpFrame - CurrentFrameId) < 5)
                                         {
                                             JumpCount3++;
                                         }
@@ -7529,7 +7530,7 @@ namespace DemoScanner.DG
             {
                 if (!DisableJump5AndAim16)
                 {
-                    if (JumpCount3 > 10 && JumpCount3 - JumpCount6 > 5)
+                    if (JumpCount3 > 10 && (JumpCount6 == 0 || Math.Abs(JumpCount3 - JumpCount6) > 5))
                     {
                         DemoScanner_AddWarn("[UNKNOWN BHOP/JUMPHACK TYPE 1.1] in demo file!", true, true, !DisableJump5AndAim16,
                             true);
@@ -8891,9 +8892,13 @@ namespace DemoScanner.DG
                     Console.WriteLine("Demo information / Дополнительная информация о демке");
                     //  Console.WriteLine("Min angles:" + MinFrameViewanglesX + " " + MinFrameViewanglesY);
                     table = new ConsoleTable("ТИП/TYPE", "ПРЫЖКИ/JUMPS", "АТАКА/ATTACKS");
-                    table.AddRow(1, JumpCount, attackscounter).AddRow(2, JumpCount2, attackscounter3)
-                        .AddRow(3, JumpCount3, attackscounter4).AddRow(4, JumpCount4, attackscounter5)
-                        .AddRow(5, JumpCount5, attackscounter6).AddRow(6, JumpCount6, "SKIP");
+                    table
+                        .AddRow(1, JumpCount, attackscounter)
+                        .AddRow(2, JumpCount2, attackscounter3)
+                        .AddRow(3, JumpCount3, attackscounter4)
+                        .AddRow(4, JumpCount4, attackscounter5)
+                        .AddRow(5, JumpCount5, attackscounter6)
+                        .AddRow(6, JumpCount6, "SKIP");
                     table.Write(Format.Alternative);
                     if (IsRussia)
                     {
@@ -14364,35 +14369,29 @@ namespace DemoScanner.DG
                                 if (entryList[index].Name == "fuser2")
                                 {
                                     var rg_jump_time = value != null ? (float)value : 0.0f;
-                                    if (abs(rg_jump_time) < EPSILON)
+
+                                    if (rg_jump_time > last_rg_jump_time + 0.1f)
                                     {
-                                        last_rg_jump_time = 9999.0f;
-                                    }
-                                    else
-                                    {
-                                        if (rg_jump_time > last_rg_jump_time)
+                                        if (IsUserAlive())
                                         {
-                                            if (IsUserAlive())
+                                            JumpCount5++;
+                                            if (!IsPlayerAnyJumpPressed())
                                             {
-                                                JumpCount5++;
-                                                if (!IsPlayerAnyJumpPressed())
+                                                if (abs(CurrentTime - LastKreedzHackTime) > 2.5f)
                                                 {
-                                                    if (abs(CurrentTime - LastKreedzHackTime) > 2.5f)
+                                                    if (DemoScanner_AddWarn(
+                                                        "[JUMPHACK TYPE 2] at (" + CurrentTime + ") " +
+                                                        CurrentTimeString, !IsAngleEditByEngine() && !IsPlayerLossConnection()))
                                                     {
-                                                        if (DemoScanner_AddWarn(
-                                                            "[JUMPHACK TYPE 2] at (" + CurrentTime + ") " +
-                                                            CurrentTimeString, !IsAngleEditByEngine() && !IsPlayerLossConnection()))
-                                                        {
-                                                            LastKreedzHackTime = CurrentTime;
-                                                            KreedzHacksCount++;
-                                                        }
+                                                        LastKreedzHackTime = CurrentTime;
+                                                        KreedzHacksCount++;
                                                     }
                                                 }
                                             }
                                         }
-
-                                        last_rg_jump_time = rg_jump_time;
                                     }
+
+                                    last_rg_jump_time = rg_jump_time;
                                 }
 
                                 if (entryList[index].Name == "health")
