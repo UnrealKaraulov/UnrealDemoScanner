@@ -9814,7 +9814,7 @@ namespace DemoScanner.DG
                                     }
                                 }
                             }
-                            else if (plugin_valid_packets > 2)
+                            else if (plugin_all_packets > 10)
                             {
                                 if (IsRussia)
                                 {
