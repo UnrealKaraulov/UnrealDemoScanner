@@ -151,7 +151,7 @@ namespace DemoScanner.DG
         public static bool FirstAttack;
         public static bool NewDirectory;
         public static float LastBadMsecTime;
-
+        public static float PluginJmpTime;
         public static uint LastPlayerHull;
 
         //public static int DuckHack4Search = 0;
@@ -5458,19 +5458,27 @@ namespace DemoScanner.DG
 
                                 if (SearchJumpHack5 > 1)
                                 {
-                                    SearchJumpHack5--;
-                                    if (IsPlayerAnyJumpPressed() || !IsUserAlive())
+                                    if (RealAlive)
+                                    {
+                                        SearchJumpHack5--;
+                                        if (IsPlayerAnyJumpPressed() || !IsUserAlive())
+                                        {
+                                            SearchJumpHack5 = 0;
+                                        }
+                                    }
+                                    else
                                     {
                                         SearchJumpHack5 = 0;
                                     }
                                 }
                                 else if (SearchJumpHack5 == 1)
                                 {
+                                    
                                     SearchJumpHack5--;
                                     if (!IsPlayerAnyJumpPressed() && IsUserAlive() && !DisableJump5AndAim16)
                                     {
                                         DemoScanner_AddWarn(
-                                            "[EXPERIMENTAL][JUMPHACK TYPE 5] at (" + CurrentTime + "):" +
+                                            "[JUMPHACK TYPE 5] at (" + CurrentTime + "):" +
                                             CurrentTimeString, false, true, false, true);
                                     }
                                 }
@@ -5486,7 +5494,7 @@ namespace DemoScanner.DG
                                 //    if (!IsPlayerBtnJumpPressed() && IsUserAlive() && !DisableJump5AndAim16)
                                 //    {
                                 //        DemoScanner_AddWarn(
-                                //            "[EXPERIMENTAL][JUMPHACK TYPE 5.1] at (" + CurrentTime + "):" +
+                                //            "[JUMPHACK TYPE 5.1] at (" + CurrentTime + "):" +
                                 //            CurrentTimeString, true, true, false, true);
                                 //    }
                                 //}
@@ -5805,6 +5813,23 @@ namespace DemoScanner.DG
                                             JumpCount3++;
                                         }
 
+                                        /*
+                                        if (abs(CurrentTime - PluginJmpTime) > 0.35)
+                                        {
+                                            if (flPluginVersion > 1.62 && abs(CurrentTime - LastKreedzHackTime) > 2.5f &&
+                                                        abs(LastJumpHackFalseDetectionTime) < EPSILON)
+                                            {
+                                                if (DemoScanner_AddWarn(
+                                                    "[JUMPHACK TYPE 6] at (" + CurrentTime + ") " +
+                                                    CurrentTimeString, !IsAngleEditByEngine()))
+                                                {
+                                                    LastKreedzHackTime = CurrentTime;
+                                                    KreedzHacksCount++;
+                                                }
+                                            }
+                                        }*/
+
+                                        //Console.WriteLine("LastJumpNoGroundTime = " + LastJumpNoGroundTime);
                                         LastJumpNoGroundTime = CurrentTime;
                                     }
 
@@ -8083,7 +8108,7 @@ namespace DemoScanner.DG
                         DemoScanner_AddInfo("[DUCK HACK TYPE 2] - Приседание без кнопок, читы");
                         DemoScanner_AddInfo("[DUCK HACK TYPE 3] - Так называемый ddrun/gstrafe, читы");
                         DemoScanner_AddInfo("[DUCK HACK TYPE 4] - Приседание без соответсвующих команд, читы");
-                        DemoScanner_AddInfo("[EXPERIMENTAL][JUMPHACK TYPE 5.X] - Распрыжка без команд, попытка обхода");
+                        DemoScanner_AddInfo("[JUMPHACK TYPE 5.X] - Распрыжка без команд, попытка обхода");
                         DemoScanner_AddInfo("[FAKELAG TYPE X] - Фейклаги, подделка данных");
                         DemoScanner_AddInfo("[FAKESPEED TYPE X] - Спидхак или подделка данных");
                         DemoScanner_AddInfo("[FORWARD HACK TYPE 1] - Чит на ускорение, распрыжку");
@@ -8137,7 +8162,7 @@ namespace DemoScanner.DG
                         DemoScanner_AddInfo("[DUCK HACK TYPE 2] - Duck no button, part of hack");
                         DemoScanner_AddInfo("[DUCK HACK TYPE 3] - ddrun/gstrafe, part of hack");
                         DemoScanner_AddInfo("[DUCK HACK TYPE 4] - Duck no any commands, part of hack");
-                        DemoScanner_AddInfo("[EXPERIMENTAL][JUMPHACK TYPE 5.X] - Jump no any command, bypass tries");
+                        DemoScanner_AddInfo("[JUMPHACK TYPE 5.X] - Jump no any command, bypass tries");
                         DemoScanner_AddInfo("[FAKELAG TYPE X] - Fakelag, fake data");
                         DemoScanner_AddInfo("[FAKESPEED TYPE X] - Speedhack, fake data");
                         DemoScanner_AddInfo("[FORWARD HACK TYPE 1] - Run forward hack");
@@ -9683,11 +9708,14 @@ namespace DemoScanner.DG
                                 {
                                     JumpCount6++;
                                 }
+
+                                //Console.WriteLine("PluginJmpTime = " + LastJumpNoGroundTime);
                                 //Console.WriteLine(JumpCount6.ToString());
                                 if (JumpCount6 > 1)
                                 {
-                                    SearchJumpHack5 = 5;
+                                    SearchJumpHack5 = 4;
                                 }
+                                PluginJmpTime = CurrentTime;
                             }
                         }
                         else if (cmdList[1] == "SCMD")
@@ -10088,7 +10116,7 @@ namespace DemoScanner.DG
                                             if (Event7Hack > 1)
                                             {
                                                 DemoScanner_AddWarn(
-                                                    "[EXPERIMENTAL][CMD HACK TYPE 7] at (" + CurrentTime + "):" +
+                                                    "[CMD HACK TYPE 7] at (" + CurrentTime + "):" +
                                                     CurrentTimeString, false, true, false, true);
                                             }
                                         }
@@ -10144,7 +10172,7 @@ namespace DemoScanner.DG
                                 //    {
                                 //        if (PluginEvents != 0)
                                 //            DemoScanner_AddWarn(
-                                //                "[EXPERIMENTAL][CMD HACK TYPE 8] at (" + CurrentTime + "):" +
+                                //                "[CMD HACK TYPE 8] at (" + CurrentTime + "):" +
                                 //                CurrentTimeString, false, true, false, true);
                                 //        else
                                 //            BadEvents += 8;
@@ -11712,6 +11740,7 @@ namespace DemoScanner.DG
 
             var deltaSequence = BitBuffer.ReadBoolean();
             int seqnum = 0;
+
             if (deltaSequence)
             {
                 seqnum = BitBuffer.ReadBits(8); // delta sequence number
@@ -11722,17 +11751,19 @@ namespace DemoScanner.DG
                 OutDumpString += "\n[seqnum = " + seqnum + "]\n";
             }
 
-            var tmpdelta = GetDeltaStructure("clientdata_t");
-            tmpdelta.ReadDelta(BitBuffer, null);
+            GetDeltaStructure("clientdata_t").ReadDelta(BitBuffer, null);
+
             while (BitBuffer.ReadBoolean())
             {
+                int idx = 0; 
+                
                 if (demo.GsDemoInfo.Header.NetProtocol < 47)
                 {
-                    BitBuffer.SeekBits(5); // weapon index
+                    idx = BitBuffer.ReadBits(5); // weapon index
                 }
                 else
                 {
-                    BitBuffer.SeekBits(6); // weapon index
+                    idx = BitBuffer.ReadBits(6); // weapon index
                 }
 
                 GetDeltaStructure("weapon_data_t").ReadDelta(BitBuffer, null);
@@ -13999,6 +14030,7 @@ namespace DemoScanner.DG
                         var value = ParseEntry(bitBuffer, entryList[index]);
                         if (Name != null && entryList[index].Name != null)
                         {
+                          //   Console.WriteLine("Name["+ Name + "]:" + entryList[index].Name);
                             //string addline = "|" + entryList[index].Name + "\n";
                             //if (testData.ContainsKey(Name))
                             //{
