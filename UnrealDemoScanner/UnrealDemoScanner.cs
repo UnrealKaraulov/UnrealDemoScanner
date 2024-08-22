@@ -732,6 +732,7 @@ namespace DemoScanner.DG
         public static uint LastLossPacketCount;
         public static int CurrentMsgBytes;
         public static int MaxBytesPerSecond;
+        public static List<int> BytesPerSecond = new List<int>();
         public static int MsgOverflowSecondsCount;
         public static int CurrentMsgHudCount;
         public static int CurrentMsgDHudCount;
@@ -3444,10 +3445,13 @@ namespace DemoScanner.DG
                                         }
                                         else
                                         {
+
                                             if (MaxBytesPerSecond < CurrentMsgBytes)
                                             {
                                                 MaxBytesPerSecond = CurrentMsgBytes;
                                             }
+
+                                            BytesPerSecond.Add(CurrentMsgBytes);
 
                                             if (CurrentMsgBytes >= 970000)
                                             {
@@ -9141,6 +9145,10 @@ namespace DemoScanner.DG
                     {
                         Console.WriteLine("[SERVER DIAGNOSTIC DATA]");
                         Console.WriteLine("Max input bytes per second: " + MaxBytesPerSecond);
+                        if (BytesPerSecond.Count > 1)
+                        {
+                            Console.WriteLine("Average input bytes per second: " + (int)BytesPerSecond.Average());
+                        }
                         Console.WriteLine("Max channel overflows (100kbytes rate): " + MsgOverflowSecondsCount);
                         Console.WriteLine("Max HUD messages per seconds: " + MaxHudMsgPerSecond);
                         Console.WriteLine("Max DHUD messages per seconds: " + MaxDHudMsgPerSecond);
@@ -9156,6 +9164,10 @@ namespace DemoScanner.DG
                     {
                         Console.WriteLine("[БЛОК ДАННЫХ ДЛЯ ДИАГНОСТИКИ СЕРВЕРА]");
                         Console.WriteLine("Максимальное количество байт в секунду: " + MaxBytesPerSecond);
+                        if (BytesPerSecond.Count > 1)
+                        {
+                            Console.WriteLine("Среднее количество байт в секунду: " + (int)BytesPerSecond.Average());
+                        }
                         Console.WriteLine("Количество перегрузок канала (100кбайт): " + MsgOverflowSecondsCount);
                         Console.WriteLine("Количество HUD сообщений в секунду: " + MaxHudMsgPerSecond);
                         Console.WriteLine("Количество DHUD сообщений в секунду: " + MaxDHudMsgPerSecond);
