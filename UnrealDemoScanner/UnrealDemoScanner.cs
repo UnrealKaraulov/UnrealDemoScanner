@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.73.4b";
+        public const string PROGRAMVERSION = "1.73.5b";
 
         public static bool DEMOSCANNER_HLTV = false;
 
@@ -5477,7 +5477,7 @@ namespace DemoScanner.DG
                                 }
                                 else if (SearchJumpHack5 == 1)
                                 {
-                                    
+
                                     SearchJumpHack5--;
                                     if (!IsPlayerAnyJumpPressed() && IsUserAlive() && !DisableJump5AndAim16)
                                     {
@@ -7559,7 +7559,7 @@ namespace DemoScanner.DG
             {
                 if (!DisableJump5AndAim16)
                 {
-                    if (JumpCount3 > 10 && (JumpCount6 == 0 || Math.Abs(JumpCount3 - JumpCount6) > 5))
+                    if (JumpCount3 > 20 && (JumpCount6 == 0 || (JumpCount3 > JumpCount6 && JumpCount3 / JumpCount6 > 1.5)))
                     {
                         DemoScanner_AddWarn("[UNKNOWN BHOP/JUMPHACK TYPE 1.1] in demo file!", true, true, !DisableJump5AndAim16,
                             true);
@@ -7588,7 +7588,7 @@ namespace DemoScanner.DG
             }
 #endif
             ForceFlushScanResults();
-            Console.ForegroundColor = ConsoleColor.DarkGreen;
+            /*Console.ForegroundColor = ConsoleColor.DarkGreen;
             if (IsRussia)
             {
                 Console.WriteLine(PROGRAMNAME + " [ " + PROGRAMVERSION + " ] результаты анализа:");
@@ -7596,7 +7596,7 @@ namespace DemoScanner.DG
             else
             {
                 Console.WriteLine(PROGRAMNAME + " [ " + PROGRAMVERSION + " ] scan result:");
-            }
+            }*/
 
             GameEnd = false;
             CL_Intermission = 0;
@@ -7767,47 +7767,47 @@ namespace DemoScanner.DG
                 }
             }
 
-            if (BHOPcount / 2 > 1)
-            {
-                if (IsRussia)
-                {
-                    OutTextDetects.Add("[BHOP] Количество предупреждений:" + BHOPcount / 2);
-                    Console.WriteLine("[BHOP] Количество предупреждений:" + BHOPcount / 2);
-                }
-                else
-                {
-                    OutTextDetects.Add("[BHOP] Warn count:" + BHOPcount / 2);
-                    Console.WriteLine("[BHOP] Warn count:" + BHOPcount / 2);
-                }
-            }
+            //if (BHOPcount / 2 > 1)
+            //{
+            //    if (IsRussia)
+            //    {
+            //        OutTextDetects.Add("[BHOP] Количество предупреждений:" + BHOPcount / 2);
+            //        Console.WriteLine("[BHOP] Количество предупреждений:" + BHOPcount / 2);
+            //    }
+            //    else
+            //    {
+            //        OutTextDetects.Add("[BHOP] Warn count:" + BHOPcount / 2);
+            //        Console.WriteLine("[BHOP] Warn count:" + BHOPcount / 2);
+            //    }
+            //}
 
-            if (TriggerAimAttackCount > 0)
-            {
-                if (IsRussia)
-                {
-                    OutTextDetects.Add("[Триппер бот] Количество предупреждений:" + TriggerAimAttackCount);
-                    Console.WriteLine("[Триппер бот] Количество предупреждений:" + TriggerAimAttackCount);
-                }
-                else
-                {
-                    OutTextDetects.Add("[TRIGGERBOT] Warn count:" + TriggerAimAttackCount);
-                    Console.WriteLine("[TRIGGERBOT] Warn count:" + TriggerAimAttackCount);
-                }
-            }
+            //if (TriggerAimAttackCount > 0)
+            //{
+            //    if (IsRussia)
+            //    {
+            //        OutTextDetects.Add("[Триппер бот] Количество предупреждений:" + TriggerAimAttackCount);
+            //        Console.WriteLine("[Триппер бот] Количество предупреждений:" + TriggerAimAttackCount);
+            //    }
+            //    else
+            //    {
+            //        OutTextDetects.Add("[TRIGGERBOT] Warn count:" + TriggerAimAttackCount);
+            //        Console.WriteLine("[TRIGGERBOT] Warn count:" + TriggerAimAttackCount);
+            //    }
+            //}
 
-            if (TotalAimBotDetected > 0)
-            {
-                if (IsRussia)
-                {
-                    OutTextDetects.Add("[AIM] Количество предупреждений:" + TotalAimBotDetected);
-                    Console.WriteLine("[AIM] Количество предупреждений:" + TotalAimBotDetected);
-                }
-                else
-                {
-                    OutTextDetects.Add("[AIM] Warn count:" + TotalAimBotDetected);
-                    Console.WriteLine("[AIM] Warn count:" + TotalAimBotDetected);
-                }
-            }
+            //if (TotalAimBotDetected > 0)
+            //{
+            //    if (IsRussia)
+            //    {
+            //        OutTextDetects.Add("[AIM] Количество предупреждений:" + TotalAimBotDetected);
+            //        Console.WriteLine("[AIM] Количество предупреждений:" + TotalAimBotDetected);
+            //    }
+            //    else
+            //    {
+            //        OutTextDetects.Add("[AIM] Warn count:" + TotalAimBotDetected);
+            //        Console.WriteLine("[AIM] Warn count:" + TotalAimBotDetected);
+            //    }
+            //}
 
             if (FakeLagAim > 0)
             {
@@ -7828,27 +7828,27 @@ namespace DemoScanner.DG
             //    OutTextDetects.Add("[AIM8 BYPASS WITH DOOR]  Warn count:" + FakeLagAim);
             //    Console.WriteLine("[AIM8 BYPASS WITH DOOR] Warn count:" + BypassWarn8_2);
             //}
-            if (KreedzHacksCount > 0)
-            {
-                if (IsRussia)
-                {
-                    OutTextDetects.Add(
-                        "[STRAFE/GROUND/FASTRUN ХАК] Количество предупреждений:" +
-                        KreedzHacksCount /*+ ". Found " + JumpCount + " +jump commands"*/);
-                    Console.WriteLine(
-                        "[STRAFE/GROUND/FASTRUN ХАК] Количество предупреждений:" +
-                        KreedzHacksCount /*+ ". Found " + JumpCount + " +jump commands*/);
-                }
-                else
-                {
-                    OutTextDetects.Add(
-                        "[STRAFE/GROUND/FASTRUN HACK] Warn count:" +
-                        KreedzHacksCount /*+ ". Found " + JumpCount + " +jump commands"*/);
-                    Console.WriteLine(
-                        "[STRAFE/GROUND/FASTRUN HACK] Warn count:" +
-                        KreedzHacksCount /*+ ". Found " + JumpCount + " +jump commands*/);
-                }
-            }
+            //if (KreedzHacksCount > 0)
+            //{
+            //    if (IsRussia)
+            //    {
+            //        OutTextDetects.Add(
+            //            "[STRAFE/GROUND/FASTRUN ХАК] Количество предупреждений:" +
+            //            KreedzHacksCount /*+ ". Found " + JumpCount + " +jump commands"*/);
+            //        Console.WriteLine(
+            //            "[STRAFE/GROUND/FASTRUN ХАК] Количество предупреждений:" +
+            //            KreedzHacksCount /*+ ". Found " + JumpCount + " +jump commands*/);
+            //    }
+            //    else
+            //    {
+            //        OutTextDetects.Add(
+            //            "[STRAFE/GROUND/FASTRUN HACK] Warn count:" +
+            //            KreedzHacksCount /*+ ". Found " + JumpCount + " +jump commands"*/);
+            //        Console.WriteLine(
+            //            "[STRAFE/GROUND/FASTRUN HACK] Warn count:" +
+            //            KreedzHacksCount /*+ ". Found " + JumpCount + " +jump commands*/);
+            //    }
+            //}
 
             if (UnknownMessages > 0)
             {
@@ -10798,6 +10798,7 @@ namespace DemoScanner.DG
             AddUserMessageHandler("WeaponList", WeaponList);
             AddUserMessageHandler("HealthInfo", HealthInfo);
             AddUserMessageHandler("HLTV", HLTVMSG);
+            //AddUserMessageHandler("StatusText", StatusText);
         }
 
         // public so svc_deltadescription can be parsed elsewhere
@@ -11767,8 +11768,8 @@ namespace DemoScanner.DG
 
             while (BitBuffer.ReadBoolean())
             {
-                int idx = 0; 
-                
+                int idx = 0;
+
                 if (demo.GsDemoInfo.Header.NetProtocol < 47)
                 {
                     idx = BitBuffer.ReadBits(5); // weapon index
@@ -13077,6 +13078,13 @@ namespace DemoScanner.DG
             var dest = BitBuffer.ReadByte();
             var health_and_flags = BitBuffer.ReadByte();
         }
+        /* private void StatusText()
+         {
+             BitBuffer.ReadByte();
+             var dest = BitBuffer.ReadByte();
+             var data = BitBuffer.ReadString();
+             Console.WriteLine("Line:" + dest + " = \"" + data + "\"");
+         }*/
 
         private void HealthInfo()
         {
@@ -14042,7 +14050,7 @@ namespace DemoScanner.DG
                         var value = ParseEntry(bitBuffer, entryList[index]);
                         if (Name != null && entryList[index].Name != null)
                         {
-                          //   Console.WriteLine("Name["+ Name + "]:" + entryList[index].Name);
+                            //   Console.WriteLine("Name["+ Name + "]:" + entryList[index].Name);
                             //string addline = "|" + entryList[index].Name + "\n";
                             //if (testData.ContainsKey(Name))
                             //{
