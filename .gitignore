@@ -177,3 +177,5 @@ FalsePositive/FalseAIM82_OPENDOOR.dem
 /.vs
 /ReVoiceDecoder/Release/microsoft
 /ReVoiceDecoder/Release/microsoft/STL
+*.command
+*.json

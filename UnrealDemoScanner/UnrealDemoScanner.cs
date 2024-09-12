@@ -26,7 +26,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.73.5b";
+        public const string PROGRAMVERSION = "1.73.6b";
 
         public static bool DEMOSCANNER_HLTV = false;
 
@@ -153,6 +153,7 @@ namespace DemoScanner.DG
         public static float LastBadMsecTime;
         public static float PluginJmpTime;
         public static uint LastPlayerHull;
+        public static bool NoWeaponData = true;
 
         //public static int DuckHack4Search = 0;
         public static bool IsDuck;
@@ -7571,7 +7572,7 @@ namespace DemoScanner.DG
                             true);
                     }
 
-                    if (attackscounter4 > 100 && attackscounter6 <= 2)
+                    if (((!NoWeaponData && attackscounter4 > 100) || (NoWeaponData && attackscounter > 100)) && attackscounter6 <= 2)
                     {
                         DemoScanner_AddWarn("[UNKNOWN AIM/TRIGGER HACK TYPE 1.2] in demo file!", true, true, !DisableJump5AndAim16,
                            true);
@@ -7613,7 +7614,7 @@ namespace DemoScanner.DG
                 }
             }
 
-            if (attackscounter == 0 || attackscounter3 == 0 || attackscounter4 == 0 || (PluginVersion.Length > 0 && flPluginVersion > 1.59 && attackscounter4 == 0))
+            if (attackscounter == 0 || attackscounter3 == 0 || (attackscounter4 == 0 && !NoWeaponData) || (PluginVersion.Length > 0 && flPluginVersion > 1.59 && attackscounter6 == 0))
             {
                 if (IsRussia)
                 {
@@ -14164,6 +14165,7 @@ namespace DemoScanner.DG
 
                             if (Name == "weapon_data_t")
                             {
+                                NoWeaponData = false;
                                 if (entryList[index].Name == "m_flNextPrimaryAttack")
                                 {
                                     if (!UserAlive && abs(CurrentTime - LastDeathTime) > 5.0)
@@ -14613,6 +14615,7 @@ namespace DemoScanner.DG
 
                             if (Name == "weapon_data_t")
                             {
+                                NoWeaponData = false;
                                 if (NeedCheckAttack2 && entryList[index].Name == "m_fAimedDamage")
                                 {
                                     var damage = value != null ? (float)value : 0;
