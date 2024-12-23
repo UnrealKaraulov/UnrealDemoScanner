@@ -26,8 +26,14 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.73.8b";
+        public const string PROGRAMVERSION = "1.73.9b";
 
+        public static string FoundNewVersion = "";
+
+
+
+
+        //
         public static bool DEMOSCANNER_HLTV = false;
 
         public enum AngleDirection
@@ -104,6 +110,8 @@ namespace DemoScanner.DG
             }
         }
 
+        public const bool MOUSE_FILTER = true;
+
         public const int RESOURCE_DOWNLOAD_THREADS = 20;
         public const float EPSILON = 0.0000005f;
         public const float EPSILON_2 = 0.00005f;
@@ -112,8 +120,8 @@ namespace DemoScanner.DG
         public const float MAX_SPREAD_CONST = 0.00004f;
         public const float MAX_SPREAD_CONST2 = 0.00004f;
         public const float MIN_SENS_DETECTED = 0.0004f; //SENS < 0.02 (0.018)
-        public const float MIN_SENS_WARNING = 0.004f; //SENS < 0.2 (0.18)
-        public const float MIN_PLAYABLE_SENS = 0.004f;
+        public const float MIN_SENS_WARNING = MOUSE_FILTER ? 0.002f : 0.004f; //SENS < 0.2 (0.18)
+        public const float MIN_PLAYABLE_SENS = MOUSE_FILTER ? 0.002f :  0.004f;
 
         public static bool FoundFirstPluginPacket;
         public static int plugin_all_packets;
@@ -231,7 +239,8 @@ namespace DemoScanner.DG
         public static float LastUnJumpTime;
         public static float IdealJmpTmpTime1;
         public static float IdealJmpTmpTime2;
-        public static int BadTimeFound;
+        public static int BadTimeFound = 0;
+        public static int BadTimeSkip = 0;
         public static float BadFoundTime;
         public static WeaponIdType CurrentWeapon = WeaponIdType.WEAPON_NONE;
         public static WeaponIdType StrikesWeapon = WeaponIdType.WEAPON_NONE;
@@ -1581,7 +1590,7 @@ namespace DemoScanner.DG
                 {
                     if (abs(CurrentTime) < 0.01 || CurrentTime < LastAttackStartStopCmdTime)
                     {
-                        BadTimeFound += 50;
+                        BadTimeFound += 100;
                     }
 
                     SearchAutoReload = false;
@@ -2112,7 +2121,6 @@ namespace DemoScanner.DG
                             {
                                 BHOPcount += BHOP_GroundWarn - 1;
                                 LastBhopTime = CurrentTime;
-                                BHOP_GroundWarn = 0;
                             }
                         }
                     }
@@ -2131,7 +2139,7 @@ namespace DemoScanner.DG
 
                 if (abs(CurrentTime) < 0.01 || CurrentTime < LastJumpTime)
                 {
-                    BadTimeFound += 10;
+                    BadTimeFound += 50;
                 }
 
                 LastJumpTime = CurrentTime;
@@ -2184,7 +2192,6 @@ namespace DemoScanner.DG
                             {
                                 BHOPcount += BHOP_GroundWarn - 1;
                                 LastBhopTime = CurrentTime;
-                                BHOP_GroundWarn = 0;
                             }
                         }
                     }
@@ -2604,6 +2611,7 @@ namespace DemoScanner.DG
                                 {
                                     if (match.Groups[1].Value != PROGRAMVERSION)
                                     {
+                                        FoundNewVersion = match.Groups[1].Value;
                                         Console.WriteLine($"Found new version \"{match.Groups[1].Value}\"! Current version:\"{PROGRAMVERSION}\".");
                                     }
                                 }
@@ -2619,9 +2627,9 @@ namespace DemoScanner.DG
             }
 
             var CurrentDir = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName).Replace("\\", "/");
-            if (CurrentDir.Length > 0 && (CurrentDir.EndsWith("\\") || CurrentDir.EndsWith("/")))
+            if (CurrentDir.Length > 0 && CurrentDir.EndsWith("/"))
             {
-                CurrentDir.Remove(CurrentDir.Length - 1);
+                CurrentDir = CurrentDir.Remove(CurrentDir.Length - 1);
             }
 
             if (!SKIP_RESULTS)
@@ -4430,15 +4438,31 @@ namespace DemoScanner.DG
 
                                 if (AlternativeTimeCounter == 1)
                                 {
-                                    if (abs(CurrentTime) > 1.0 && abs(CurrentTimeSvc) < 0.01f)
+                                    if (abs(CurrentTime) > 1.0 && abs(CurrentTimeSvc) == 0.0001f)
                                     {
-                                        BadTimeFound += 25;
+                                        if (BadTimeSkip > 0)
+                                        {
+                                            BadTimeSkip--;
+                                        }
+                                        else
+                                        {
+                                            BadTimeFound += 25;
+                                            BadTimeSkip = 10;
+                                        }
                                     }
                                     else
                                     {
-                                        if (CurrentTime > 1.0 && CurrentTimeSvc < 0.01f)
+                                        if (CurrentTime > 1.0 && abs(CurrentTimeSvc) < 0.0001f)
                                         {
-                                            BadTimeFound += 25;
+                                            if (BadTimeSkip > 0)
+                                            {
+                                                BadTimeSkip--;
+                                            }
+                                            else
+                                            {
+                                                BadTimeFound += 25;
+                                                BadTimeSkip = 10;
+                                            }
                                         }
                                     }
 
@@ -4446,15 +4470,31 @@ namespace DemoScanner.DG
                                 }
                                 else if (AlternativeTimeCounter == 0)
                                 {
-                                    if (abs(CurrentTime) > 1.0 && abs(nf.RParms.Time) < 0.01f)
+                                    if (abs(CurrentTime) > 1.0 && abs(nf.RParms.Time) < 0.0001f)
                                     {
-                                        BadTimeFound += 25;
+                                        if (BadTimeSkip > 0)
+                                        {
+                                            BadTimeSkip--;
+                                        }
+                                        else
+                                        {
+                                            BadTimeFound += 25;
+                                            BadTimeSkip = 10;
+                                        }
                                     }
                                     else
                                     {
-                                        if (CurrentTime > 1.0 && nf.RParms.Time < 0.01f)
+                                        if (CurrentTime > 1.0 && abs(nf.RParms.Time) < 0.0001f)
                                         {
-                                            BadTimeFound += 25;
+                                            if (BadTimeSkip > 0)
+                                            {
+                                                BadTimeSkip--;
+                                            }
+                                            else
+                                            {
+                                                BadTimeFound += 25;
+                                                BadTimeSkip = 10;
+                                            }
                                         }
                                     }
 
@@ -4471,7 +4511,7 @@ namespace DemoScanner.DG
                                     CurrentTime += newtime;
                                 }
 
-                                if (BadTimeFound > 500 && AlternativeTimeCounter <= 2)
+                                if (BadTimeFound > 404 && AlternativeTimeCounter <= 2)
                                 {
                                     BadTimeFound = 0;
                                     AlternativeTimeCounter++;
@@ -4484,13 +4524,13 @@ namespace DemoScanner.DG
                                     if (IsRussia)
                                     {
                                         DemoScanner_AddWarn(
-                                            "[ОШИБКА ВРЕМЕНИ. ДЕМО ВЗЛОМАНО?!:" + AlternativeTimeCounter + " ] на (" +
+                                            "[ОШИБКА ДОСТУПА К ВРЕМЕНИ:" + AlternativeTimeCounter + " ] на (" +
                                             CurrentTime + "):" + CurrentTimeString, true, true, true);
                                     }
                                     else
                                     {
                                         DemoScanner_AddWarn(
-                                            "[TIME ERROR! DEMO IS CRACKED?!:" + AlternativeTimeCounter + " ] at (" +
+                                            "[TIME ACCESS ERROR:" + AlternativeTimeCounter + " ] at (" +
                                             CurrentTime + "):" + CurrentTimeString, true, true, true);
                                     }
 
@@ -6228,7 +6268,7 @@ namespace DemoScanner.DG
                                                 nospreadtest2 = spreadtest > spreadtest2 ? spreadtest : spreadtest2;
                                             }
                                             // Console.WriteLine(nospreadtest.ToString("F8"));
-                                            if (abs(NoSpreadDetectionTime - CurrentTime) > 0.1f &&
+                                            if (abs(NoSpreadDetectionTime - CurrentTime) > 1.0f &&
                                                 spreadtest > MAX_SPREAD_CONST2 && spreadtest2 > MAX_SPREAD_CONST2)
                                             {
                                                 if (ThirdHackDetected <= 0)
@@ -6277,22 +6317,22 @@ namespace DemoScanner.DG
                                             (spreadtest_1 > MAX_SPREAD_CONST && spreadtest_1_2 > MAX_SPREAD_CONST) ||
                                                 (spreadtest_2 > MAX_SPREAD_CONST && spreadtest_2_2 > MAX_SPREAD_CONST))
                                         {
-                                            if (spreadtest_3 < 0.001f && spreadtest_3 < 0.001f)
+                                            if (spreadtest_3 < 0.001f && spreadtest_3_2 < 0.001f)
                                             {
-                                                if (abs(NoSpreadDetectionTime - CurrentTime) > 0.01f)
+                                                if (abs(NoSpreadDetectionTime - CurrentTime) > 2.0f)
                                                 {
                                                     if (ThirdHackDetected <= 0)
                                                     {
                                                         NoSpreadDetectionTime = CurrentTime;
                                                         DemoScanner_AddWarn(
                                                             "[NO SPREAD TYPE 3 " + CurrentWeapon + "] at (" + CurrentTime +
-                                                            "):" + CurrentTimeString/* + "[" +
+                                                            "):" + CurrentTimeString + "[" +
                                                             spreadtest_1 + " " +
                                                             spreadtest_1_2 + " " +
                                                             spreadtest_2 + " " +
                                                             spreadtest_2_2 + " " +
                                                             spreadtest_3 + " " +
-                                                            spreadtest_3_2 + " " + "]"*/, false);
+                                                            spreadtest_3_2 + " " + "]", false);
                                                     }
                                                 }
                                             }
@@ -6773,7 +6813,7 @@ namespace DemoScanner.DG
                                     {
                                         if (abs(Punch0_Search_Time[i] - CurrentTime) > 0.5f)
                                         {
-                                            if (abs(NoSpreadDetectionTime - CurrentTime) > 1.00f)
+                                            if (abs(NoSpreadDetectionTime - CurrentTime) > 2.00f)
                                             {
                                                 NoSpreadDetectionTime = CurrentTime;
 
@@ -7361,14 +7401,13 @@ namespace DemoScanner.DG
                                 }
 
                                 //subnode.Text += "msg = " + nf.Msg + "\n";
-                                if (abs(CurrentTime) > 0 && (FirstAttack || FirstJump) &&
-                                    !NewDirectory)
+                                if (abs(CurrentTime) > 0 && (FirstAttack || FirstJump) && !NewDirectory)
                                 {
                                     if (LastIncomingSequence > 0 &&
+                                        CurrentFrameDuplicated == 0 &&
                                         Math.Abs(nf.IncomingSequence - LastIncomingSequence) > LastLossPacketCount + 3 &&
                                         Math.Abs(nf.IncomingSequence - LastIncomingSequence) > 8 &&
-                                        Math.Abs(nf.OutgoingSequence - LastOutgoingSequence) > 6 &&
-                                        CurrentFrameDuplicated == 0)
+                                        Math.Abs(nf.OutgoingSequence - LastOutgoingSequence) > 6)
                                     {
                                         if (FrameErrors > 0 && IsUserAlive())
                                         {
@@ -7392,7 +7431,7 @@ namespace DemoScanner.DG
 
                                 if (IsUserAlive())
                                 {
-                                    if (LastIncomingSequence > 0 && nf.IncomingSequence < LastIncomingSequence)
+                                    if (LastIncomingSequence != 0 && nf.IncomingSequence < LastIncomingSequence)
                                     {
                                         if (abs(CurrentTime - LastCmdHack) > 3.0)
                                         {
@@ -7560,7 +7599,7 @@ namespace DemoScanner.DG
             {
                 if (!DisableJump5AndAim16)
                 {
-                    if (JumpCount3 > 20 && (JumpCount6 == 0 || (JumpCount3 > JumpCount6 && JumpCount3 / JumpCount6 > 1.5)))
+                    if (JumpCount3 > 20 && (JumpCount6 == 0 || (JumpCount3 > JumpCount6 && (JumpCount3 / (float)JumpCount6) > 1.5f)))
                     {
                         DemoScanner_AddWarn("[UNKNOWN BHOP/JUMPHACK TYPE 1.1] in demo file!", true, true, !DisableJump5AndAim16,
                             true);
@@ -7659,19 +7698,22 @@ namespace DemoScanner.DG
             Console.ForegroundColor = ConsoleColor.DarkRed;
             if (FoundForceCenterView > 0)
             {
-                if (IsRussia)
+                if (FoundForceCenterView <= 55)
                 {
-                    DemoScanner_AddInfo("Использование запрещенной команды force_centerview: " + FoundForceCenterView +
-                                        " " + (FoundForceCenterView > 50
-                                            ? "\n. (Подозрительно. Проверьте демку вручную.)"
-                                            : ""));
-                }
-                else
-                {
-                    DemoScanner_AddInfo("Used illegal force_centerview commands: " + FoundForceCenterView + " " +
-                                        (FoundForceCenterView > 50
-                                            ? "\n. (Check demo manually for possible demoscanner bypass)"
-                                            : ""));
+                    if (IsRussia)
+                    {
+                        DemoScanner_AddInfo("Использование запрещенной команды force_centerview: " + FoundForceCenterView +
+                                            " " + (FoundForceCenterView >= 50
+                                                ? "\n. (Подозрительно. Проверьте демку вручную.)"
+                                                : ""));
+                    }
+                    else
+                    {
+                        DemoScanner_AddInfo("Used illegal force_centerview commands: " + FoundForceCenterView + " " +
+                                            (FoundForceCenterView >= 50
+                                                ? "\n. (Check demo manually for possible demoscanner bypass)"
+                                                : ""));
+                    }
                 }
             }
 
@@ -7927,23 +7969,46 @@ namespace DemoScanner.DG
                 if (IsRussia)
                 {
                     Console.WriteLine("Анализ завершен, потрачено " + EndScanTime.ToString("T") + " времени");
-                    Console.WriteLine("Игровое время демо начинается с " + t1str + " по " + t2str + " секунд.");
+                    Console.WriteLine("Проверено игровое время с " + t1str + " по " + t2str + " секунд.");
                 }
                 else
                 {
                     Console.WriteLine("Scan completed. Scan time: " + EndScanTime.ToString("T"));
-                    Console.WriteLine("Demo playing time: " + t1str + " ~ " + t2str + " seconds.");
+                    Console.WriteLine("Scanned playing time: " + t1str + " ~ " + t2str + " seconds.");
                 }
             }
             catch
             {
                 if (IsRussia)
                 {
-                    Console.WriteLine("Анализ завершен");
+                    Console.WriteLine("Анализ завершен.");
                 }
                 else
                 {
                     Console.WriteLine("Scan completed.");
+                }
+            }
+
+            if (FoundNewVersion.Length > 0)
+            {
+                if (IsRussia)
+                {
+                    Console.WriteLine("Вы используете устаревший сканер. Доступно обновление: " + FoundNewVersion);
+                }
+                else
+                {
+                    Console.WriteLine("You are using an old version. A new update is available: " + FoundNewVersion);
+                }
+            }
+            else
+            {
+                if (IsRussia)
+                {
+                    Console.WriteLine("Используется версия демо сканера:" + PROGRAMVERSION);
+                }
+                else
+                {
+                    Console.WriteLine("Using demo scanner version:" + PROGRAMVERSION);
                 }
             }
 
@@ -8139,6 +8204,8 @@ namespace DemoScanner.DG
                             "[THIRD PERSON TYPE X] - Вид от третьего лица, может быть читом, или сервер-плагином");
                         DemoScanner_AddInfo("[TRIGGER TYPE X] - Триггер бот");
                         DemoScanner_AddInfo("[BETA] - Находится на бета тестировании, проверять в игре!");
+
+                        DemoScanner_AddInfo("Внимание! Сканер не видит некоторые современные читы!");
                     }
                     else
                     {
@@ -8194,6 +8261,8 @@ namespace DemoScanner.DG
                             "[THIRD PERSON TYPE X] - Third person hack, can be part of hack, or server plugin");
                         DemoScanner_AddInfo("[TRIGGER TYPE X] - Trigger bot");
                         DemoScanner_AddInfo("[BETA] - This warn in beta test mode. Please check it ingame!");
+
+                        DemoScanner_AddInfo("Attention! Scanner does not detect some modern cheats!");
                     }
                 }
 
@@ -8485,7 +8554,10 @@ namespace DemoScanner.DG
                     Console.WriteLine(
                         " * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ");
                     Console.WriteLine(" ");
-                    Console.WriteLine(" ");
+                    DemoScanner_AddInfo("Внимание! Сканер не видит некоторые современные читы!");
+                    Console.WriteLine(
+                        " * ");
+                    DemoScanner_AddInfo("Attention! Scanner does not detect some modern cheats!");
                     Console.WriteLine(" ");
                     Console.WriteLine(
                         " * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ");
@@ -9628,6 +9700,7 @@ namespace DemoScanner.DG
                 OutDumpString += "\n{ UCMD PLUGIN MESSAGE:" + (cmd.Length > 0 ? cmd : "INVALID MSG!") + "}\n";
             }
 
+            plugin_all_packets++;
             if (cmd.Length <= 0)
             {
                 if (abs(CurrentTime - LastCmdHack) > 10.0f)
@@ -9639,778 +9712,777 @@ namespace DemoScanner.DG
             }
 
             var cmdList = cmd.Split('/');
-            if (cmdList.Length > 0)
+            if (cmdList[0] == "UDS")
             {
-                if (cmdList[0] == "UDS")
+                if (!FoundFirstPluginPacket)
                 {
-                    if (cmdList.Length > 2)
+                    FoundFirstPluginPacket = true;
+                    if (IsRussia)
                     {
-                        if (cmdList[1] == "AUTH")
+                        DemoScanner_AddInfo("[HELLO] На сервере установлен демо-плагин! Поможет найти больше читов :)", true);
+                    }
+                    else
+                    {
+                        DemoScanner_AddInfo("[HELLO] Found unreal demo plugin! It can help to find more cheats :)", true);
+                    }
+                }
+
+                if (cmdList.Length > 2)
+                {
+                    if (cmdList[1] == "AUTH")
+                    {
+                        if (SteamID.Length == 0)
                         {
-                            if (SteamID.Length == 0)
+                            plugin_valid_packets++;
+                            SteamID = cmdList[2];
+                            DemoScanner_AddInfo("[INFO] SteamID игрока: " + SteamID, true);
+                        }
+                    }
+                    else if (cmdList[1] == "DATE")
+                    {
+                        if (RecordDate.Length == 0)
+                        {
+                            plugin_valid_packets++;
+                            RecordDate = cmdList[2];
+                            if (IsRussia)
                             {
-                                plugin_valid_packets++;
-                                SteamID = cmdList[2];
-                                DemoScanner_AddInfo("[INFO] SteamID игрока: " + SteamID, true);
+                                DemoScanner_AddInfo("[INFO] Дата записи: " + RecordDate, true);
+                            }
+                            else
+                            {
+                                DemoScanner_AddInfo("[INFO] Record date: " + RecordDate, true);
                             }
                         }
-                        else if (cmdList[1] == "DATE")
+                    }
+                    else if (cmdList[1] == "VER" || cmdList[1] == "UCMD")
+                    {
+                        if (PluginVersion.Length == 0)
                         {
-                            if (RecordDate.Length == 0)
+                            plugin_valid_packets++;
+                            PluginVersion = cmdList[1] == "UCMD" ? "1.5" : cmdList[2];
+                            flPluginVersion = 0.0f;
+                            float.TryParse(PluginVersion, NumberStyles.Any, CultureInfo.InvariantCulture, out flPluginVersion);
+
+                            if (IsRussia)
                             {
-                                plugin_valid_packets++;
-                                RecordDate = cmdList[2];
+                                DemoScanner_AddInfo("[INFO] Найден демо-плагин версии " + PluginVersion, true);
+                            }
+                            else
+                            {
+                                DemoScanner_AddInfo("[INFO] Found module version " + PluginVersion, true);
+                            }
+
+                            if (flPluginVersion < 1.59)
+                            {
                                 if (IsRussia)
                                 {
-                                    DemoScanner_AddInfo("[INFO] Дата записи: " + RecordDate, true);
+                                    DemoScanner_AddWarn("[INFO] На сервере установлена старая версия плагина [" + PluginVersion + "]", true, false,
+                                        true, true);
+                                    DemoScanner_AddWarn(
+                                        "[ERROR] Отключается обнаружение [JUMPHACK TYPE 5][AIM TYPE 1.6][AIM TYPE 12.X]", true,
+                                        false, true, true);
                                 }
                                 else
                                 {
-                                    DemoScanner_AddInfo("[INFO] Record date: " + RecordDate, true);
+                                    DemoScanner_AddWarn("[INFO] Old plugin version installed at server [" + PluginVersion + "]", true, false, true,
+                                        true);
+                                    DemoScanner_AddWarn(
+                                        "[ERROR] Disabled detection of [JUMPHACK TYPE 5][AIM TYPE 1.6][AIM TYPE 12.X]", true,
+                                        false, true, true);
+                                }
+
+                                DisableJump5AndAim16 = true;
+                            }
+                        }
+                    }
+                    else if (cmdList[1] == "JMP")
+                    {
+                        plugin_valid_packets++;
+                        if (PluginVersion.Length != 0)
+                        {
+                            var id = int.Parse(cmdList[2]);
+                            if (IsUserAlive())
+                            {
+                                JumpCount6++;
+                            }
+
+                            //Console.WriteLine("PluginJmpTime = " + LastJumpNoGroundTime);
+                            //Console.WriteLine(JumpCount6.ToString());
+                            if (JumpCount6 > 1)
+                            {
+                                SearchJumpHack5 = 4;
+                            }
+                            PluginJmpTime = CurrentTime;
+                        }
+                    }
+                    else if (cmdList[1] == "SCMD")
+                    {
+                        plugin_valid_packets++;
+                        if (PluginVersion.Length != 0 && !DisableJump5AndAim16)
+                        {
+                            if (IsUserAlive())
+                            {
+                                attackscounter6++;
+                            }
+
+                            var lerpms = int.Parse(cmdList[2]);
+                            var ms = Convert.ToByte(int.Parse(cmdList[3]));
+                            var incomingframenum = int.Parse(cmdList[4]);
+
+                            LastSCMD_Angles1 = new float[] { float.Parse(cmdList[5], NumberStyles.Any,
+                      CultureInfo.InvariantCulture), float.Parse(cmdList[6], NumberStyles.Any,
+                      CultureInfo.InvariantCulture) };
+                            LastSCMD_Angles1[0] = fullnormalizeangle(LastSCMD_Angles1[0]);
+                            LastSCMD_Angles1[1] = fullnormalizeangle(LastSCMD_Angles1[1]);
+
+                            LastSCMD_Angles2 = new float[] { float.Parse(cmdList[7], NumberStyles.Any,
+                      CultureInfo.InvariantCulture), float.Parse(cmdList[8], NumberStyles.Any,
+                      CultureInfo.InvariantCulture) };
+
+                            LastSCMD_Angles2[0] = fullnormalizeangle(LastSCMD_Angles2[0]);
+                            LastSCMD_Angles2[1] = fullnormalizeangle(LastSCMD_Angles2[1]);
+
+                            LastSCMD_Angles3 = new float[] { float.Parse(cmdList[9], NumberStyles.Any,
+                      CultureInfo.InvariantCulture), float.Parse(cmdList[10], NumberStyles.Any,
+                      CultureInfo.InvariantCulture) };
+
+                            LastSCMD_Angles3[0] = fullnormalizeangle(LastSCMD_Angles3[0]);
+                            LastSCMD_Angles3[1] = fullnormalizeangle(LastSCMD_Angles3[1]);
+
+                            LastSCMD_Msec1 = float.Parse(cmdList[11], NumberStyles.Any,
+                  CultureInfo.InvariantCulture);
+                            LastSCMD_Msec2 = float.Parse(cmdList[12], NumberStyles.Any,
+                  CultureInfo.InvariantCulture);
+
+                            //Console.WriteLine("SCMD");
+                            //Console.WriteLine(LastSCMD_Angles1[0].ToString() + "/" + LastSCMD_Angles1[1].ToString() + " " +
+                            //   LastSCMD_Angles2[0].ToString() + "/" + LastSCMD_Angles2[1].ToString() + " " +
+                            //    LastSCMD_Angles3[0].ToString() + "/" + LastSCMD_Angles3[1].ToString() + "[" + incomingframenum + "] = " + LastSCMD_Msec1 + "/" + LastSCMD_Msec2);
+
+                            if (abs(CurrentTime - LastAttackStartCmdTime) > 1.0f &&
+                                FirstAttack && IsUserAlive() && !DisableJump5AndAim16)
+                            {
+                                // first detection can be false if demo started in +attack
+                                // just skip it
+                                if (!FirstAim16skip)
+                                {
+                                    if (DemoScanner_AddWarn(
+                                        "[AIM TYPE 1.6 " + CurrentWeapon + "] at (" + CurrentTime + "):" +
+                                        CurrentTimeString,
+                                        !IsCmdChangeWeapon() && !IsAngleEditByEngine() && !IsPlayerLossConnection() &&
+                                        !IsForceCenterView() && IsPlayerBtnAttackedPressed(), true, false, true))
+                                    {
+                                        TotalAimBotDetected++;
+                                    }
+                                }
+                                FirstAim16skip = false;
+                            }
+                            FirstAttack = true;
+
+                            if (IsUserAlive() && FirstJump && abs(CurrentTime) > EPSILON)
+                            {
+                                if (ms <= 1)
+                                {
+                                    if (abs(CurrentTime - LastCmdHack) > 5.0 && CurrentFpsSecond < 450 && CurrentFps2Second < 450)
+                                    {
+                                        DemoScanner_AddWarn(
+                                            "[CMD HACK TYPE 3.1] at (" + CurrentTime + ") " + CurrentTimeString,
+                                            ms == 0 && !IsAngleEditByEngine());
+
+                                        LastCmdHack = CurrentTime;
+                                    }
+                                }
+                            }
+
+                            if (PluginFrameNum < 0 || incomingframenum < PluginFrameNum)
+                            {
+                                PluginFrameNum = incomingframenum;
+                            }
+                            else
+                            {
+                                if (abs(incomingframenum - PluginFrameNum) > 2)
+                                {
+                                    if (abs(CurrentTime - LastCmdHack) > 5.0)
+                                    {
+                                        DemoScanner_AddWarn(
+                                            "[CMD HACK TYPE 5.1] at (" + CurrentTime + ") " + CurrentTimeString,
+                                            !IsAngleEditByEngine());
+                                        LastCmdHack = CurrentTime;
+                                    }
+                                }
+
+                                PluginFrameNum = incomingframenum;
+                            }
+
+                            if (DUMP_ALL_FRAMES)
+                            {
+                                OutDumpString += "\n{ ACMD PLUGIN. Lerp " + lerpms + ". ms " + ms + "}\n";
+                            }
+
+                            if (!FindLerpAndMs(lerpms, ms))
+                            {
+                                DemoScanner_AddWarn("[FAKELAG TYPE 1.1] at (" + CurrentTime + "):" + CurrentTimeString,
+                                    true, true, false, true);
+                                FakeLagAim++;
+                            }
+                            else
+                            {
+                                if (!FindLerpAndMs(lerpms, ms, false))
+                                {
+                                    FakeLag2Aim++;
+                                    if (FakeLag2Aim > 0)
+                                    {
+                                        DemoScanner_AddWarn(
+                                            "[FAKELAG TYPE 1.2] at (" + CurrentTime + "):" + CurrentTimeString, false,
+                                            true, false, true);
+                                    }
                                 }
                             }
                         }
-                        else if (cmdList[1] == "VER" || cmdList[1] == "UCMD")
+                        else if (plugin_all_packets > 10)
                         {
-                            if (PluginVersion.Length == 0)
+                            if (IsRussia)
                             {
-                                plugin_valid_packets++;
-                                PluginVersion = cmdList[1] == "UCMD" ? "1.5" : cmdList[2];
-                                flPluginVersion = 0.0f;
-                                float.TryParse(PluginVersion, NumberStyles.Any, CultureInfo.InvariantCulture, out flPluginVersion);
+                                DemoScanner_AddWarn("[Ошибка] Не получено приветствие от плагина!", true, false, true,
+                                    true, true);
+                                DemoScanner_AddWarn("[Ошибка] Плагин заблокирован в демо файле. Отключение...", true, false, true,
+                                    true, true);
+                            }
+                            else
+                            {
+                                DemoScanner_AddWarn("[Error] No found 'auth' message from module!", true, false, true,
+                                    true, true);
+                                DemoScanner_AddWarn("[Error] Lock plugin for this demo file. Disable....", true, false, true,
+                                    true, true);
+                            }
+                        }
+                    }
+                    else if (cmdList[1] == "ACMD")
+                    {
+                        plugin_valid_packets++;
+                        if (PluginVersion.Length != 0 && !DisableJump5AndAim16)
+                        {
+                            if (IsUserAlive())
+                            {
+                                attackscounter6++;
+                            }
 
-                                if (IsRussia)
+                            var lerpms = int.Parse(cmdList[2]);
+                            var ms = Convert.ToByte(int.Parse(cmdList[3]));
+                            var incomingframenum = int.Parse(cmdList[4]);
+
+                            var tmp_ACMD_Angles1 = new float[] { float.Parse(cmdList[5], NumberStyles.Any,
+                      CultureInfo.InvariantCulture), float.Parse(cmdList[6], NumberStyles.Any,
+                      CultureInfo.InvariantCulture) };
+
+                            tmp_ACMD_Angles1[0] = fullnormalizeangle(tmp_ACMD_Angles1[0]);
+                            tmp_ACMD_Angles1[1] = fullnormalizeangle(tmp_ACMD_Angles1[1]);
+
+                            var tmp_ACMD_Angles2 = new float[] { float.Parse(cmdList[7], NumberStyles.Any,
+                      CultureInfo.InvariantCulture), float.Parse(cmdList[8], NumberStyles.Any,
+                      CultureInfo.InvariantCulture) };
+
+                            tmp_ACMD_Angles2[0] = fullnormalizeangle(tmp_ACMD_Angles2[0]);
+                            tmp_ACMD_Angles2[1] = fullnormalizeangle(tmp_ACMD_Angles2[1]);
+
+                            var tmp_ACMD_Angles3 = new float[] { float.Parse(cmdList[9], NumberStyles.Any,
+                      CultureInfo.InvariantCulture), float.Parse(cmdList[10], NumberStyles.Any,
+                      CultureInfo.InvariantCulture) };
+
+                            tmp_ACMD_Angles3[0] = fullnormalizeangle(tmp_ACMD_Angles3[0]);
+                            tmp_ACMD_Angles3[1] = fullnormalizeangle(tmp_ACMD_Angles3[1]);
+
+                            float time_msec = float.Parse(cmdList[11], NumberStyles.Any,
+                  CultureInfo.InvariantCulture);
+
+                            //Console.WriteLine("ACMD");
+                            //Console.WriteLine(tmp_ACMD_Angles1[0].ToString() + "/" + tmp_ACMD_Angles1[1].ToString() + " " +
+                            //   tmp_ACMD_Angles2[0].ToString() + "/" + tmp_ACMD_Angles2[1].ToString() + " " +
+                            //    tmp_ACMD_Angles3[0].ToString() + "/" + tmp_ACMD_Angles3[1].ToString() + "[" + incomingframenum + "] = " + time_msec);
+
+                            //Console.WriteLine("CD History: ");
+                            //foreach (var v in CDAngleHistoryAim12List)
+                            //{
+                            //    Console.WriteLine(v.tmp[0] + "/" + v.tmp[1] + "/" + v.tmp[2]);
+                            //}
+
+                            bool mir_found = false;
+
+                            foreach (var v in CDAngleHistoryAim12List)
+                            {
+                                mir_found = v.tmp[0] == v.tmp[1]
+                                && v.tmp[1] == v.tmp[2] &&
+                                v.tmp[0] == LastSCMD_Angles1[1];
+                                if (mir_found)
+                                    break;
+                            }
+
+                            if (IsUserAlive() && FirstJump && abs(CurrentTime) > EPSILON)
+                            {
+                                if (ms <= 1)
                                 {
-                                    DemoScanner_AddInfo("[INFO] Найден демо-плагин версии " + PluginVersion, true);
+                                    if (abs(CurrentTime - LastCmdHack) > 5.0 && CurrentFpsSecond < 450 && CurrentFps2Second < 450)
+                                    {
+                                        DemoScanner_AddWarn(
+                                            "[CMD HACK TYPE 3.2] at (" + CurrentTime + ") " + CurrentTimeString,
+                                            ms == 0 && !IsAngleEditByEngine());
+
+                                        LastCmdHack = CurrentTime;
+                                    }
                                 }
-                                else
+                            }
+
+                            if (IsUserAlive() && (LastSCMD_Msec1 < EPSILON_2 || LastSCMD_Msec2 < EPSILON_2 || time_msec < EPSILON_2))
+                            {
+                                if (/*abs(tmp_SCMD_Angles1[0] - tmp_SCMD_Angles2[0]) > EPSILON_2 &&*/
+                                    abs(tmp_ACMD_Angles1[1] - tmp_ACMD_Angles2[1]) > EPSILON_2 &&
+                                    /*abs(tmp_SCMD_Angles2[0] - tmp_SCMD_Angles3[0]) > EPSILON_2 &&*/
+                                    abs(tmp_ACMD_Angles2[1] - tmp_ACMD_Angles3[1]) > EPSILON_2 &&
+                                    /*abs(LastACMD_Angles1[0] - LastACMD_Angles2[0]) > EPSILON_2 &&*/
+                                    abs(LastSCMD_Angles1[1] - LastSCMD_Angles2[1]) > EPSILON_2 &&
+                                    /*abs(LastACMD_Angles2[0] - LastACMD_Angles3[0]) > EPSILON_2 &&*/
+                                    abs(LastSCMD_Angles2[1] - LastSCMD_Angles3[1]) > EPSILON_2)
                                 {
-                                    DemoScanner_AddInfo("[INFO] Found module version " + PluginVersion, true);
+                                    // Console.WriteLine("True Angles 1!");
+                                    /*
+                                     // false reported by @moment08
+                                     * if (abs(LastSCMD_Angles1[0] - tmp_ACMD_Angles3[0]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles1[1] - tmp_ACMD_Angles3[1]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles2[0] - tmp_ACMD_Angles1[0]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles2[1] - tmp_ACMD_Angles1[1]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles3[0] - tmp_ACMD_Angles2[0]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles3[1] - tmp_ACMD_Angles2[1]) < EPSILON_2)
+                                    {
+                                        DemoScanner_AddWarn(
+                                            "[BETA] [AIM TYPE 12.1 " + CurrentWeapon + "] at (" + CurrentTime +
+                                            "):" + CurrentTimeString, abs(CurrentTime - LastBadMsecTime) > 1.0f, mir_found, false, true);
+                                    }
+                                    else 
+                                    if (abs(LastSCMD_Angles1[0] - tmp_ACMD_Angles3[0]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles1[1] - tmp_ACMD_Angles3[1]) < EPSILON_2 &&
+                                    //abs(LastSCMD_Angles2[0] - tmp_ACMD_Angles1[0]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles2[1] - tmp_ACMD_Angles1[1]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles3[0] - tmp_ACMD_Angles2[0]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles3[1] - tmp_ACMD_Angles2[1]) < EPSILON_2)
+                                    {
+                                        DemoScanner_AddWarn(
+                                            "[BETA] [AIM TYPE 12.2 " + CurrentWeapon + "] at (" + CurrentTime +
+                                            "):" + CurrentTimeString, abs(CurrentTime - LastBadMsecTime) > 1.0f, mir_found, false, true);
+                                    }
+                                    else if (abs(LastSCMD_Angles1[0] - tmp_ACMD_Angles3[0]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles1[1] - tmp_ACMD_Angles3[1]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles2[0] - tmp_ACMD_Angles1[0]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles2[1] - tmp_ACMD_Angles1[1]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles3[0] - tmp_ACMD_Angles2[0]) > EPSILON_2 &&
+                                    abs(LastSCMD_Angles3[1] - tmp_ACMD_Angles2[1]) > EPSILON_2)
+                                    {
+                                        DemoScanner_AddWarn(
+                                           "[BETA] [AIM TYPE 12.3 " + CurrentWeapon + "] at (" + CurrentTime +
+                                           "):" + CurrentTimeString, mir_found && !IsAngleEditByEngine() && !IsPlayerUnDuck() && !IsPlayerUnDuck() && !IsPlayerAnyJumpPressed(), true, false, true);
+                                    }*/
+                                }
+                                if (
+                                    abs(LastSCMD_Angles1[0] - LastSCMD_Angles2[0]) > EPSILON_2 &&
+                                    abs(LastSCMD_Angles1[1] - LastSCMD_Angles2[1]) > EPSILON_2 &&
+                                    abs(LastSCMD_Angles2[0] - LastSCMD_Angles3[0]) > EPSILON_2 &&
+                                    abs(LastSCMD_Angles2[1] - LastSCMD_Angles3[1]) > EPSILON_2 &&
+                                    abs(tmp_ACMD_Angles1[0] - tmp_ACMD_Angles2[0]) > EPSILON_2 &&
+                                    abs(tmp_ACMD_Angles1[1] - tmp_ACMD_Angles2[1]) > EPSILON_2 &&
+                                    abs(tmp_ACMD_Angles2[0] - tmp_ACMD_Angles3[0]) < EPSILON_2 &&
+                                    abs(tmp_ACMD_Angles2[1] - tmp_ACMD_Angles3[1]) < EPSILON_2
+                                    )
+                                {
+                                    if (abs(LastSCMD_Angles1[0] - tmp_ACMD_Angles2[0]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles1[1] - tmp_ACMD_Angles2[1]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles2[0] - tmp_ACMD_Angles1[0]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles2[1] - tmp_ACMD_Angles1[1]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles3[0] - tmp_ACMD_Angles3[0]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles3[1] - tmp_ACMD_Angles3[1]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles3[0] - tmp_ACMD_Angles2[0]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles3[1] - tmp_ACMD_Angles2[1]) < EPSILON_2 &&
+                                    abs(LastSCMD_Angles3[0] - tmp_ACMD_Angles1[0]) > EPSILON_2 &&
+                                    abs(LastSCMD_Angles3[1] - tmp_ACMD_Angles1[1]) > EPSILON_2)
+                                    {
+                                        DemoScanner_AddWarn(
+                                            "[BETA] [AIM TYPE 12 " + CurrentWeapon + "] at (" + CurrentTime +
+                                            "):" + CurrentTimeString, mir_found && abs(CurrentTime - LastBadMsecTime) > 1.0f, true, false, true);
+                                    }
+                                }
+                            }
+
+                            if (PluginFrameNum < 0 || incomingframenum < PluginFrameNum)
+                            {
+                                PluginFrameNum = incomingframenum;
+                            }
+                            else
+                            {
+                                if (abs(incomingframenum - PluginFrameNum) > 2)
+                                {
+                                    if (abs(CurrentTime - LastCmdHack) > 5.0)
+                                    {
+                                        DemoScanner_AddWarn(
+                                            "[CMD HACK TYPE 5.2] at (" + CurrentTime + ") " + CurrentTimeString,
+                                            !IsAngleEditByEngine());
+
+                                        //Console.WriteLine("BAD BAD " + nf.UCmd.Msec + " / " + nf.RParms.Frametime + " = " + ((float)nf.UCmd.Msec / nf.RParms.Frametime).ToString());
+                                        LastCmdHack = CurrentTime;
+                                    }
                                 }
 
-                                if (flPluginVersion < 1.59)
+                                PluginFrameNum = incomingframenum;
+                            }
+
+                            if (DUMP_ALL_FRAMES)
+                            {
+                                OutDumpString += "\n{ ACMD PLUGIN. Lerp " + lerpms + ". ms " + ms + "}\n";
+                            }
+
+                            if (!FindLerpAndMs(lerpms, ms))
+                            {
+                                DemoScanner_AddWarn("[FAKELAG TYPE 1.3] at (" + CurrentTime + "):" + CurrentTimeString,
+                                    true, true, false, true);
+                                FakeLagAim++;
+                            }
+                            else
+                            {
+                                if (!FindLerpAndMs(lerpms, ms, false))
+                                {
+                                    FakeLag2Aim++;
+                                    if (FakeLag2Aim > 0)
+                                    {
+                                        DemoScanner_AddWarn(
+                                            "[FAKELAG TYPE 1.4] at (" + CurrentTime + "):" + CurrentTimeString, false,
+                                            true, false, true);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    else if (cmdList[1] == "EVENTS" && (PluginVersion.Length == 0 || flPluginVersion < 1.56))
+                    {
+                        plugin_valid_packets++;
+                        if (PluginVersion.Length != 0 && !DisableJump5AndAim16)
+                        {
+                            var events = int.Parse(cmdList[2]);
+                            if (DUMP_ALL_FRAMES)
+                            {
+                                OutDumpString += "\n{ EVENT PLUGIN }\n";
+                            }
+
+                            if (PluginEvents == -1)
+                            {
+                                CurrentEvents = 0;
+                                PluginEvents = 0;
+                            }
+                            else if (CurrentEvents > 0)
+                            {
+                                if (CurrentEvents - PluginEvents > 4 && CurrentEvents - (PluginEvents + events) > 4)
+                                {
+                                    if (PluginEvents != 0)
+                                    {
+                                        Event7Hack++;
+                                        if (Event7Hack > 1)
+                                        {
+                                            DemoScanner_AddWarn(
+                                                "[CMD HACK TYPE 7] at (" + CurrentTime + "):" +
+                                                CurrentTimeString, false, true, false, true);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        BadEvents += 8;
+                                    }
+
+                                    CurrentEvents = 0;
+                                    PluginEvents = 0;
+                                    FirstEventShift = true;
+                                }
+
+                                PluginEvents += events;
+                            }
+                        }
+                    }
+                    else if (cmdList[1] == "XEVENT")
+                    {
+                        plugin_valid_packets++;
+                        if (PluginVersion.Length != 0 && !DisableJump5AndAim16)
+                        {
+                            if (DUMP_ALL_FRAMES)
+                            {
+                                OutDumpString += "\n{ EVENT PLUGIN }\n";
+                            }
+
+                            var tmpEvent = 0;
+                            if (cmdList.Length > 1)
+                            {
+                                int.TryParse(cmdList[2], out tmpEvent);
+                            }
+
+                            LastEventId = -tmpEvent;
+
+                            if (abs(LastEventDetectTime) > EPSILON && abs(LastAttackPressed - LastEventDetectTime) > 0.5 && !IsInAttack())
+                            {
+
+                            }
+                            else
+                            {
+                                LastEventDetectTime = 0.0f;
+                            }
+
+                            //if (PluginEvents == -1)
+                            //{
+                            //    CurrentEvents = 0;
+                            //    PluginEvents = 0;
+                            //}
+                            //else if (CurrentEvents > 0)
+                            //{
+                            //    if (CurrentEvents - PluginEvents > 4)
+                            //    {
+                            //        if (PluginEvents != 0)
+                            //            DemoScanner_AddWarn(
+                            //                "[CMD HACK TYPE 8] at (" + CurrentTime + "):" +
+                            //                CurrentTimeString, false, true, false, true);
+                            //        else
+                            //            BadEvents += 8;
+
+                            //        CurrentEvents = 0;
+                            //        PluginEvents = 0;
+                            //        FirstEventShift = true;
+                            //    }
+
+                            //    PluginEvents += events;
+                            //}
+                        }
+                    }
+                    else if (cmdList[1] == "MINR" || cmdList[1] == "MINUR"
+                        || cmdList[1] == "MAXR" || cmdList[1] == "MAXUR")
+                    {
+                        plugin_valid_packets++;
+                        if (PluginVersion.Length != 0)
+                        {
+                            var rate = int.Parse(cmdList[2]);
+                            if (cmdList[1] == "MINR")
+                            {
+                                sv_minrate = rate;
+                                if (rate > 0 && rate < 25000)
                                 {
                                     if (IsRussia)
                                     {
-                                        DemoScanner_AddWarn("[INFO] На сервере установлена старая версия плагина [" + PluginVersion + "]", true, false,
-                                            true, true);
+                                        DemoScanner_AddWarn("[INFO] На сервере слишком низкий sv_minrate. Необходим >= 25000", true,
+                                            false, true, true);
                                         DemoScanner_AddWarn(
-                                            "[ERROR] Отключается обнаружение [JUMPHACK TYPE 5][AIM TYPE 1.6][AIM TYPE 12.X]", true,
+                                            "[ERROR] Отключается обнаружение [JUMPHACK TYPE 5] и [AIM TYPE 1.6]", true,
                                             false, true, true);
                                     }
                                     else
                                     {
-                                        DemoScanner_AddWarn("[INFO] Old plugin version installed at server [" + PluginVersion + "]", true, false, true,
-                                            true);
+                                        DemoScanner_AddWarn("[INFO] Small sv_minrate at server. Recomended >= 25000",
+                                            true, false, true, true);
                                         DemoScanner_AddWarn(
-                                            "[ERROR] Disabled detection of [JUMPHACK TYPE 5][AIM TYPE 1.6][AIM TYPE 12.X]", true,
+                                            "[ERROR] Disabled detection of [JUMPHACK TYPE 5] and [AIM TYPE 1.6]", true,
                                             false, true, true);
                                     }
-
+                                    DisableJump5AndAim16 = true;
+                                }
+                            }
+                            else if (cmdList[1] == "MAXR")
+                            {
+                                sv_maxrate = rate;
+                                if (rate > 0 && rate < 25000)
+                                {
+                                    if (IsRussia)
+                                    {
+                                        DemoScanner_AddWarn("[INFO] На сервере слишком низкий sv_maxrate. Необходим >= 25000", true,
+                                            false, true, true);
+                                        DemoScanner_AddWarn(
+                                            "[ERROR] Отключается обнаружение [JUMPHACK TYPE 5] и [AIM TYPE 1.6]", true,
+                                            false, true, true);
+                                    }
+                                    else
+                                    {
+                                        DemoScanner_AddWarn("[INFO] Small sv_maxrate at server. Recomended >= 25000",
+                                            true, false, true, true);
+                                        DemoScanner_AddWarn(
+                                            "[ERROR] Disabled detection of [JUMPHACK TYPE 5] and [AIM TYPE 1.6]", true,
+                                            false, true, true);
+                                    }
+                                    DisableJump5AndAim16 = true;
+                                }
+                            }
+                            else if (cmdList[1] == "MINUR")
+                            {
+                                sv_minupdaterate = rate;
+                                if (rate < 30)
+                                {
+                                    if (IsRussia)
+                                    {
+                                        DemoScanner_AddWarn("[INFO] На сервере слишком низкий sv_minupdaterate. Необходим >= 30", true,
+                                            false, true, true);
+                                        DemoScanner_AddWarn(
+                                            "[ERROR] Отключается обнаружение [JUMPHACK TYPE 5] и [AIM TYPE 1.6]", true,
+                                            false, true, true);
+                                    }
+                                    else
+                                    {
+                                        DemoScanner_AddWarn("[INFO] Small sv_minupdaterate at server. Recomended >= 30",
+                                            true, false, true, true);
+                                        DemoScanner_AddWarn(
+                                            "[ERROR] Disabled detection of [JUMPHACK TYPE 5] and [AIM TYPE 1.6]", true,
+                                            false, true, true);
+                                    }
+                                    DisableJump5AndAim16 = true;
+                                }
+                            }
+                            else if (cmdList[1] == "MAXUR")
+                            {
+                                sv_maxupdaterate = rate;
+                                if (rate < 30)
+                                {
+                                    if (IsRussia)
+                                    {
+                                        DemoScanner_AddWarn("[INFO] На сервере слишком низкий sv_maxupdaterate. Необходим >= 30", true,
+                                            false, true, true);
+                                        DemoScanner_AddWarn(
+                                            "[ERROR] Отключается обнаружение [JUMPHACK TYPE 5] и [AIM TYPE 1.6]", true,
+                                            false, true, true);
+                                    }
+                                    else
+                                    {
+                                        DemoScanner_AddWarn("[INFO] Small sv_maxupdaterate at server. Recomended >= 30",
+                                            true, false, true, true);
+                                        DemoScanner_AddWarn(
+                                            "[ERROR] Disabled detection of [JUMPHACK TYPE 5] and [AIM TYPE 1.6]", true,
+                                            false, true, true);
+                                    }
                                     DisableJump5AndAim16 = true;
                                 }
                             }
                         }
-                        else if (cmdList[1] == "JMP")
+                    }
+                    else if (cmdList[1] == "BAD")
+                    {
+                        if (cmdList[2] == "1")
                         {
-                            plugin_valid_packets++;
-                            if (PluginVersion.Length != 0)
+                            if (IsRussia)
                             {
-                                var id = int.Parse(cmdList[2]);
-                                if (IsUserAlive())
-                                {
-                                    JumpCount6++;
-                                }
-
-                                //Console.WriteLine("PluginJmpTime = " + LastJumpNoGroundTime);
-                                //Console.WriteLine(JumpCount6.ToString());
-                                if (JumpCount6 > 1)
-                                {
-                                    SearchJumpHack5 = 4;
-                                }
-                                PluginJmpTime = CurrentTime;
-                            }
-                        }
-                        else if (cmdList[1] == "SCMD")
-                        {
-                            plugin_valid_packets++;
-                            if (PluginVersion.Length != 0 && !DisableJump5AndAim16)
-                            {
-                                if (IsUserAlive())
-                                {
-                                    attackscounter6++;
-                                }
-
-                                var lerpms = int.Parse(cmdList[2]);
-                                var ms = Convert.ToByte(int.Parse(cmdList[3]));
-                                var incomingframenum = int.Parse(cmdList[4]);
-
-                                LastSCMD_Angles1 = new float[] { float.Parse(cmdList[5], NumberStyles.Any,
-                      CultureInfo.InvariantCulture), float.Parse(cmdList[6], NumberStyles.Any,
-                      CultureInfo.InvariantCulture) };
-                                LastSCMD_Angles1[0] = fullnormalizeangle(LastSCMD_Angles1[0]);
-                                LastSCMD_Angles1[1] = fullnormalizeangle(LastSCMD_Angles1[1]);
-
-                                LastSCMD_Angles2 = new float[] { float.Parse(cmdList[7], NumberStyles.Any,
-                      CultureInfo.InvariantCulture), float.Parse(cmdList[8], NumberStyles.Any,
-                      CultureInfo.InvariantCulture) };
-
-                                LastSCMD_Angles2[0] = fullnormalizeangle(LastSCMD_Angles2[0]);
-                                LastSCMD_Angles2[1] = fullnormalizeangle(LastSCMD_Angles2[1]);
-
-                                LastSCMD_Angles3 = new float[] { float.Parse(cmdList[9], NumberStyles.Any,
-                      CultureInfo.InvariantCulture), float.Parse(cmdList[10], NumberStyles.Any,
-                      CultureInfo.InvariantCulture) };
-
-                                LastSCMD_Angles3[0] = fullnormalizeangle(LastSCMD_Angles3[0]);
-                                LastSCMD_Angles3[1] = fullnormalizeangle(LastSCMD_Angles3[1]);
-
-                                LastSCMD_Msec1 = float.Parse(cmdList[11], NumberStyles.Any,
-                      CultureInfo.InvariantCulture);
-                                LastSCMD_Msec2 = float.Parse(cmdList[12], NumberStyles.Any,
-                      CultureInfo.InvariantCulture);
-
-                                //Console.WriteLine("SCMD");
-                                //Console.WriteLine(LastSCMD_Angles1[0].ToString() + "/" + LastSCMD_Angles1[1].ToString() + " " +
-                                //   LastSCMD_Angles2[0].ToString() + "/" + LastSCMD_Angles2[1].ToString() + " " +
-                                //    LastSCMD_Angles3[0].ToString() + "/" + LastSCMD_Angles3[1].ToString() + "[" + incomingframenum + "] = " + LastSCMD_Msec1 + "/" + LastSCMD_Msec2);
-
-                                if (abs(CurrentTime - LastAttackStartCmdTime) > 1.0f &&
-                                    FirstAttack && IsUserAlive() && !DisableJump5AndAim16)
-                                {
-                                    // first detection can be false if demo started in +attack
-                                    // just skip it
-                                    if (!FirstAim16skip)
-                                    {
-                                        if (DemoScanner_AddWarn(
-                                            "[AIM TYPE 1.6 " + CurrentWeapon + "] at (" + CurrentTime + "):" +
-                                            CurrentTimeString,
-                                            !IsCmdChangeWeapon() && !IsAngleEditByEngine() && !IsPlayerLossConnection() &&
-                                            !IsForceCenterView() && IsPlayerBtnAttackedPressed(), true, false, true))
-                                        {
-                                            TotalAimBotDetected++;
-                                        }
-                                    }
-                                    FirstAim16skip = false;
-                                }
-                                FirstAttack = true;
-
-                                if (IsUserAlive() && FirstJump && abs(CurrentTime) > EPSILON)
-                                {
-                                    if (ms <= 1)
-                                    {
-                                        if (abs(CurrentTime - LastCmdHack) > 5.0 && CurrentFpsSecond < 450 && CurrentFps2Second < 450)
-                                        {
-                                            DemoScanner_AddWarn(
-                                                "[CMD HACK TYPE 3.1] at (" + CurrentTime + ") " + CurrentTimeString,
-                                                ms == 0 && !IsAngleEditByEngine());
-
-                                            LastCmdHack = CurrentTime;
-                                        }
-                                    }
-                                }
-
-                                if (PluginFrameNum < 0 || incomingframenum < PluginFrameNum)
-                                {
-                                    PluginFrameNum = incomingframenum;
-                                }
-                                else
-                                {
-                                    if (abs(incomingframenum - PluginFrameNum) > 2)
-                                    {
-                                        if (abs(CurrentTime - LastCmdHack) > 5.0)
-                                        {
-                                            DemoScanner_AddWarn(
-                                                "[CMD HACK TYPE 5.1] at (" + CurrentTime + ") " + CurrentTimeString,
-                                                !IsAngleEditByEngine());
-                                            LastCmdHack = CurrentTime;
-                                        }
-                                    }
-
-                                    PluginFrameNum = incomingframenum;
-                                }
-
-                                if (DUMP_ALL_FRAMES)
-                                {
-                                    OutDumpString += "\n{ ACMD PLUGIN. Lerp " + lerpms + ". ms " + ms + "}\n";
-                                }
-
-                                if (!FindLerpAndMs(lerpms, ms))
-                                {
-                                    DemoScanner_AddWarn("[FAKELAG TYPE 1.1] at (" + CurrentTime + "):" + CurrentTimeString,
-                                        true, true, false, true);
-                                    FakeLagAim++;
-                                }
-                                else
-                                {
-                                    if (!FindLerpAndMs(lerpms, ms, false))
-                                    {
-                                        FakeLag2Aim++;
-                                        if (FakeLag2Aim > 0)
-                                        {
-                                            DemoScanner_AddWarn(
-                                                "[FAKELAG TYPE 1.2] at (" + CurrentTime + "):" + CurrentTimeString, false,
-                                                true, false, true);
-                                        }
-                                    }
-                                }
-                            }
-                            else if (plugin_all_packets > 10)
-                            {
-                                if (IsRussia)
-                                {
-                                    DemoScanner_AddWarn("[Ошибка] Не получено приветствие от плагина!", true, false, true,
-                                        true, true);
-                                }
-                                else
-                                {
-                                    DemoScanner_AddWarn("[Error] No found 'auth' message from module!", true, false, true,
-                                        true, true);
-                                }
-
-                                if (IsRussia)
-                                {
-                                    DemoScanner_AddWarn("[WARN] Автоматический сброс версии плагина в 1.60", true, false, true,
-                                        true, true);
-                                }
-                                else
-                                {
-                                    DemoScanner_AddWarn("[WARN] Auto detect module version set to 1.60", true, false, true,
-                                        true, true);
-                                }
-
-                                PluginVersion = "1.60";
-                                flPluginVersion = 1.60f;
-                            }
-                        }
-                        else if (cmdList[1] == "ACMD")
-                        {
-                            plugin_valid_packets++;
-                            if (PluginVersion.Length != 0 && !DisableJump5AndAim16)
-                            {
-                                if (IsUserAlive())
-                                {
-                                    attackscounter6++;
-                                }
-
-                                var lerpms = int.Parse(cmdList[2]);
-                                var ms = Convert.ToByte(int.Parse(cmdList[3]));
-                                var incomingframenum = int.Parse(cmdList[4]);
-
-                                var tmp_ACMD_Angles1 = new float[] { float.Parse(cmdList[5], NumberStyles.Any,
-                      CultureInfo.InvariantCulture), float.Parse(cmdList[6], NumberStyles.Any,
-                      CultureInfo.InvariantCulture) };
-
-                                tmp_ACMD_Angles1[0] = fullnormalizeangle(tmp_ACMD_Angles1[0]);
-                                tmp_ACMD_Angles1[1] = fullnormalizeangle(tmp_ACMD_Angles1[1]);
-
-                                var tmp_ACMD_Angles2 = new float[] { float.Parse(cmdList[7], NumberStyles.Any,
-                      CultureInfo.InvariantCulture), float.Parse(cmdList[8], NumberStyles.Any,
-                      CultureInfo.InvariantCulture) };
-
-                                tmp_ACMD_Angles2[0] = fullnormalizeangle(tmp_ACMD_Angles2[0]);
-                                tmp_ACMD_Angles2[1] = fullnormalizeangle(tmp_ACMD_Angles2[1]);
-
-                                var tmp_ACMD_Angles3 = new float[] { float.Parse(cmdList[9], NumberStyles.Any,
-                      CultureInfo.InvariantCulture), float.Parse(cmdList[10], NumberStyles.Any,
-                      CultureInfo.InvariantCulture) };
-
-                                tmp_ACMD_Angles3[0] = fullnormalizeangle(tmp_ACMD_Angles3[0]);
-                                tmp_ACMD_Angles3[1] = fullnormalizeangle(tmp_ACMD_Angles3[1]);
-
-                                float time_msec = float.Parse(cmdList[11], NumberStyles.Any,
-                      CultureInfo.InvariantCulture);
-
-                                //Console.WriteLine("ACMD");
-                                //Console.WriteLine(tmp_ACMD_Angles1[0].ToString() + "/" + tmp_ACMD_Angles1[1].ToString() + " " +
-                                //   tmp_ACMD_Angles2[0].ToString() + "/" + tmp_ACMD_Angles2[1].ToString() + " " +
-                                //    tmp_ACMD_Angles3[0].ToString() + "/" + tmp_ACMD_Angles3[1].ToString() + "[" + incomingframenum + "] = " + time_msec);
-
-                                //Console.WriteLine("CD History: ");
-                                //foreach (var v in CDAngleHistoryAim12List)
-                                //{
-                                //    Console.WriteLine(v.tmp[0] + "/" + v.tmp[1] + "/" + v.tmp[2]);
-                                //}
-
-                                bool mir_found = false;
-
-                                foreach (var v in CDAngleHistoryAim12List)
-                                {
-                                    mir_found = v.tmp[0] == v.tmp[1]
-                                    && v.tmp[1] == v.tmp[2] &&
-                                    v.tmp[0] == LastSCMD_Angles1[1];
-                                    if (mir_found)
-                                        break;
-                                }
-
-                                if (IsUserAlive() && FirstJump && abs(CurrentTime) > EPSILON)
-                                {
-                                    if (ms <= 1)
-                                    {
-                                        if (abs(CurrentTime - LastCmdHack) > 5.0 && CurrentFpsSecond < 450 && CurrentFps2Second < 450)
-                                        {
-                                            DemoScanner_AddWarn(
-                                                "[CMD HACK TYPE 3.2] at (" + CurrentTime + ") " + CurrentTimeString,
-                                                ms == 0 && !IsAngleEditByEngine());
-
-                                            LastCmdHack = CurrentTime;
-                                        }
-                                    }
-                                }
-
-                                if (IsUserAlive() && (LastSCMD_Msec1 < EPSILON_2 || LastSCMD_Msec2 < EPSILON_2 || time_msec < EPSILON_2))
-                                {
-                                    if (/*abs(tmp_SCMD_Angles1[0] - tmp_SCMD_Angles2[0]) > EPSILON_2 &&*/
-                                        abs(tmp_ACMD_Angles1[1] - tmp_ACMD_Angles2[1]) > EPSILON_2 &&
-                                        /*abs(tmp_SCMD_Angles2[0] - tmp_SCMD_Angles3[0]) > EPSILON_2 &&*/
-                                        abs(tmp_ACMD_Angles2[1] - tmp_ACMD_Angles3[1]) > EPSILON_2 &&
-                                        /*abs(LastACMD_Angles1[0] - LastACMD_Angles2[0]) > EPSILON_2 &&*/
-                                        abs(LastSCMD_Angles1[1] - LastSCMD_Angles2[1]) > EPSILON_2 &&
-                                        /*abs(LastACMD_Angles2[0] - LastACMD_Angles3[0]) > EPSILON_2 &&*/
-                                        abs(LastSCMD_Angles2[1] - LastSCMD_Angles3[1]) > EPSILON_2)
-                                    {
-                                        // Console.WriteLine("True Angles 1!");
-                                        /*
-                                         // false reported by @moment08
-                                         * if (abs(LastSCMD_Angles1[0] - tmp_ACMD_Angles3[0]) < EPSILON_2 &&
-                                        abs(LastSCMD_Angles1[1] - tmp_ACMD_Angles3[1]) < EPSILON_2 &&
-                                        abs(LastSCMD_Angles2[0] - tmp_ACMD_Angles1[0]) < EPSILON_2 &&
-                                        abs(LastSCMD_Angles2[1] - tmp_ACMD_Angles1[1]) < EPSILON_2 &&
-                                        abs(LastSCMD_Angles3[0] - tmp_ACMD_Angles2[0]) < EPSILON_2 &&
-                                        abs(LastSCMD_Angles3[1] - tmp_ACMD_Angles2[1]) < EPSILON_2)
-                                        {
-                                            DemoScanner_AddWarn(
-                                                "[BETA] [AIM TYPE 12.1 " + CurrentWeapon + "] at (" + CurrentTime +
-                                                "):" + CurrentTimeString, abs(CurrentTime - LastBadMsecTime) > 1.0f, mir_found, false, true);
-                                        }
-                                        else 
-                                        if (abs(LastSCMD_Angles1[0] - tmp_ACMD_Angles3[0]) < EPSILON_2 &&
-                                        abs(LastSCMD_Angles1[1] - tmp_ACMD_Angles3[1]) < EPSILON_2 &&
-                                        //abs(LastSCMD_Angles2[0] - tmp_ACMD_Angles1[0]) < EPSILON_2 &&
-                                        abs(LastSCMD_Angles2[1] - tmp_ACMD_Angles1[1]) < EPSILON_2 &&
-                                        abs(LastSCMD_Angles3[0] - tmp_ACMD_Angles2[0]) < EPSILON_2 &&
-                                        abs(LastSCMD_Angles3[1] - tmp_ACMD_Angles2[1]) < EPSILON_2)
-                                        {
-                                            DemoScanner_AddWarn(
-                                                "[BETA] [AIM TYPE 12.2 " + CurrentWeapon + "] at (" + CurrentTime +
-                                                "):" + CurrentTimeString, abs(CurrentTime - LastBadMsecTime) > 1.0f, mir_found, false, true);
-                                        }
-                                        else if (abs(LastSCMD_Angles1[0] - tmp_ACMD_Angles3[0]) < EPSILON_2 &&
-                                        abs(LastSCMD_Angles1[1] - tmp_ACMD_Angles3[1]) < EPSILON_2 &&
-                                        abs(LastSCMD_Angles2[0] - tmp_ACMD_Angles1[0]) < EPSILON_2 &&
-                                        abs(LastSCMD_Angles2[1] - tmp_ACMD_Angles1[1]) < EPSILON_2 &&
-                                        abs(LastSCMD_Angles3[0] - tmp_ACMD_Angles2[0]) > EPSILON_2 &&
-                                        abs(LastSCMD_Angles3[1] - tmp_ACMD_Angles2[1]) > EPSILON_2)
-                                        {
-                                            DemoScanner_AddWarn(
-                                               "[BETA] [AIM TYPE 12.3 " + CurrentWeapon + "] at (" + CurrentTime +
-                                               "):" + CurrentTimeString, mir_found && !IsAngleEditByEngine() && !IsPlayerUnDuck() && !IsPlayerUnDuck() && !IsPlayerAnyJumpPressed(), true, false, true);
-                                        }*/
-                                    }
-                                    if (
-                                        abs(LastSCMD_Angles1[0] - LastSCMD_Angles2[0]) > EPSILON_2 &&
-                                        abs(LastSCMD_Angles1[1] - LastSCMD_Angles2[1]) > EPSILON_2 &&
-                                        abs(LastSCMD_Angles2[0] - LastSCMD_Angles3[0]) > EPSILON_2 &&
-                                        abs(LastSCMD_Angles2[1] - LastSCMD_Angles3[1]) > EPSILON_2 &&
-                                        abs(tmp_ACMD_Angles1[0] - tmp_ACMD_Angles2[0]) > EPSILON_2 &&
-                                        abs(tmp_ACMD_Angles1[1] - tmp_ACMD_Angles2[1]) > EPSILON_2 &&
-                                        abs(tmp_ACMD_Angles2[0] - tmp_ACMD_Angles3[0]) < EPSILON_2 &&
-                                        abs(tmp_ACMD_Angles2[1] - tmp_ACMD_Angles3[1]) < EPSILON_2
-                                        )
-                                    {
-                                        if (abs(LastSCMD_Angles1[0] - tmp_ACMD_Angles2[0]) < EPSILON_2 &&
-                                        abs(LastSCMD_Angles1[1] - tmp_ACMD_Angles2[1]) < EPSILON_2 &&
-                                        abs(LastSCMD_Angles2[0] - tmp_ACMD_Angles1[0]) < EPSILON_2 &&
-                                        abs(LastSCMD_Angles2[1] - tmp_ACMD_Angles1[1]) < EPSILON_2 &&
-                                        abs(LastSCMD_Angles3[0] - tmp_ACMD_Angles3[0]) < EPSILON_2 &&
-                                        abs(LastSCMD_Angles3[1] - tmp_ACMD_Angles3[1]) < EPSILON_2 &&
-                                        abs(LastSCMD_Angles3[0] - tmp_ACMD_Angles2[0]) < EPSILON_2 &&
-                                        abs(LastSCMD_Angles3[1] - tmp_ACMD_Angles2[1]) < EPSILON_2 &&
-                                        abs(LastSCMD_Angles3[0] - tmp_ACMD_Angles1[0]) > EPSILON_2 &&
-                                        abs(LastSCMD_Angles3[1] - tmp_ACMD_Angles1[1]) > EPSILON_2)
-                                        {
-                                            DemoScanner_AddWarn(
-                                                "[BETA] [AIM TYPE 12 " + CurrentWeapon + "] at (" + CurrentTime +
-                                                "):" + CurrentTimeString, mir_found && abs(CurrentTime - LastBadMsecTime) > 1.0f, true, false, true);
-                                        }
-                                    }
-                                }
-
-                                if (PluginFrameNum < 0 || incomingframenum < PluginFrameNum)
-                                {
-                                    PluginFrameNum = incomingframenum;
-                                }
-                                else
-                                {
-                                    if (abs(incomingframenum - PluginFrameNum) > 2)
-                                    {
-                                        if (abs(CurrentTime - LastCmdHack) > 5.0)
-                                        {
-                                            DemoScanner_AddWarn(
-                                                "[CMD HACK TYPE 5.2] at (" + CurrentTime + ") " + CurrentTimeString,
-                                                !IsAngleEditByEngine());
-
-                                            //Console.WriteLine("BAD BAD " + nf.UCmd.Msec + " / " + nf.RParms.Frametime + " = " + ((float)nf.UCmd.Msec / nf.RParms.Frametime).ToString());
-                                            LastCmdHack = CurrentTime;
-                                        }
-                                    }
-
-                                    PluginFrameNum = incomingframenum;
-                                }
-
-                                if (DUMP_ALL_FRAMES)
-                                {
-                                    OutDumpString += "\n{ ACMD PLUGIN. Lerp " + lerpms + ". ms " + ms + "}\n";
-                                }
-
-                                if (!FindLerpAndMs(lerpms, ms))
-                                {
-                                    DemoScanner_AddWarn("[FAKELAG TYPE 1.3] at (" + CurrentTime + "):" + CurrentTimeString,
-                                        true, true, false, true);
-                                    FakeLagAim++;
-                                }
-                                else
-                                {
-                                    if (!FindLerpAndMs(lerpms, ms, false))
-                                    {
-                                        FakeLag2Aim++;
-                                        if (FakeLag2Aim > 0)
-                                        {
-                                            DemoScanner_AddWarn(
-                                                "[FAKELAG TYPE 1.4] at (" + CurrentTime + "):" + CurrentTimeString, false,
-                                                true, false, true);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        else if (cmdList[1] == "EVENTS" && (PluginVersion.Length == 0 || flPluginVersion < 1.56))
-                        {
-                            plugin_valid_packets++;
-                            if (PluginVersion.Length != 0 && !DisableJump5AndAim16)
-                            {
-                                var events = int.Parse(cmdList[2]);
-                                if (DUMP_ALL_FRAMES)
-                                {
-                                    OutDumpString += "\n{ EVENT PLUGIN }\n";
-                                }
-
-                                if (PluginEvents == -1)
-                                {
-                                    CurrentEvents = 0;
-                                    PluginEvents = 0;
-                                }
-                                else if (CurrentEvents > 0)
-                                {
-                                    if (CurrentEvents - PluginEvents > 4 && CurrentEvents - (PluginEvents + events) > 4)
-                                    {
-                                        if (PluginEvents != 0)
-                                        {
-                                            Event7Hack++;
-                                            if (Event7Hack > 1)
-                                            {
-                                                DemoScanner_AddWarn(
-                                                    "[CMD HACK TYPE 7] at (" + CurrentTime + "):" +
-                                                    CurrentTimeString, false, true, false, true);
-                                            }
-                                        }
-                                        else
-                                        {
-                                            BadEvents += 8;
-                                        }
-
-                                        CurrentEvents = 0;
-                                        PluginEvents = 0;
-                                        FirstEventShift = true;
-                                    }
-
-                                    PluginEvents += events;
-                                }
-                            }
-                        }
-                        else if (cmdList[1] == "XEVENT")
-                        {
-                            plugin_valid_packets++;
-                            if (PluginVersion.Length != 0 && !DisableJump5AndAim16)
-                            {
-                                if (DUMP_ALL_FRAMES)
-                                {
-                                    OutDumpString += "\n{ EVENT PLUGIN }\n";
-                                }
-
-                                var tmpEvent = 0;
-                                if (cmdList.Length > 1)
-                                {
-                                    int.TryParse(cmdList[2], out tmpEvent);
-                                }
-
-                                LastEventId = -tmpEvent;
-
-                                if (abs(LastEventDetectTime) > EPSILON && abs(LastAttackPressed - LastEventDetectTime) > 0.5 && !IsInAttack())
-                                {
-
-                                }
-                                else
-                                {
-                                    LastEventDetectTime = 0.0f;
-                                }
-
-                                //if (PluginEvents == -1)
-                                //{
-                                //    CurrentEvents = 0;
-                                //    PluginEvents = 0;
-                                //}
-                                //else if (CurrentEvents > 0)
-                                //{
-                                //    if (CurrentEvents - PluginEvents > 4)
-                                //    {
-                                //        if (PluginEvents != 0)
-                                //            DemoScanner_AddWarn(
-                                //                "[CMD HACK TYPE 8] at (" + CurrentTime + "):" +
-                                //                CurrentTimeString, false, true, false, true);
-                                //        else
-                                //            BadEvents += 8;
-
-                                //        CurrentEvents = 0;
-                                //        PluginEvents = 0;
-                                //        FirstEventShift = true;
-                                //    }
-
-                                //    PluginEvents += events;
-                                //}
-                            }
-                        }
-                        else if (cmdList[1] == "MINR" || cmdList[1] == "MINUR"
-                            || cmdList[1] == "MAXR" || cmdList[1] == "MAXUR")
-                        {
-                            plugin_valid_packets++;
-                            if (PluginVersion.Length != 0)
-                            {
-                                var rate = int.Parse(cmdList[2]);
-                                if (cmdList[1] == "MINR")
-                                {
-                                    sv_minrate = rate;
-                                    if (rate > 0 && rate < 25000)
-                                    {
-                                        if (IsRussia)
-                                        {
-                                            DemoScanner_AddWarn("[INFO] На сервере слишком низкий sv_minrate. Необходим >= 25000", true,
-                                                false, true, true);
-                                            DemoScanner_AddWarn(
-                                                "[ERROR] Отключается обнаружение [JUMPHACK TYPE 5] и [AIM TYPE 1.6]", true,
-                                                false, true, true);
-                                        }
-                                        else
-                                        {
-                                            DemoScanner_AddWarn("[INFO] Small sv_minrate at server. Recomended >= 25000",
-                                                true, false, true, true);
-                                            DemoScanner_AddWarn(
-                                                "[ERROR] Disabled detection of [JUMPHACK TYPE 5] and [AIM TYPE 1.6]", true,
-                                                false, true, true);
-                                        }
-                                        DisableJump5AndAim16 = true;
-                                    }
-                                }
-                                else if (cmdList[1] == "MAXR")
-                                {
-                                    sv_maxrate = rate;
-                                    if (rate > 0 && rate < 25000)
-                                    {
-                                        if (IsRussia)
-                                        {
-                                            DemoScanner_AddWarn("[INFO] На сервере слишком низкий sv_maxrate. Необходим >= 25000", true,
-                                                false, true, true);
-                                            DemoScanner_AddWarn(
-                                                "[ERROR] Отключается обнаружение [JUMPHACK TYPE 5] и [AIM TYPE 1.6]", true,
-                                                false, true, true);
-                                        }
-                                        else
-                                        {
-                                            DemoScanner_AddWarn("[INFO] Small sv_maxrate at server. Recomended >= 25000",
-                                                true, false, true, true);
-                                            DemoScanner_AddWarn(
-                                                "[ERROR] Disabled detection of [JUMPHACK TYPE 5] and [AIM TYPE 1.6]", true,
-                                                false, true, true);
-                                        }
-                                        DisableJump5AndAim16 = true;
-                                    }
-                                }
-                                else if (cmdList[1] == "MINUR")
-                                {
-                                    sv_minupdaterate = rate;
-                                    if (rate < 30)
-                                    {
-                                        if (IsRussia)
-                                        {
-                                            DemoScanner_AddWarn("[INFO] На сервере слишком низкий sv_minupdaterate. Необходим >= 30", true,
-                                                false, true, true);
-                                            DemoScanner_AddWarn(
-                                                "[ERROR] Отключается обнаружение [JUMPHACK TYPE 5] и [AIM TYPE 1.6]", true,
-                                                false, true, true);
-                                        }
-                                        else
-                                        {
-                                            DemoScanner_AddWarn("[INFO] Small sv_minupdaterate at server. Recomended >= 30",
-                                                true, false, true, true);
-                                            DemoScanner_AddWarn(
-                                                "[ERROR] Disabled detection of [JUMPHACK TYPE 5] and [AIM TYPE 1.6]", true,
-                                                false, true, true);
-                                        }
-                                        DisableJump5AndAim16 = true;
-                                    }
-                                }
-                                else if (cmdList[1] == "MAXUR")
-                                {
-                                    sv_maxupdaterate = rate;
-                                    if (rate < 30)
-                                    {
-                                        if (IsRussia)
-                                        {
-                                            DemoScanner_AddWarn("[INFO] На сервере слишком низкий sv_maxupdaterate. Необходим >= 30", true,
-                                                false, true, true);
-                                            DemoScanner_AddWarn(
-                                                "[ERROR] Отключается обнаружение [JUMPHACK TYPE 5] и [AIM TYPE 1.6]", true,
-                                                false, true, true);
-                                        }
-                                        else
-                                        {
-                                            DemoScanner_AddWarn("[INFO] Small sv_maxupdaterate at server. Recomended >= 30",
-                                                true, false, true, true);
-                                            DemoScanner_AddWarn(
-                                                "[ERROR] Disabled detection of [JUMPHACK TYPE 5] and [AIM TYPE 1.6]", true,
-                                                false, true, true);
-                                        }
-                                        DisableJump5AndAim16 = true;
-                                    }
-                                }
-                            }
-                        }
-                        else if (cmdList[1] == "BAD")
-                        {
-                            if (cmdList[2] == "1")
-                            {
-                                if (IsRussia)
-                                {
-                                    DemoScanner_AddWarn("[INFO] На сервере слишком низкий sv_minrate или sv_maxrate",
-                                        true, false, true, true);
-                                    DemoScanner_AddWarn(
-                                        "[ERROR] Отключается обнаружение [JUMPHACK TYPE 5] и [AIM TYPE 1.6]", true,
-                                        false, true, true);
-                                }
-                                else
-                                {
-                                    DemoScanner_AddWarn("[INFO] Small sv_minrate or sv_maxrate value at server", true,
-                                        false, true, true);
-                                    DemoScanner_AddWarn(
-                                        "[ERROR] Disabled detection of [JUMPHACK TYPE 5] and [AIM TYPE 1.6]", true,
-                                        false, true, true);
-                                }
+                                DemoScanner_AddWarn("[INFO] На сервере слишком низкий sv_minrate или sv_maxrate",
+                                    true, false, true, true);
+                                DemoScanner_AddWarn(
+                                    "[ERROR] Отключается обнаружение [JUMPHACK TYPE 5] и [AIM TYPE 1.6]", true,
+                                    false, true, true);
                             }
                             else
                             {
-                                if (IsRussia)
-                                {
-                                    DemoScanner_AddWarn("[INFO] На сервере слишком низкий sv_minupdaterate", true,
-                                        false, true, true);
-                                    DemoScanner_AddWarn(
-                                        "[ERROR] Отключается обнаружение [JUMPHACK TYPE 5] и [AIM TYPE 1.6]", true,
-                                        false, true, true);
-                                }
-                                else
-                                {
-                                    DemoScanner_AddWarn("[INFO] Small sv_maxupdaterate or sv_minupdaterate at server",
-                                        true, false, true, true);
-                                    DemoScanner_AddWarn(
-                                        "[ERROR] Disabled detection of [JUMPHACK TYPE 5] and [AIM TYPE 1.6]", true,
-                                        false, true, true);
-                                }
-                            }
-
-                            DisableJump5AndAim16 = true;
-                        }
-                        else if (cmdList[1] == "CONSOLE")
-                        {
-                            if (cmdList.Length > 2)
-                            {
-                                var tmpcolor = Console.ForegroundColor;
-                                Console.ForegroundColor = ConsoleColor.DarkYellow;
-                                Console.Write("[SERVER PRINT] ");
-                                Console.ForegroundColor = ConsoleColor.Yellow;
-                                Console.WriteLine(RemoveCtrlChars(cmdList[2]));
-                                Console.ForegroundColor = tmpcolor;
+                                DemoScanner_AddWarn("[INFO] Small sv_minrate or sv_maxrate value at server", true,
+                                    false, true, true);
+                                DemoScanner_AddWarn(
+                                    "[ERROR] Disabled detection of [JUMPHACK TYPE 5] and [AIM TYPE 1.6]", true,
+                                    false, true, true);
                             }
                         }
-                        /* else if (cmdList[1] == "ANGLE")
-                         {
-                             float angle = 0.0f;
-                             try
-                             {
-                                 angle = BitConverter.ToSingle(BitConverter.GetBytes(int.Parse(cmdList[2])), 0);
-                             }
-                             catch
-                             {
-
-                             }
-                             Console.WriteLine(angle);
-                             if (DUMP_ALL_FRAMES)
-                             {
-                                 OutDumpString += "\n{ATTACK ANGLE: " + angle + " " + CurrentTimeString + " " + CurrentTime + " }\n";
-                             }
-                         }*/
-                        else if (flPluginVersion >= 1.59)
+                        else
                         {
-                            if (abs(CurrentTime - LastCmdHack) > 10.0f)
+                            if (IsRussia)
                             {
-                                if (cmdList[1][0] == 'X')
-                                {
-                                    DemoScanner_AddWarn("[ALTERNATIVE HACK 2024 version:\"CMD\"] at (" + Math.Round(CurrentTime) +
-                                                                           ")", true, true, true, true);
-                                }
-                                else
-                                {
-                                    DemoScanner_AddWarn("[PLUGINHACK TYPE 1.2] at (" + CurrentTime + ") " + CurrentTimeString, true, true, true, true);
-                                }
-                                LastCmdHack = CurrentTime;
+                                DemoScanner_AddWarn("[INFO] На сервере слишком низкий sv_minupdaterate", true,
+                                    false, true, true);
+                                DemoScanner_AddWarn(
+                                    "[ERROR] Отключается обнаружение [JUMPHACK TYPE 5] и [AIM TYPE 1.6]", true,
+                                    false, true, true);
                             }
+                            else
+                            {
+                                DemoScanner_AddWarn("[INFO] Small sv_maxupdaterate or sv_minupdaterate at server",
+                                    true, false, true, true);
+                                DemoScanner_AddWarn(
+                                    "[ERROR] Disabled detection of [JUMPHACK TYPE 5] and [AIM TYPE 1.6]", true,
+                                    false, true, true);
+                            }
+                        }
+
+                        DisableJump5AndAim16 = true;
+                    }
+                    else if (cmdList[1] == "CONSOLE")
+                    {
+                        if (cmdList.Length > 2)
+                        {
+                            var tmpcolor = Console.ForegroundColor;
+                            Console.ForegroundColor = ConsoleColor.DarkYellow;
+                            Console.Write("[SERVER PRINT] ");
+                            Console.ForegroundColor = ConsoleColor.Yellow;
+                            Console.WriteLine(RemoveCtrlChars(cmdList[2]));
+                            Console.ForegroundColor = tmpcolor;
                         }
                     }
-                    else
+                    /* else if (cmdList[1] == "ANGLE")
+                     {
+                         float angle = 0.0f;
+                         try
+                         {
+                             angle = BitConverter.ToSingle(BitConverter.GetBytes(int.Parse(cmdList[2])), 0);
+                         }
+                         catch
+                         {
+
+                         }
+                         Console.WriteLine(angle);
+                         if (DUMP_ALL_FRAMES)
+                         {
+                             OutDumpString += "\n{ATTACK ANGLE: " + angle + " " + CurrentTimeString + " " + CurrentTime + " }\n";
+                         }
+                     }*/
+                    else if (flPluginVersion >= 1.59)
                     {
                         if (abs(CurrentTime - LastCmdHack) > 10.0f)
                         {
-                            DemoScanner_AddWarn("[PLUGINHACK TYPE 1.3] at (" + CurrentTime + ") " + CurrentTimeString, true, true, true, true);
+                            if (cmdList[1][0] == 'X')
+                            {
+                                DemoScanner_AddWarn("[ALTERNATIVE HACK 2024 version:\"CMD\"] at (" + Math.Round(CurrentTime) +
+                                                                       ")", true, true, true, true);
+                            }
+                            else
+                            {
+                                DemoScanner_AddWarn("[PLUGINHACK TYPE 1.2] at (" + CurrentTime + ") " + CurrentTimeString, true, true, true, true);
+                            }
                             LastCmdHack = CurrentTime;
                         }
                     }
                 }
                 else
                 {
-                    if (abs(CurrentTime - LastCmdHack) > 10.0)
+                    if (abs(CurrentTime - LastCmdHack) > 10.0f)
                     {
-                        string smallcmd = (cmdList[0].Length > 3 ? cmdList[0].Remove(3) : cmdList[0]).Trim();
-                        if (smallcmd.Length > 0 && smallcmd[0] == 'v')
-                        {
-                            DemoScanner_AddWarn("[ALTERNATIVE HACK 2023 version:\"" + smallcmd + "\"] at (" + CurrentTime +
-                                                                            ") : " + CurrentTimeString, true, true, true, true);
-                        }
-                        else if (smallcmd.Length > 0 && smallcmd[0] == 'X')
-                        {
-                            DemoScanner_AddWarn("[INTERIUM HACK 2023 version:\"" + smallcmd + "\"] at (" + CurrentTime +
-                                                                            ") : " + CurrentTimeString, true, true, true, true);
-                        }
-                        else
-                        {
-                            DemoScanner_AddWarn("[PLUGINHACK TYPE 1.4] at (" + CurrentTime + ") " + CurrentTimeString, true, true, true, true);
-                            LastCmdHack = CurrentTime;
-                        }
+                        DemoScanner_AddWarn("[PLUGINHACK TYPE 1.3] at (" + CurrentTime + ") " + CurrentTimeString, true, true, true, true);
                         LastCmdHack = CurrentTime;
                     }
                 }
             }
-            else if (abs(CurrentTime - LastCmdHack) > 10.0f)
+            else
             {
-                DemoScanner_AddWarn("[PLUGINHACK TYPE 1.6] at (" + CurrentTime + ") " + CurrentTimeString, true, true, true, true);
-                LastCmdHack = CurrentTime;
+                if (CurrentTime - LastCmdHack > 10.0)
+                {
+                    string smallcmd = (cmdList[0].Length > 3 ? cmdList[0].Remove(3) : cmdList[0]).Trim();
+                    if (smallcmd.Length > 0 && smallcmd[0] == 'v')
+                    {
+                        DemoScanner_AddWarn("[ALTERNATIVE HACK 2023 version:\"" + smallcmd + "\"] at (" + CurrentTime +
+                                                                        ") : " + CurrentTimeString, true, true, true, true);
+
+                        LastCmdHack = CurrentTime;
+                    }
+                    else if (smallcmd.Length > 0 && smallcmd[0] == 'X')
+                    {
+                        DemoScanner_AddWarn("[INTERIUM HACK 2023 version:\"" + smallcmd + "\"] at (" + CurrentTime +
+                                                                        ") : " + CurrentTimeString, true, true, true, true);
+
+                        LastCmdHack = CurrentTime;
+                    }
+                    else
+                    {
+                        DemoScanner_AddWarn("[PLUGINHACK TYPE 1.4] at (" + CurrentTime + ") " + CurrentTimeString, true, true, true, true);
+
+                        LastCmdHack = CurrentTime + 10000.0f;
+                    }
+                }
             }
         }
 
@@ -11065,12 +11137,20 @@ namespace DemoScanner.DG
                     BitBuffer.Data[BitBuffer.CurrentByte + 4] == (byte)MessageId.svc_print)
                 {
                     FoundCustomClientPattern = true;
+                    BitBuffer.ReadByte();
+                    BitBuffer.ReadByte();
+                    BitBuffer.ReadByte();
+                    BitBuffer.ReadByte();
                     return;
                 }
             }
 
             if (BitBuffer.Data.Length >= 16)
             {
+                if (DUMP_ALL_FRAMES)
+                {
+                    OutDumpString += "\n[PLUGINHACK TYPE 1.5] " + BitBuffer.Data.Length + " at (" + CurrentTime + ") " + CurrentTimeString;
+                }
                 DemoScanner_AddWarn("[BETA] [PLUGINHACK TYPE 1.5] at (" + CurrentTime + ") " + CurrentTimeString, false, true, true, true);
             }
         }
@@ -12816,20 +12896,6 @@ namespace DemoScanner.DG
             }
             else
             {
-                plugin_all_packets++;
-                if (!FoundFirstPluginPacket)
-                {
-                    FoundFirstPluginPacket = true;
-                    if (IsRussia)
-                    {
-                        DemoScanner_AddInfo("[HELLO] На сервере установлен демо-плагин! Поможет найти больше читов :)", true);
-                    }
-                    else
-                    {
-                        DemoScanner_AddInfo("[HELLO] Found unreal demo plugin! It can help to find more cheats :)", true);
-                    }
-                }
-
                 try
                 {
                     ProcessPluginMessage(tmpDownLocation);
