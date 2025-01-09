@@ -35,9 +35,9 @@ public plugin_init()
 	register_cvar("unreal_demoplug", VERSION, FCVAR_SERVER | FCVAR_SPONLY | FCVAR_UNLOGGED);
 	
 	#if REAPI_VERSION < 524309
-	RegisterHookChain(RH_SV_AllowPhysent, "UnrealDemoHelpInitialize");
+	RegisterHookChain(RH_SV_AllowPhysent, "UnrealDemoHelpInitialize", .post = false);
 	#else 
-	RegisterHookChain(RH_ExecuteServerStringCmd, "UnrealDemoHelpInitialize");
+	RegisterHookChain(RH_ExecuteServerStringCmd, "UnrealDemoHelpInitialize", .post = false);
 	#endif
 	
 	RegisterHookChain(RG_PM_Move, "PM_Move", .post = false);

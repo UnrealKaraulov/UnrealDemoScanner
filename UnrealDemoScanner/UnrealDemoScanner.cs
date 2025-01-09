@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Drawing;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -15,6 +16,8 @@ using System.Threading;
 using System.Threading.Tasks;
 #if !NET6_0_OR_GREATER
 using System.Windows.Forms;
+using System.Windows.Input;
+
 #endif
 using ConsoleTables;
 using DemoScanner.DemoStuff;
@@ -26,11 +29,9 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.73.9b";
+        public const string PROGRAMVERSION = "1.74.0b";
 
         public static string FoundNewVersion = "";
-
-
 
 
         //
@@ -121,7 +122,7 @@ namespace DemoScanner.DG
         public const float MAX_SPREAD_CONST2 = 0.00004f;
         public const float MIN_SENS_DETECTED = 0.0004f; //SENS < 0.02 (0.018)
         public const float MIN_SENS_WARNING = MOUSE_FILTER ? 0.002f : 0.004f; //SENS < 0.2 (0.18)
-        public const float MIN_PLAYABLE_SENS = MOUSE_FILTER ? 0.002f :  0.004f;
+        public const float MIN_PLAYABLE_SENS = MOUSE_FILTER ? 0.002f : 0.004f;
 
         public static bool FoundFirstPluginPacket;
         public static int plugin_all_packets;
@@ -469,8 +470,8 @@ namespace DemoScanner.DG
         public static int usagesrccode;
         public static List<UcmdLerpAndMs> historyUcmdLerpAndMs = new List<UcmdLerpAndMs>();
         public static int cipid;
+        public static float LastAim5Warning;
         public static float LastAim5Detected;
-        public static float LastAim5DetectedReal;
         public static float AimType8WarnTime;
         public static bool AimType8False;
         public static float AimType8WarnTime2;
@@ -754,6 +755,8 @@ namespace DemoScanner.DG
         public static int MaxPrintCmdMsgPerSecond;
         public static int SkipChangeWeapon;
 
+        public static int numberbaduserdetects = 0;
+
         public static string VoiceCodec = "";
         public static byte VoiceQuality = 5;
 
@@ -1026,6 +1029,7 @@ namespace DemoScanner.DG
                 return;
             }
 
+
             msg = msg.Replace("\n", "^n").Replace("\r", "^n").Replace("\x01", "^1").Replace("\x02", "^2")
                 .Replace("\x03", "^3").Replace("\x04", "^4");
             if (msg.Length == 0)
@@ -1177,20 +1181,23 @@ namespace DemoScanner.DG
                             Console.Write(prefix);
                         }
 
-                        if (!curwarn.Plugin || !curwarn.HidePrefix)
+                        if (!curwarn.Plugin)
                         {
-                            Console.ForegroundColor = ConsoleColor.Cyan;
-                            if (IsRussia)
+                            if (!curwarn.HidePrefix)
                             {
-                                prefix = "[ОБНАРУЖЕНО] ";
-                            }
-                            else
-                            {
-                                prefix = "[DETECTED] ";
-                            }
+                                Console.ForegroundColor = ConsoleColor.Cyan;
+                                if (IsRussia)
+                                {
+                                    prefix = "[ОБНАРУЖЕНО] ";
+                                }
+                                else
+                                {
+                                    prefix = "[DETECTED] ";
+                                }
 
-                            LastLossPacket = 0.0f;
-                            Console.Write(prefix);
+                                LastLossPacket = 0.0f;
+                                Console.Write(prefix);
+                            }
                         }
 
                         Console.ForegroundColor = ConsoleColor.Cyan;
@@ -1212,19 +1219,22 @@ namespace DemoScanner.DG
 
                             Console.Write(prefix);
                         }
-                        if (!curwarn.Plugin || !curwarn.HidePrefix)
+                        if (!curwarn.Plugin)
                         {
-                            Console.ForegroundColor = ConsoleColor.Gray;
-                            if (IsRussia)
+                            if (!curwarn.HidePrefix)
                             {
-                                prefix = "[ПРЕДУПРЕЖДЕНИЕ] ";
-                            }
-                            else
-                            {
-                                prefix = "[WARNING] ";
-                            }
+                                Console.ForegroundColor = ConsoleColor.Gray;
+                                if (IsRussia)
+                                {
+                                    prefix = "[ПРЕДУПРЕЖДЕНИЕ] ";
+                                }
+                                else
+                                {
+                                    prefix = "[WARNING] ";
+                                }
 
-                            Console.Write(prefix);
+                                Console.Write(prefix);
+                            }
                         }
 
                         Console.ForegroundColor = ConsoleColor.Gray;
@@ -2326,6 +2336,11 @@ namespace DemoScanner.DG
         }
 
         public static string TrimBad(this string value)
+        {
+            return value.Replace("\n", "").Replace("\r", "");
+        }
+
+        public static string TrimBad(this string value, char replace)
         {
             return value.Replace("\n", "").Replace("\r", "");
         }
@@ -3575,7 +3590,7 @@ namespace DemoScanner.DG
                                     HorAngleTime = CurrentTime;
                                 }
 
-                                if (RealAlive && !skip_sens_check)
+                                if (RealAlive)
                                 {
                                     var tmpXangle = AngleBetween(PREV_CDFRAME_ViewAngles.X, CDFRAME_ViewAngles.X);
                                     var tmpYangle = AngleBetween(PREV_CDFRAME_ViewAngles.Y, CDFRAME_ViewAngles.Y);
@@ -3610,7 +3625,7 @@ namespace DemoScanner.DG
                                         }
 
                                         flAngleRealDetect = flMinSensAngle / 2.1f;
-                                        flAngleWarnDetect = flMinSensAngle / 1.1f;
+                                        flAngleWarnDetect = flMinSensAngle / 1.001f;
                                         CheckedSensCount++;
                                         if (CheckedSensCount >= SENS_COUNT_FOR_AIM)
                                         {
@@ -3636,6 +3651,12 @@ namespace DemoScanner.DG
                                         }
                                     }
 
+                                    if (skip_sens_check)
+                                    {
+                                        flAngleRealDetect = MIN_SENS_DETECTED;
+                                        flAngleWarnDetect = MIN_SENS_WARNING;
+                                    }
+
                                     if (CurrentWeapon == WeaponIdType.WEAPON_AWP ||
                                         CurrentWeapon == WeaponIdType.WEAPON_SCOUT ||
                                         CurrentWeapon == WeaponIdType.WEAPON_G3SG1 ||
@@ -3654,12 +3675,12 @@ namespace DemoScanner.DG
                                     if (IsNewAttack() || IsNewSecondKnifeAttack())
                                     {
                                         if ((NewAttack || NewAttack2) && PlayerSensitivityWarning == 0 &&
-                                            abs(LastAim5DetectedReal) > EPSILON &&
-                                            abs(CurrentTime - LastAim5DetectedReal) < 0.5f)
+                                            abs(LastAim5Detected) > EPSILON &&
+                                            abs(CurrentTime - LastAim5Detected) < 0.5f)
                                         {
                                             if (DemoScanner_AddWarn(
-                                                "[AIM TYPE 5.1 " + CurrentWeapon + "] at (" + LastAim5DetectedReal + "):" +
-                                                GetTimeString(LastAim5DetectedReal),
+                                                "[AIM TYPE 5.1 " + CurrentWeapon + "] at (" + LastAim5Detected + "):" +
+                                                GetTimeString(LastAim5Detected),
                                                 !IsTakeDamage() && !IsPlayerLossConnection() && !IsAngleEditByEngine() &&
                                                 !IsCmdChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck()))
                                             {
@@ -3668,36 +3689,36 @@ namespace DemoScanner.DG
                                                 {
                                                     TotalAimBotDetected++;
                                                 }
-                                                LastAim5DetectedReal = 0.0f;
                                                 LastAim5Detected = 0.0f;
+                                                LastAim5Warning = 0.0f;
                                             }
-                                        }
-                                        else if (PlayerSensitivityWarning == 0 && abs(LastAim5DetectedReal) > EPSILON &&
-                                                 abs(CurrentTime - LastAim5DetectedReal) < 0.5f)
-                                        {
-                                            if (DemoScanner_AddWarn(
-                                                "[AIM TYPE 5.9 " + CurrentWeapon + "] at (" + LastAim5DetectedReal + "):" +
-                                                GetTimeString(LastAim5DetectedReal),
-                                                !IsTakeDamage() && !IsPlayerLossConnection() && !IsAngleEditByEngine() &&
-                                                !IsCmdChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck()))
-                                            {
-                                                if (!IsTakeDamage() && !IsPlayerLossConnection() && !IsAngleEditByEngine() &&
-                                                    !IsCmdChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck())
-                                                {
-                                                    TotalAimBotDetected++;
-                                                }
-                                            }
-                                            LastAim5DetectedReal = 0.0f;
-                                            LastAim5Detected = 0.0f;
                                         }
                                         else if (PlayerSensitivityWarning == 0 && abs(LastAim5Detected) > EPSILON &&
                                                  abs(CurrentTime - LastAim5Detected) < 0.5f)
                                         {
+                                            if (DemoScanner_AddWarn(
+                                                "[AIM TYPE 5.9 " + CurrentWeapon + "] at (" + LastAim5Detected + "):" +
+                                                GetTimeString(LastAim5Detected),
+                                                !IsTakeDamage() && !IsPlayerLossConnection() && !IsAngleEditByEngine() &&
+                                                !IsCmdChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck()))
+                                            {
+                                                if (!IsTakeDamage() && !IsPlayerLossConnection() && !IsAngleEditByEngine() &&
+                                                    !IsCmdChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck())
+                                                {
+                                                    TotalAimBotDetected++;
+                                                }
+                                            }
+                                            LastAim5Detected = 0.0f;
+                                            LastAim5Warning = 0.0f;
+                                        }
+                                        else if (PlayerSensitivityWarning == 0 && abs(LastAim5Warning) > EPSILON &&
+                                                 abs(CurrentTime - LastAim5Warning) < 0.5f)
+                                        {
                                             if (!IsAngleEditByEngine() && !IsTakeDamage() && !IsCmdChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck())
                                             {
                                                 if (DemoScanner_AddWarn(
-                                                    "[AIM TYPE 5.2 " + CurrentWeapon + "] at (" + LastAim5Detected + "):" +
-                                                    GetTimeString(LastAim5Detected), !IsPlayerLossConnection()))
+                                                    "[AIM TYPE 5.2 " + CurrentWeapon + "] at (" + LastAim5Warning + "):" +
+                                                    GetTimeString(LastAim5Warning), !IsPlayerLossConnection()))
                                                 {
                                                     TotalAimBotDetected++;
                                                 }
@@ -3705,34 +3726,15 @@ namespace DemoScanner.DG
                                             else
                                             {
                                                 DemoScanner_AddWarn(
-                                                    "[AIM TYPE 5.3 " + CurrentWeapon + "] at (" + LastAim5Detected + "):" +
-                                                    GetTimeString(LastAim5Detected), false);
+                                                    "[AIM TYPE 5.3 " + CurrentWeapon + "] at (" + LastAim5Warning + "):" +
+                                                    GetTimeString(LastAim5Warning), false);
                                             }
 
-                                            LastAim5DetectedReal = 0.0f;
                                             LastAim5Detected = 0.0f;
+                                            LastAim5Warning = 0.0f;
                                         }
                                         else if (PlayerSensitivityWarning == 1)
                                         {
-                                            if (abs(LastAim5DetectedReal) > EPSILON &&
-                                                abs(CurrentTime - LastAim5DetectedReal) < 0.75f)
-                                            {
-                                                if (!IsAngleEditByEngine() && !IsPlayerInDuck() && !IsPlayerUnDuck())
-                                                {
-                                                    DemoScanner_AddWarn(
-                                                        "[AIM TYPE 5.4 " + CurrentWeapon + "] at (" + LastAim5DetectedReal +
-                                                        "):" + GetTimeString(LastAim5DetectedReal), false);
-                                                    LastAim5DetectedReal = 0.0f;
-                                                }
-                                                else
-                                                {
-                                                    DemoScanner_AddWarn(
-                                                        "[AIM TYPE 5.6 " + CurrentWeapon + "] at (" + LastAim5DetectedReal +
-                                                        "):" + GetTimeString(LastAim5DetectedReal), false);
-                                                    LastAim5DetectedReal = 0.0f;
-                                                }
-                                            }
-
                                             if (abs(LastAim5Detected) > EPSILON &&
                                                 abs(CurrentTime - LastAim5Detected) < 0.75f)
                                             {
@@ -3746,9 +3748,28 @@ namespace DemoScanner.DG
                                                 else
                                                 {
                                                     DemoScanner_AddWarn(
-                                                        "[AIM TYPE 5.7 " + CurrentWeapon + "] at (" + LastAim5Detected +
+                                                        "[AIM TYPE 5.6 " + CurrentWeapon + "] at (" + LastAim5Detected +
                                                         "):" + GetTimeString(LastAim5Detected), false);
                                                     LastAim5Detected = 0.0f;
+                                                }
+                                            }
+
+                                            if (abs(LastAim5Warning) > EPSILON &&
+                                                abs(CurrentTime - LastAim5Warning) < 0.75f)
+                                            {
+                                                if (!IsAngleEditByEngine() && !IsPlayerInDuck() && !IsPlayerUnDuck())
+                                                {
+                                                    DemoScanner_AddWarn(
+                                                        "[AIM TYPE 5.4 " + CurrentWeapon + "] at (" + LastAim5Warning +
+                                                        "):" + GetTimeString(LastAim5Warning), false);
+                                                    LastAim5Warning = 0.0f;
+                                                }
+                                                else
+                                                {
+                                                    DemoScanner_AddWarn(
+                                                        "[AIM TYPE 5.7 " + CurrentWeapon + "] at (" + LastAim5Warning +
+                                                        "):" + GetTimeString(LastAim5Warning), false);
+                                                    LastAim5Warning = 0.0f;
                                                 }
                                             }
 
@@ -3756,40 +3777,19 @@ namespace DemoScanner.DG
                                         }
                                         else if (PlayerSensitivityWarning == 2)
                                         {
-                                            if (abs(LastAim5Detected) > EPSILON &&
-                                                abs(CurrentTime - LastAim5Detected) < 0.75f)
+                                            if (abs(LastAim5Warning) > EPSILON &&
+                                                abs(CurrentTime - LastAim5Warning) < 0.75f)
                                             {
                                                 DemoScanner_AddWarn(
-                                                    "[AIM TYPE 5.10 " + CurrentWeapon + "] at (" + LastAim5Detected + "):" +
-                                                    GetTimeString(LastAim5Detected), false);
-                                                LastAim5Detected = 0.0f;
+                                                    "[AIM TYPE 5.10 " + CurrentWeapon + "] at (" + LastAim5Warning + "):" +
+                                                    GetTimeString(LastAim5Warning), false);
+                                                LastAim5Warning = 0.0f;
                                             }
 
                                             PlayerSensitivityWarning = 0;
                                         }
                                         else
                                         {
-                                            if (abs(LastAim5DetectedReal) > EPSILON &&
-                                                abs(CurrentTime - LastAim5DetectedReal) > 0.75f)
-                                            {
-                                                if (!IsAngleEditByEngine() && !IsPlayerInDuck() && !IsPlayerUnDuck())
-                                                {
-                                                    DemoScanner_AddWarn(
-                                                        "[AIM TYPE 5.5 " + CurrentWeapon + "] at (" + LastAim5DetectedReal +
-                                                        "):" + GetTimeString(LastAim5DetectedReal), false);
-                                                    LastAim5DetectedReal = 0.0f;
-                                                    PlayerSensitivityWarning = 0;
-                                                }
-                                                else
-                                                {
-                                                    DemoScanner_AddWarn(
-                                                        "[AIM TYPE 5.8 " + CurrentWeapon + "] at (" + LastAim5DetectedReal +
-                                                        "):" + GetTimeString(LastAim5DetectedReal), false);
-                                                    LastAim5DetectedReal = 0.0f;
-                                                    PlayerSensitivityWarning = 0;
-                                                }
-                                            }
-
                                             if (abs(LastAim5Detected) > EPSILON &&
                                                 abs(CurrentTime - LastAim5Detected) > 0.75f)
                                             {
@@ -3799,6 +3799,27 @@ namespace DemoScanner.DG
                                                         "[AIM TYPE 5.5 " + CurrentWeapon + "] at (" + LastAim5Detected +
                                                         "):" + GetTimeString(LastAim5Detected), false);
                                                     LastAim5Detected = 0.0f;
+                                                    PlayerSensitivityWarning = 0;
+                                                }
+                                                else
+                                                {
+                                                    DemoScanner_AddWarn(
+                                                        "[AIM TYPE 5.8 " + CurrentWeapon + "] at (" + LastAim5Detected +
+                                                        "):" + GetTimeString(LastAim5Detected), false);
+                                                    LastAim5Detected = 0.0f;
+                                                    PlayerSensitivityWarning = 0;
+                                                }
+                                            }
+
+                                            if (abs(LastAim5Warning) > EPSILON &&
+                                                abs(CurrentTime - LastAim5Warning) > 0.75f)
+                                            {
+                                                if (!IsAngleEditByEngine() && !IsPlayerInDuck() && !IsPlayerUnDuck())
+                                                {
+                                                    DemoScanner_AddWarn(
+                                                        "[AIM TYPE 5.5 " + CurrentWeapon + "] at (" + LastAim5Warning +
+                                                        "):" + GetTimeString(LastAim5Warning), false);
+                                                    LastAim5Warning = 0.0f;
                                                     PlayerSensitivityWarning = 0;
                                                 }
                                             }
@@ -3820,21 +3841,21 @@ namespace DemoScanner.DG
                                         {
                                             if (CurrentFrameAttacked || PreviousFrameAttacked || BadPunchAngle ||
                                                 IsTakeDamage() || IsPlayerLossConnection() || IsAngleEditByEngine() ||
-                                                IsCmdChangeWeapon() || IsPlayerInDuck() || IsPlayerUnDuck())
+                                                IsCmdChangeWeapon() || IsPlayerInDuck() || IsPlayerUnDuck() || skip_sens_check)
                                             {
-                                                LastAim5Detected = CurrentTime;
+                                                LastAim5Warning = CurrentTime;
                                                 PlayerSensitivityWarning = 1;
                                             }
                                             else
                                             {
                                                 PlayerSensitivityWarning = 0;
-                                                LastAim5DetectedReal = CurrentTime;
+                                                LastAim5Detected = CurrentTime;
                                             }
                                         }
                                     }
                                     else if (abs(tmpXangle) > EPSILON && tmpXangle < flAngleWarnDetect &&
-                                             (LastAim5DetectedReal < EPSILON ||
-                                              abs(CurrentTime - LastAim5DetectedReal) > 0.5f))
+                                             (LastAim5Detected < EPSILON ||
+                                              abs(CurrentTime - LastAim5Detected) > 0.5f))
                                     {
                                         if (CurrentWeapon == WeaponIdType.WEAPON_C4 ||
                                             CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE ||
@@ -3848,7 +3869,7 @@ namespace DemoScanner.DG
                                         else
                                         {
                                             PlayerSensitivityWarning = 1;
-                                            LastAim5Detected = CurrentTime;
+                                            LastAim5Warning = CurrentTime;
                                         }
                                     }
                                     else if (abs(tmpYangle) > EPSILON && tmpYangle < flAngleRealDetect)
@@ -4075,8 +4096,8 @@ namespace DemoScanner.DG
                                 }
                                 else
                                 {
-                                    LastAim5DetectedReal = 0.0f;
                                     LastAim5Detected = 0.0f;
+                                    LastAim5Warning = 0.0f;
                                     AimType7Event = 0;
                                     AimType7Frames = 0;
                                     OldAimType7Time = 0.0f;
@@ -5133,8 +5154,8 @@ namespace DemoScanner.DG
                                             LastForceCenterView = CurrentTime;
                                         }
 
-                                        LastAim5DetectedReal = 0.0f;
                                         LastAim5Detected = 0.0f;
+                                        LastAim5Warning = 0.0f;
                                     }
                                 }
 
@@ -6050,8 +6071,11 @@ namespace DemoScanner.DG
                                     }
                                     else if (ThirdPersonHackDetectionTimeout == 0)
                                     {
-                                        DemoScanner_AddWarn("[THIRD PERSON TYPE 1] at (" + CurrentTime + "):" +
-                                                            CurrentTimeString, !IsPlayerLossConnection());
+                                        if (ThirdHackDetected <= 5)
+                                        {
+                                            DemoScanner_AddWarn("[THIRD PERSON TYPE 1] at (" + CurrentTime + "):" +
+                                                                CurrentTimeString, !IsPlayerLossConnection());
+                                        }
                                         ThirdHackDetected += 1;
                                         NeedDetectThirdPersonHack = false;
                                         ThirdPersonHackDetectionTimeout = -1;
@@ -6061,13 +6085,13 @@ namespace DemoScanner.DG
                                             {
                                                 DemoScanner_AddInfo("Внимание. Обнаружен вид от третьего лица.");
                                                 DemoScanner_AddInfo(
-                                                    "Отключаются ложные обнаружение : NO SPREAD TYPE X и THIRD PERSON TYPE 2.");
+                                                    "Отключаются ложные обнаружение : NO SPREAD TYPE X и THIRD PERSON TYPE X.");
                                             }
                                             else
                                             {
-                                                DemoScanner_AddInfo("WARNING! Deteceted 'THIRD PERSON'");
+                                                DemoScanner_AddInfo("WARNING! Deteceted 'THIRD PERSON' camera");
                                                 DemoScanner_AddInfo(
-                                                    "False NO SPREAD TYPE X and THIRD PERSON TYPE 2 detection is disabled.");
+                                                    "False NO SPREAD TYPE X and THIRD PERSON TYPE X detection is disabled.");
                                             }
                                         }
                                     }
@@ -7641,55 +7665,57 @@ namespace DemoScanner.DG
             GameEnd = false;
             CL_Intermission = 0;
 
-            if (NeedIgnoreAttackFlagCount > 0)
+            if (!DEMOSCANNER_HLTV)
             {
-                if (IsRussia)
+                if (NeedIgnoreAttackFlagCount > 0)
                 {
-                    DemoScanner_AddInfo("Незавршенных атак: " + NeedIgnoreAttackFlagCount + ".");
+                    if (IsRussia)
+                    {
+                        DemoScanner_AddInfo("Незавршенных атак: " + NeedIgnoreAttackFlagCount + ".");
+                    }
+                    else
+                    {
+                        DemoScanner_AddInfo("Lost attack flag: " + NeedIgnoreAttackFlagCount + ".");
+                    }
                 }
-                else
+
+                if (attackscounter == 0 || attackscounter3 == 0 || (attackscounter4 == 0 && !NoWeaponData) || (PluginVersion.Length > 0 && flPluginVersion > 1.59 && attackscounter6 == 0))
                 {
-                    DemoScanner_AddInfo("Lost attack flag: " + NeedIgnoreAttackFlagCount + ".");
+                    if (IsRussia)
+                    {
+                        DemoScanner_AddInfo("Игрок не совершал выстрелы в данном демо файле!");
+                    }
+                    else
+                    {
+                        DemoScanner_AddInfo("The player did not fire shots in this demo file!");
+                    }
+                }
+
+                if (JumpCount == 0 || JumpCount2 == 0 || JumpCount3 == 0
+                     || JumpCount4 == 0 || JumpCount5 == 0 || (PluginVersion.Length > 0 && flPluginVersion >= 1.54 && JumpCount6 == 0))
+                {
+                    if (IsRussia)
+                    {
+                        DemoScanner_AddInfo("Игрок не совершал прыжков в данном демо файле!");
+                    }
+                    else
+                    {
+                        DemoScanner_AddInfo("The player did not jump in this demo file!");
+                    }
+                }
+
+                if (BadEvents > 8)
+                {
+                    if (IsRussia)
+                    {
+                        DemoScanner_AddInfo("Нехватает кадров: " + BadEvents + ".");
+                    }
+                    else
+                    {
+                        DemoScanner_AddInfo("Lost frames: " + BadEvents + ".");
+                    }
                 }
             }
-
-            if (attackscounter == 0 || attackscounter3 == 0 || (attackscounter4 == 0 && !NoWeaponData) || (PluginVersion.Length > 0 && flPluginVersion > 1.59 && attackscounter6 == 0))
-            {
-                if (IsRussia)
-                {
-                    DemoScanner_AddInfo("Игрок не совершал выстрелы в данном демо файле!");
-                }
-                else
-                {
-                    DemoScanner_AddInfo("The player did not fire shots in this demo file!");
-                }
-            }
-
-            if (JumpCount == 0 || JumpCount2 == 0 || JumpCount3 == 0
-                 || JumpCount4 == 0 || JumpCount5 == 0 || (PluginVersion.Length > 0 && flPluginVersion >= 1.54 && JumpCount6 == 0))
-            {
-                if (IsRussia)
-                {
-                    DemoScanner_AddInfo("Игрок не совершал прыжков в данном демо файле!");
-                }
-                else
-                {
-                    DemoScanner_AddInfo("The player did not jump in this demo file!");
-                }
-            }
-
-            if (BadEvents > 8)
-            {
-                if (IsRussia)
-                {
-                    DemoScanner_AddInfo("Нехватает кадров: " + BadEvents + ".");
-                }
-                else
-                {
-                    DemoScanner_AddInfo("Lost frames: " + BadEvents + ".");
-                }
-            }
-
             /*
             if (BadAnglesFoundCount > 0)
             {
@@ -9659,7 +9685,7 @@ namespace DemoScanner.DG
             return (!NO_TELEPORT && (IsPlayerTeleport() || abs(CurrentTime - LastAngleManipulation) < 0.50f ||
                                      IsTakeDamage() || IsPlayerFrozen() ||
                                      IsViewChanged() || HideWeapon || abs(CurrentTime - LastLookDisabled) < 0.75f)) ||
-                   abs(CurrentTime - HorAngleTime) < 0.15;
+                   abs(CurrentTime - HorAngleTime) < 0.1;
         }
 
         public static bool IsValidMovement()
@@ -9667,7 +9693,7 @@ namespace DemoScanner.DG
             return !((!NO_TELEPORT && (IsPlayerTeleport() || abs(CurrentTime - LastAngleManipulation) < 0.50f ||
                                        IsTakeDamage() || IsPlayerFrozen() || IsViewChanged() || HideWeapon ||
                                        abs(CurrentTime - LastLookDisabled) < 0.75f)) ||
-                     abs(CurrentTime - HorAngleTime) < 0.15);
+                     abs(CurrentTime - HorAngleTime) < 0.1);
         }
 
         public static void VectorsToAngles(FPoint3D fwd, FPoint3D right, FPoint3D up, ref FPoint3D angles)
@@ -10845,6 +10871,7 @@ namespace DemoScanner.DG
             AddUserMessageHandler("Spectator", MessageSpectator);
             AddUserMessageHandler("ScoreAttrib", MessageScoreAttrib);
             AddUserMessageHandler("TextMsg", TextMsg);
+            AddUserMessageHandler("SayText", SayText);
             AddUserMessageHandler("Damage", Damage);
             AddUserMessageHandler("SetFOV", SetFOV);
             AddUserMessageHandler("HideWeapon", HideWeapon);
@@ -11555,6 +11582,16 @@ namespace DemoScanner.DG
             DemoScanner_AddTextMessage(light, "LIGHT", CurrentTime, CurrentTimeString);
         }
 
+        private static string StringToHex(string input)
+        {
+            StringBuilder hex = new StringBuilder();
+            foreach (char c in input)
+            {
+                hex.AppendFormat("[0x{0:X2}]", (int)c);
+            }
+            return hex.ToString().Trim();
+        }
+
         public void MessageUpdateUserInfo()
         {
             var slot = BitBuffer.ReadByte();
@@ -11567,7 +11604,7 @@ namespace DemoScanner.DG
                 Seek(16); // string hash
             }
 
-            if (userinfo_string.Length < 5)
+            if (userinfo_string.Length < 4)
             {
                 return;
             }
@@ -11603,21 +11640,56 @@ namespace DemoScanner.DG
                 player_in_struct_id = 0;
             }
 
+            bool badKeyFound = false;
+            string badString = "";
             var userinfo_string_bak = userinfo_string;
+
+            Dictionary<string, string> TempInfoKeys = new Dictionary<string, string>();
             try
             {
                 // parse infokey string
                 userinfo_string = userinfo_string.Remove(0, 1); // trim leading slash
+
                 var infoKeyTokens = userinfo_string.Split('\\');
-                for (var n = 0; n + 1 < infoKeyTokens.Length; n += 2)
+
+                for (int n = 0; n < infoKeyTokens.Length; n++)
                 {
+                    try
+                    {
+                        bool oldbad = false;
+                        infoKeyTokens[n] = Regex.Replace(infoKeyTokens[n],
+@"[^\u0000-\u007F\u0400-\u04FF\u0080-\u00FF\u0370-\u03FF\u0500-\u052F\u4E00-\u9FFF\u3400-\u4DBF\u20000-\u2A6DF\u2A700-\u2B73F\u2B740-\u2B81F\u3040-\u309F\u30A0-\u30FF]+",
+            a => { badKeyFound = true; oldbad = true; return StringToHex(a.Value); });
+
+                        if (oldbad )
+                        {
+                            badString += infoKeyTokens[n].TrimBad('|');
+                            if (badString.Length > 64)
+                            {
+                                badString = badString.Remove(64) + "..."; ;
+                            }
+                        }
+                    }
+                    catch
+                    {
+
+                    }
+
+                }
+
+                for (var n = 0; n < infoKeyTokens.Length; n += 2)
+                {
+                    var key = infoKeyTokens[n];
+                   
+
                     if (n + 1 >= infoKeyTokens.Length)
                     {
-                        // Must be an odd number of strings - a key without a value - ignore it.
+                        player.InfoKeys[key] += "";
+                        TempInfoKeys[key] += "";
                         break;
                     }
 
-                    var key = infoKeyTokens[n];
+                    var value = infoKeyTokens[n + 1];
 
                     if (key == "STEAMID")
                     {
@@ -11626,7 +11698,7 @@ namespace DemoScanner.DG
 
                     if (key.ToLower() == "name")
                     {
-                        string newname = infoKeyTokens[n + 1];
+                        string newname = value;
                         string oldname = player.UserName;
                         if (newname.Length > 0)
                         {
@@ -11709,12 +11781,12 @@ namespace DemoScanner.DG
                     {
                         key = "STEAMID";
 
-                        string tmpSteamKey = infoKeyTokens[n + 1];
+                        string tmpSteamKey = value;
                         if (tmpSteamKey.Length > 0)
                         {
-                            infoKeyTokens[n + 1] = CalculateSteamId(infoKeyTokens[n + 1]);
+                            value = CalculateSteamId(value);
                             string oldsteam = player.UserSteamId;
-                            player.UserSteamId = infoKeyTokens[n + 1];
+                            player.UserSteamId = value;
 
                             if (LocalPlayerId != -1 && slot == LocalPlayerId)
                             {
@@ -11760,12 +11832,19 @@ namespace DemoScanner.DG
                     }
 
                     // If the key already exists, overwrite it.
-                    if (player.InfoKeys.ContainsKey(key))
+                    if (player.InfoKeys.ContainsKey(key) && !TempInfoKeys.ContainsKey(key))
                     {
                         player.InfoKeys.Remove(key);
                     }
-
-                    player.InfoKeys.Add(key, infoKeyTokens[n + 1]);
+                    else if (TempInfoKeys.ContainsKey(key))
+                    {
+                        player.InfoKeys[key + "#2"] += value;
+                    }
+                    else
+                    {
+                        player.InfoKeys[key] = value;
+                    }
+                    TempInfoKeys[key] = value;
                 }
 
                 playerList[player_in_struct_id] = player;
@@ -11774,6 +11853,19 @@ namespace DemoScanner.DG
             {
                 Console.WriteLine("Error in parsing:" + userinfo_string_bak);
             }
+            try
+            {
+                if (badKeyFound && DEMOSCANNER_HLTV)
+                {
+                    numberbaduserdetects++;
+                    if (numberbaduserdetects < 10)
+                    {
+                        DemoScanner_AddWarn("[USERINFO HACK] [USER " + userid + " NAME " + (player.UserName != null ? player.UserName : "ERROR NO NAME") + " STEAMID " + player.UserSteamId + "] at (" + CurrentTime + "):" + CurrentTimeString, true, true, true);
+                        DemoScanner_AddWarn("[USERINFO HACK STRING] [" + badString + "]", true, true, true,false,true);
+                    }
+                }
+            }
+            catch { }
         }
 
         public void MessageDeltaDescription()
@@ -13229,7 +13321,49 @@ namespace DemoScanner.DG
                 FovByFunc = newfov;
             }
         }
+        private void SayText()
+        {
+            CurrentMsgPrintCount++;
+            var len = BitBuffer.ReadByte(); // message len for -1 len
+            var clientIdx = BitBuffer.ReadByte(); // message type
+            var arg1 = BitBuffer.ReadStringMaxLen(256);
+            string clientName = "UNKNOWN";
 
+            if (clientIdx > 0)
+            {
+                for (var i = 0; i < playerList.Count; i++)
+                {
+                    if (playerList[i].iSlot == clientIdx)
+                    {
+                        clientName = playerList[i].UserName;
+                        break;
+                    }
+                }
+            }
+            else
+            {
+                clientName = "SERVER";
+            }
+
+            if (arg1 == "%s")
+            {
+                var curpos = BitBuffer.CurrentByte;
+                try
+                {
+                    arg1 = BitBuffer.ReadStringMaxLen(256);
+                }
+                catch
+                {
+                    BitBuffer.SeekBytes(curpos, SeekOrigin.Begin);
+                }
+            }
+
+            if (DUMP_ALL_FRAMES)
+            {
+                OutDumpString += "[" + clientName + "]:" + arg1 + "\n";
+            }
+            DemoScanner_AddTextMessage("[" + clientName + "]:" + arg1, "SayText", CurrentTime, CurrentTimeString);
+        }
         private void TextMsg()
         {
             CurrentMsgPrintCount++;
@@ -13241,10 +13375,20 @@ namespace DemoScanner.DG
             }
 
             var arg1 = BitBuffer.ReadStringMaxLen(256);
-            var arg2 = arg1.IndexOf("%s") == 0 || (arg1.IndexOf("#") == 0 && arg1.IndexOf(" ") == -1 &&
-                                                   target != TEXTMSG_Type.TEXT_PRINTCENTER)
-                ? BitBuffer.ReadStringMaxLen(256)
-                : "";
+
+            var curpos = BitBuffer.CurrentByte;
+            string arg2 = "";
+            try
+            {
+                arg2 = arg1.IndexOf("%s") == 0 || (arg1.IndexOf("#") == 0 && arg1.IndexOf(" ") == -1 &&
+                                                       target != TEXTMSG_Type.TEXT_PRINTCENTER)
+                    ? BitBuffer.ReadStringMaxLen(256)
+                    : "";
+            }
+            catch
+            {
+                BitBuffer.SeekBytes(curpos, SeekOrigin.Begin);
+            }
             /*string arg3 = BitBuffer.ReadStringMaxLen(256).Replace("\n", "^n").Replace("\r", "^n")
                 .Replace("\x01", "^1").Replace("\x02", "^2")
                 .Replace("\x03", "^3").Replace("\x04", "^4");
@@ -13270,7 +13414,10 @@ namespace DemoScanner.DG
             {
                 arg1 = arg1 + "|" + arg2;
             }
-
+            if (DUMP_ALL_FRAMES)
+            {
+                OutDumpString += arg1 + "\n";
+            }
             DemoScanner_AddTextMessage(arg1, target.ToString(), CurrentTime, CurrentTimeString);
         }
 
@@ -13322,16 +13469,26 @@ namespace DemoScanner.DG
             else if (iKiller == LocalPlayerId + 1 && iVictim != iKiller)
             {
                 KillsCount++;
+                var wpntype = GetWeaponByStr(weapon);
+                bool badweapon = false;
+                if (wpntype == WeaponIdType.WEAPON_NONE || wpntype == WeaponIdType.WEAPON_BAD ||
+                           wpntype == WeaponIdType.WEAPON_BAD2 || wpntype == WeaponIdType.WEAPON_C4 ||
+                           wpntype == WeaponIdType.WEAPON_HEGRENADE || wpntype == WeaponIdType.WEAPON_SMOKEGRENADE ||
+                           wpntype == WeaponIdType.WEAPON_FLASHBANG)
+                {
+                    badweapon = true;
+                }
+                else
+                {
+
+                }
+
                 if (LastAttackForTrigger == NewAttackForTrigger)
                 {
                     if (LastAttackForTriggerFrame != CurrentFrameIdAll && !IsPlayerAttackedPressed() && IsUserAlive() &&
                         !IsCmdChangeWeapon())
                     {
-                        var wpntype = GetWeaponByStr(weapon);
-                        if (wpntype == WeaponIdType.WEAPON_NONE || wpntype == WeaponIdType.WEAPON_BAD ||
-                            wpntype == WeaponIdType.WEAPON_BAD2 || wpntype == WeaponIdType.WEAPON_C4 ||
-                            wpntype == WeaponIdType.WEAPON_HEGRENADE || wpntype == WeaponIdType.WEAPON_SMOKEGRENADE ||
-                            wpntype == WeaponIdType.WEAPON_FLASHBANG)
+                        if (badweapon)
                         {
                         }
                         else
@@ -14110,6 +14267,12 @@ namespace DemoScanner.DG
 
                             if (Name == "entity_state_player_t")
                             {
+                                //if (entryList[index].Name.StartsWith("origin["))
+                                //{
+                                //    var tmpAngle = value != null ? (float)value : 1.0f;
+                                //    Console.WriteLine(CurrentTimeString + " : [" + LastPlayerEntity + "]" + entryList[index].Name + " = " + tmpAngle);
+                                //}
+
                                 if (LastPlayerEntity == LocalPlayerId + 1)
                                 {
                                     if (entryList[index].Name == "angles[1]")
