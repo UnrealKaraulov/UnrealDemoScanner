@@ -535,6 +535,24 @@ namespace DemoScanner.DemoStuff.GoldSource
                     return hashCode;
                 }
             }
+            public struct CvarDifference
+            {
+                public string ParameterName;
+                public object OldValue;
+                public object NewValue;
+
+                public CvarDifference(string parameterName, object oldValue, object newValue)
+                {
+                    ParameterName = parameterName;
+                    OldValue = oldValue;
+                    NewValue = newValue;
+                }
+
+                public override string ToString()
+                {
+                    return $"{ParameterName} from {OldValue} to {NewValue}";
+                }
+            }
 
             [StructLayout(LayoutKind.Sequential, Pack = 1)]
             public struct MoveVars
@@ -565,6 +583,66 @@ namespace DemoScanner.DemoStuff.GoldSource
                 public float Waterfriction;
                 public float WaveHeight;
                 public float Zmax;
+
+                public List<CvarDifference> GetDifferences(MoveVars newVars)
+                {
+                    List<CvarDifference> differences = new List<CvarDifference>();
+
+                    if (Math.Abs(newVars.Accelerate - Accelerate) > 0.0001)
+                        differences.Add(new CvarDifference("Accelerate", Accelerate, newVars.Accelerate));
+                    if (Math.Abs(newVars.Airaccelerate - Airaccelerate) > 0.0001)
+                        differences.Add(new CvarDifference("Airaccelerate", Airaccelerate, newVars.Airaccelerate));
+                    if (Math.Abs(newVars.Bounce - Bounce) > 0.0001)
+                        differences.Add(new CvarDifference("Bounce", Bounce, newVars.Bounce));
+                    if (Math.Abs(newVars.Edgefriction - Edgefriction) > 0.0001)
+                        differences.Add(new CvarDifference("Edgefriction", Edgefriction, newVars.Edgefriction));
+                    if (Math.Abs(newVars.Entgravity - Entgravity) > 0.0001)
+                        differences.Add(new CvarDifference("Entgravity", Entgravity, newVars.Entgravity));
+                    if (newVars.Footsteps != Footsteps)
+                        differences.Add(new CvarDifference("Footsteps", Footsteps, newVars.Footsteps));
+                    if (Math.Abs(newVars.Friction - Friction) > 0.0001)
+                        differences.Add(new CvarDifference("Friction", Friction, newVars.Friction));
+                    if (Math.Abs(newVars.Gravity - Gravity) > 0.0001)
+                        differences.Add(new CvarDifference("Gravity", Gravity, newVars.Gravity));
+                    if (Math.Abs(newVars.Maxspeed - Maxspeed) > 0.0001)
+                        differences.Add(new CvarDifference("Maxspeed", Maxspeed, newVars.Maxspeed));
+                    if (Math.Abs(newVars.Maxvelocity - Maxvelocity) > 0.0001)
+                        differences.Add(new CvarDifference("Maxvelocity", Maxvelocity, newVars.Maxvelocity));
+                    if (Math.Abs(newVars.Rollangle - Rollangle) > 0.0001)
+                        differences.Add(new CvarDifference("Rollangle", Rollangle, newVars.Rollangle));
+                    if (Math.Abs(newVars.Rollspeed - Rollspeed) > 0.0001)
+                        differences.Add(new CvarDifference("Rollspeed", Rollspeed, newVars.Rollspeed));
+                    if (Math.Abs(newVars.SkycolorB - SkycolorB) > 0.0001)
+                        differences.Add(new CvarDifference("SkycolorB", SkycolorB, newVars.SkycolorB));
+                    if (Math.Abs(newVars.SkycolorG - SkycolorG) > 0.0001)
+                        differences.Add(new CvarDifference("SkycolorG", SkycolorG, newVars.SkycolorG));
+                    if (Math.Abs(newVars.SkycolorR - SkycolorR) > 0.0001)
+                        differences.Add(new CvarDifference("SkycolorR", SkycolorR, newVars.SkycolorR));
+                    if (newVars.SkyName != SkyName)
+                        differences.Add(new CvarDifference("SkyName", SkyName, newVars.SkyName));
+                    if (Math.Abs(newVars.SkyvecX - SkyvecX) > 0.0001)
+                        differences.Add(new CvarDifference("SkyvecX", SkyvecX, newVars.SkyvecX));
+                    if (Math.Abs(newVars.SkyvecY - SkyvecY) > 0.0001)
+                        differences.Add(new CvarDifference("SkyvecY", SkyvecY, newVars.SkyvecY));
+                    if (Math.Abs(newVars.SkyvecZ - SkyvecZ) > 0.0001)
+                        differences.Add(new CvarDifference("SkyvecZ", SkyvecZ, newVars.SkyvecZ));
+                    if (Math.Abs(newVars.Spectatormaxspeed - Spectatormaxspeed) > 0.0001)
+                        differences.Add(new CvarDifference("Spectatormaxspeed", Spectatormaxspeed, newVars.Spectatormaxspeed));
+                    if (Math.Abs(newVars.Stepsize - Stepsize) > 0.0001)
+                        differences.Add(new CvarDifference("Stepsize", Stepsize, newVars.Stepsize));
+                    if (Math.Abs(newVars.Stopspeed - Stopspeed) > 0.0001)
+                        differences.Add(new CvarDifference("Stopspeed", Stopspeed, newVars.Stopspeed));
+                    if (Math.Abs(newVars.Wateraccelerate - Wateraccelerate) > 0.0001)
+                        differences.Add(new CvarDifference("Wateraccelerate", Wateraccelerate, newVars.Wateraccelerate));
+                    if (Math.Abs(newVars.Waterfriction - Waterfriction) > 0.0001)
+                        differences.Add(new CvarDifference("Waterfriction", Waterfriction, newVars.Waterfriction));
+                    if (Math.Abs(newVars.WaveHeight - WaveHeight) > 0.0001)
+                        differences.Add(new CvarDifference("WaveHeight", WaveHeight, newVars.WaveHeight));
+                    if (Math.Abs(newVars.Zmax - Zmax) > 0.0001)
+                        differences.Add(new CvarDifference("Zmax", Zmax, newVars.Zmax));
+
+                    return differences;
+                }
             }
         }
     }

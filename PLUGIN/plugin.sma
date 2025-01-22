@@ -13,6 +13,8 @@
 
 // IF NEED REDUCE TRAFFIC USAGE UNCOMMENT THIS LINE
 // ЕСЛИ НЕОБХОДИМО БОЛЬШЕ ДЕТЕКТОВ (НО ТАК ЖЕ БОЛЬШЕ ТРАФИКА) ЗАКОММЕНТИРУЙТЕ ЭТУ СТРОКУ
+// NOW SENDING ONE CMD IN ONE SECOND
+// ПО УМОЛЧАНИЮ ОБНАРУЖИВАЕТ PSILENT ТОЛЬКО 1 РАЗ В СЕКУНДУ МАКСИМУМ
 #define SMALL_TRAFFIC
 
 new g_iDemoHelperInitStage[33] = {0,...};
@@ -138,9 +140,9 @@ public PM_Move(const id)
 {
 	if (!is_user_hltv(id) && !is_user_bot(id))
 	{
-		new button = get_entvar(id, var_button);
 		new cmdx = get_pmove(pm_cmd);
 		new Float:curtime = g_flGameTimeReal;
+		new button = get_ucmd(cmdx, ucmd_buttons);
 
 		static Float:tmpAngles1[3];
 		static Float:tmpAngles2[3];
@@ -176,8 +178,6 @@ public PM_Move(const id)
 			g_flDelay2Time[id] = curtime;
 			get_pmove(pm_oldangles, g_flPMovePrevPrevAngles[id]);
 		}
-		
-		//server_print("[%i] %f = %i [PM gametime:] %f [PM frametime:] %f [MSEC:] %i = %i", id, curtime - g_flPMoveTime[id],button,g_flGameTimeReal,get_pmove(pm_frametime), get_ucmd(cmdx, ucmd_lerp_msec), get_ucmd(cmdx, ucmd_msec));
 		
 		g_flPMoveTime[id] = curtime;
 	}

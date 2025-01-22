@@ -133,9 +133,6 @@
     <Compile Include="..\UnrealDemoScanner\Parser\BinaryReaderExtension.cs">
       <Link>Parser\BinaryReaderExtension.cs</Link>
     </Compile>
-    <Compile Include="..\UnrealDemoScanner\Parser\CrossDemoParser.cs">
-      <Link>Parser\CrossDemoParser.cs</Link>
-    </Compile>
     <Compile Include="..\UnrealDemoScanner\Parser\DemoInfo.cs">
       <Link>Parser\DemoInfo</Link>
     </Compile>
