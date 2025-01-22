@@ -10097,9 +10097,9 @@ namespace DemoScanner.DG
 
                             foreach (var v in CDAngleHistoryAim12List)
                             {
-                                mir_found = v.tmp[0] == v.tmp[1]
-                                && v.tmp[1] == v.tmp[2] &&
-                                v.tmp[0] == LastSCMD_Angles1[1];
+                                mir_found = abs(v.tmp[0] - v.tmp[1]) < EPSILON_2
+                                && abs(v.tmp[1] - v.tmp[2]) < EPSILON_2 &&
+                               abs(v.tmp[0] - LastSCMD_Angles1[1]) < EPSILON_2;
                                 if (mir_found)
                                     break;
                             }
