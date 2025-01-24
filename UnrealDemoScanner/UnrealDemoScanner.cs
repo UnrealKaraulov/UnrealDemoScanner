@@ -28,7 +28,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.74.3b";
+        public const string PROGRAMVERSION = "1.74.4b";
 
         public static string FoundNewVersion = "";
 
@@ -138,14 +138,21 @@ namespace DemoScanner.DG
         public static string OutDumpString = "";
 
         public static List<string> outFrames = new List<string>();
-        public static float CurrentFrameTimeBetween;
+        public static float CurrentFrameTimeBetween = 0.0f;
+        public static List<float> DelayTime2_History = new List<float>(new float[3] { 0.0f, 0.0f, 0.0f });
         public static float CurrentTime;
         public static float PreviousCurrentTime;
         public static float LastKnowRealTime;
         public static float NoWeaponAnimTime;
         public static float LastEventDetectTime;
         public static int LastEventId;
-        public static float CurrentTimeSvc;
+        public static float CurrentTimeSvc = 0.0f;
+        public static List<float> DelaySvcTime_History = new List<float>(new float[3] { 0.0f, 0.0f, 0.0f });
+        public static float TotalTimeDelay = 0.0f;
+        public static float PrevTimeCalculatedDelay = 0.0f;
+        public static float CurTimeCalculatedDelay = 0.0f;
+        public static int TotalTimeDelayWarns = 0;
+        public static int TotalTimeDetectsWarns = 0;
         public static float CurrentTime2;
         public static float CurrentTime3;
         public static float PreviousTime;
@@ -304,14 +311,15 @@ namespace DemoScanner.DG
         public static string LastCmdTimeString = "00h:00m:00s:000ms";
         public static int LastCmdFrameId;
         public static string LastCmd = "";
-        public static int CurrentFrameId;
+        public static int CurrentFrameId = 0;
+        public static int TotalTimeDetectFrame = 0;
         public static int CurrentFrameIdWeapon;
         public static int CaminCount;
         public static int FrameCrash;
         public static float CurrentSensitivity = -1.0f;
         public static List<float> PlayerSensitivityHistory = new List<float>();
         public static int CheckedSensCount;
-
+        public static int DuplicateUserMessages = 0;
 
 
         public static string GlobalMovevarsDump = "";
@@ -543,6 +551,7 @@ namespace DemoScanner.DG
         public static string lastnormalanswer = "";
         public static float nospreadtest;
         public static GoldSource.NetMsgFrame CurrentNetMsgFrame;
+        // public static GoldSource.NetMsgFrame NextNetMsgFrame;
         public static GoldSource.NetMsgFrame PreviousNetMsgFrame;
         public static string TotalFreewareTool = "[ПОЛНОСТЬЮ БЕСПЛАТНЫЙ] [TOTALLY FREE]";
         public static string SourceCode = "https://github.com/UnrealKaraulov/UnrealDemoScanner";
@@ -3029,12 +3038,6 @@ namespace DemoScanner.DG
                         File.AppendAllText(textdatapath,
                             "Полный дамп демо в текстовом формате\n");
                     }
-
-                    Process.Start(new ProcessStartInfo
-                    {
-                        FileName = textdatapath,
-                        UseShellExecute = true
-                    });
                 }
             }
             catch
@@ -3335,9 +3338,164 @@ namespace DemoScanner.DG
                 {
                     UpdateWarnList();
                     var frame = CurrentDemoFile.DirectoryEntries[index].Frames[frameindex];
+
+
+
                     PreviousTime2 = CurrentTime2;
                     CurrentTime2 = frame.Key.Time;
                     CurrentFrameTimeBetween += abs(CurrentTime2 - PreviousTime2);
+
+                    if (frameindex > 0)
+                    {
+                        var prevFrame = CurrentDemoFile.DirectoryEntries[index].Frames[frameindex - 1];
+                        bool NeedCheck = false;
+                        switch (prevFrame.Key.Type)
+                        {
+                            case GoldSource.DemoFrameType.None:
+                            case GoldSource.DemoFrameType.NetMsg:
+                                NeedCheck = true;
+                                break;
+                            default:
+                                break;
+                        }
+                        switch (frame.Key.Type)
+                        {
+                            case GoldSource.DemoFrameType.None:
+                            case GoldSource.DemoFrameType.NetMsg:
+                                NeedCheck = false;
+                                break;
+                            default:
+                                break;
+                        }
+
+                        if (NeedCheck)
+                        {
+                            if (CurrentFrameDuplicated == 0 && RealAlive)
+                            {
+                                float CurrentTime2_Delay = CurrentTime2 - PreviousTime2;
+
+                                if (abs(CurrentTime2_Delay) > EPSILON)
+                                {
+                                    DelayTime2_History.Add(CurrentTime2_Delay);
+                                    DelayTime2_History.RemoveAt(0);
+                                }
+                                // we has NetMsg old, svc_time old, and delay betwen frames
+                                float frameDelay = DelayTime2_History[0];
+                                float svcTimeDelay = DelaySvcTime_History[1];
+                                float svcTimeDelayPrev = DelaySvcTime_History[0];
+                                float frameTime = CurrentNetMsgFrame.RParms.Frametime;
+                                if (frameTime < 0.2499f && frameDelay > EPSILON)
+                                {
+                                    PrevTimeCalculatedDelay = CurTimeCalculatedDelay;
+                                    CurTimeCalculatedDelay = ((svcTimeDelay - frameDelay) - (svcTimeDelay - frameTime));
+                                    TotalTimeDelay += CurTimeCalculatedDelay;
+
+                                    if (abs((1.0f - abs(PrevTimeCalculatedDelay / CurTimeCalculatedDelay))) < 0.05 && CurTimeCalculatedDelay > 0.0003)
+                                    {
+                                        if (TotalTimeDelayWarns < 0)
+                                        {
+                                            //  Console.WriteLine("Clear warn 1");
+                                            TotalTimeDelayWarns = 0;
+                                        }
+                                        TotalTimeDelayWarns++;
+                                       // Console.WriteLine("Add warn " + (1.0f - abs(PrevTimeCalculatedDelay / CurTimeCalculatedDelay)));
+                                    }
+                                    else if (abs((1.0f - abs(PrevTimeCalculatedDelay / CurTimeCalculatedDelay))) < 0.05 && CurTimeCalculatedDelay < -0.0003)
+                                    {
+                                        if (TotalTimeDelayWarns > 0)
+                                        {
+                                            //    Console.WriteLine("Clear warn 2");
+                                            TotalTimeDelayWarns = 0;
+                                        }
+                                        TotalTimeDelayWarns--;
+                                        //Console.WriteLine("Add warn " + (1.0f - abs(PrevTimeCalculatedDelay / CurTimeCalculatedDelay)));
+                                    }
+                                    else
+                                    {
+                                        //   Console.WriteLine("Clear warn 2");
+                                        TotalTimeDelayWarns = 0;
+                                        // Console.WriteLine("Clear detects 2");
+                                        if (TotalTimeDetectsWarns > 0)
+                                            TotalTimeDetectsWarns--;
+                                    }
+
+                                    //if (abs(TotalTimeDelayWarns) < 2)
+                                    //{
+                                    //    Console.WriteLine("Clear detects 2");
+                                    //    TotalTimeDetectsWarns = 0;
+                                    //}
+
+                                    if (abs(TotalTimeDelayWarns) > 10)
+                                    {
+                                        //Console.WriteLine("Founds needed warns");
+                                        int percentage = (int)(CurTimeCalculatedDelay * 100.0f * 100.0f);
+                                        if (abs(percentage) > 0)
+                                        {
+                                            //Console.WriteLine("Add one detects!!!");
+                                            if (TotalTimeDelayWarns < 0)
+                                            {
+                                                TotalTimeDelayWarns++;
+                                            }
+                                            if (TotalTimeDelayWarns > 0)
+                                            {
+                                                TotalTimeDelayWarns--;
+                                            }
+
+                                            if (abs(CurrentFrameId - TotalTimeDetectFrame) < 200)
+                                                TotalTimeDetectsWarns++;
+
+                                            if (TotalTimeDetectsWarns > 2)
+                                            {
+                                                DemoScanner_AddWarn("[BETA] [" + (percentage > 0 ? "SPEEDHACK TYPE 1" : "SLOWHACK TYPE 1") + "] " + abs(percentage) + "% at (" + LastKnowRealTime +
+                                                        "):" + LastKnowTimeString, true, true, true);
+                                                TotalTimeDetectsWarns = 0;
+                                                TotalTimeDelayWarns = 0;
+                                            }
+
+                                            TotalTimeDetectFrame = CurrentFrameId;
+                                        }
+                                        else
+                                        {
+                                            if (TotalTimeDetectsWarns > 0)
+                                            {
+                                                // Console.WriteLine("Clear one detects");
+                                                TotalTimeDetectsWarns--;
+                                            }
+                                            if (TotalTimeDelayWarns < 0)
+                                            {
+                                                //Console.WriteLine("Clear3 warn 1");
+                                                TotalTimeDelayWarns = 0;
+                                            }
+                                            if (TotalTimeDelayWarns > 0)
+                                            {
+                                                // Console.WriteLine("Clear3 warn 2");
+                                                TotalTimeDelayWarns = 0;
+                                            }
+                                        }
+                                    }
+
+                                    /* Console.WriteLine("[" + LastKnowTimeString + "]frameDelay " + frameDelay.ToString("F4") + " svcTimeDelay:" + svcTimeDelay.ToString("F4") + " frameTime:" + frameTime.ToString("F4") +
+                                         " offs:" + ((svcTimeDelay - frameDelay) - (svcTimeDelay - frameTime)).ToString("F4") + "|" + (svcTimeDelay - frameTime - frameDelay).ToString("F4"));
+                                    */
+                                }
+                                else
+                                {
+                                    if (TotalTimeDelayWarns < 0)
+                                    {
+                                        // Console.WriteLine("Clear2 warn 1");
+                                        TotalTimeDelayWarns = 0;
+                                    }
+                                    if (TotalTimeDelayWarns > 0)
+                                    {
+                                        // Console.WriteLine("Clear2 warn 2");
+                                        TotalTimeDelayWarns = 0;
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+
                     CurrentFrameIdWeapon++;
                     CurrentFrameIdAll++;
                     var row = index + "/" + frame.Key.FrameIndex + " " + "[" + frame.Key.Time + "s]: " +
@@ -4595,6 +4753,23 @@ namespace DemoScanner.DG
                                 var nf = (GoldSource.NetMsgFrame)frame.Value;
                                 CurrentNetMsgFrame = nf;
 
+                                //NextNetMsgFrame = nf;
+
+                                //for (var n = frameindex + 1;
+                                //            n < CurrentDemoFile.DirectoryEntries[index].Frames.Count;
+                                //            n++)
+                                //{
+                                //    var tmpframe = CurrentDemoFile.DirectoryEntries[index].Frames[n];
+                                //    switch (tmpframe.Key.Type)
+                                //    {
+                                //        case GoldSource.DemoFrameType.NetMsg:
+                                //            NextNetMsgFrame = (GoldSource.NetMsgFrame)tmpframe.Value;
+                                //            break;
+                                //        default:
+                                //            break;
+                                //    }
+                                //}
+
                                 //var AngleYBigChanged = false;
                                 //if (AngleBetween(CurrentNetMsgFrame.RParms.Viewangles.Y,
                                 //        PreviousNetMsgFrame.RParms.Viewangles.Y) > 2.0) AngleYBigChanged = true;
@@ -4605,6 +4780,7 @@ namespace DemoScanner.DG
 
                                 if (AlternativeTimeCounter == 1)
                                 {
+                                    bool normaltime = false;
                                     if (abs(CurrentTime) > 1.0)
                                     {
                                         if (abs(CurrentTimeSvc) < 0.0001f)
@@ -4623,14 +4799,17 @@ namespace DemoScanner.DG
                                         else
                                         {
                                             BadTimeSkip = false;
-                                            LastKnowRealTime = CurrentTime;
+                                            normaltime = true;
                                         }
                                     }
                                     PreviousCurrentTime = CurrentTime;
                                     CurrentTime = CurrentTimeSvc;
+                                    if (normaltime)
+                                        LastKnowRealTime = CurrentTime;
                                 }
                                 else if (AlternativeTimeCounter == 0)
                                 {
+                                    bool normaltime = false;
                                     if (abs(CurrentTime) > 1.0)
                                     {
                                         if (abs(nf.RParms.Time) < 0.0001f)
@@ -4660,12 +4839,14 @@ namespace DemoScanner.DG
                                         else
                                         {
                                             BadTimeSkip = false;
-                                            LastKnowRealTime = CurrentTime;
+                                            normaltime = true;
                                         }
                                     }
 
                                     PreviousCurrentTime = CurrentTime;
                                     CurrentTime = nf.RParms.Time;
+                                    if (normaltime)
+                                        LastKnowRealTime = CurrentTime;
                                 }
                                 else
                                 {
@@ -4796,6 +4977,7 @@ namespace DemoScanner.DG
 
                                                 File.WriteAllLines(textdatapath,
                                                     outFrames.ToArray());
+
                                             }
                                         }
                                         catch
@@ -4803,6 +4985,8 @@ namespace DemoScanner.DG
                                             Console.WriteLine("Error access write frame log!");
                                         }
 
+                                        outFrames.Clear();
+                                        DUMP_ALL_FRAMES = false;
 
                                         Console.Clear();
 
@@ -5071,6 +5255,7 @@ namespace DemoScanner.DG
                                     CurrentFrameDuplicated = 2;
                                     FrameDuplicates++;
                                 }
+
 
                                 TmpPlayerNum = nf.RParms.Playernum;
                                 TmpPlayerEnt = nf.RParms.Viewentity;
@@ -7128,7 +7313,6 @@ namespace DemoScanner.DG
 
                                             LastCmdHack = CurrentTime;
                                         }
-                                        //Console.WriteLine("BAD BAD " + nf.UCmd.Msec + " / " + nf.RParms.Frametime + " = " + ((float)nf.UCmd.Msec / nf.RParms.Frametime).ToString());
                                     }
                                 }
 
@@ -7689,6 +7873,9 @@ namespace DemoScanner.DG
                 Console.WriteLine("Error access write frame log!");
             }
 
+            outFrames.Clear();
+            DUMP_ALL_FRAMES = false;
+
             if (LastCmd == "-strafe")
             {
                 MINIMIZED = true;
@@ -8135,8 +8322,8 @@ namespace DemoScanner.DG
                         "Команды");
                     table.AddRow("1", "2", "3", "4", "5", "6", "7");
                     table.Write(Format.Alternative);
-                    table = new ConsoleTable("Помощь", "Скачать", "Сообщения", "Читы", "Movevars", "Перескан", "Выход");
-                    table.AddRow("8", "9", "10", "11", "12", "13", "0/Enter");
+                    table = new ConsoleTable("Помощь", "Скачать", "Сообщения", "Читы", "Movevars", "Перескан", "Dump.txt", "Выход");
+                    table.AddRow("8", "9", "10", "11", "12", "13", "14", "0/Enter");
                     table.Write(Format.Alternative);
                 }
                 else
@@ -8145,8 +8332,8 @@ namespace DemoScanner.DG
                         "Sens History", "Commands");
                     table.AddRow("1", "2", "3", "4", "5", "6", "7");
                     table.Write(Format.Alternative);
-                    table = new ConsoleTable("Help", "Download", "All msg", "Hacks", "Movevars", "Rescan", "Exit");
-                    table.AddRow("8", "9", "10", "11", "12", "13", "0/Enter");
+                    table = new ConsoleTable("Help", "Download", "All msg", "Hacks", "Movevars", "Rescan", "Dump.txt", "Exit");
+                    table.AddRow("8", "9", "10", "11", "12", "13", "14", "0/Enter");
                     table.Write(Format.Alternative);
                 }
 
@@ -8179,7 +8366,34 @@ namespace DemoScanner.DG
                     {
 
                     }
+                }
 
+
+                if (command == "14")
+                {
+                    /* START: SOME BLACK MAGIC OUTSIDE HOGWARTS */
+                    FieldInfo[] fields = typeof(DemoScanner).GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+
+                    foreach (var field in fields)
+                    {
+                        try
+                        {
+                            Type fieldType = field.FieldType;
+                            object defaultValue = fieldType.IsValueType ? Activator.CreateInstance(fieldType) : null;
+                            field.SetValue(null, defaultValue);
+                        }
+                        catch
+                        {
+                        }
+                    }
+                    typeof(DemoScanner)
+                        .GetConstructor(BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public, null,
+                            new Type[0], null).Invoke(null, null);
+                    /* END: VERY DARK BLACK MAGIC!!!!!! */
+                    DemoRescanned = true;
+                    FirstBypassKill = false;
+                    DUMP_ALL_FRAMES = true;
+                    goto DEMO_FULLRESET;
                 }
 
                 if (command == "13")
@@ -9250,6 +9464,18 @@ namespace DemoScanner.DG
                         }
                     }
 
+                    if (DuplicateUserMessages > 0)
+                    {
+                        if (IsRussia)
+                        {
+                            DemoScanner_AddInfo("Сервер продублировал: " + DuplicateUserMessages + " UserMsg");
+                        }
+                        else
+                        {
+                            DemoScanner_AddInfo("Got " + DuplicateUserMessages + " duplicated UserMsg from server");
+                        }
+                    }
+
                     if ((averagefps.Count > 0 && averagefps.Average() > MAX_MONITOR_REFRESHRATE) ||
                         (averagefps2.Count > 0 && averagefps2.Average() > MAX_MONITOR_REFRESHRATE))
                     {
@@ -10164,7 +10390,6 @@ namespace DemoScanner.DG
                                             "[CMD HACK TYPE 5.2] at (" + LastKnowRealTime + ") " + LastKnowTimeString,
                                             !IsAngleEditByEngine());
 
-                                        //Console.WriteLine("BAD BAD " + nf.UCmd.Msec + " / " + nf.RParms.Frametime + " = " + ((float)nf.UCmd.Msec / nf.RParms.Frametime).ToString());
                                         LastCmdHack = CurrentTime;
                                     }
                                 }
@@ -10929,6 +11154,7 @@ namespace DemoScanner.DG
             // same user message registered with different id's
             if (userMessageTable.Contains(name))
             {
+                DuplicateUserMessages++;
                 userMessageTable.Remove(name);
             }
 
@@ -11328,13 +11554,15 @@ namespace DemoScanner.DG
                     var t = TimeSpan.FromSeconds(time);
                     var CurrentTimeString = string.Format("{0:D2}h:{1:D2}m:{2:D2}s:{3:D3}ms", t.Hours, t.Minutes,
                         t.Seconds, t.Milliseconds);
-                    OutDumpString += "[" + CurrentTimeString + "]";
+                    OutDumpString += "[" + CurrentTimeString + "] delay [" + (time - CurrentTimeSvc).ToString("F5") + "]";
                 }
                 catch
                 {
                 }
             }
 
+            DelaySvcTime_History.Add(time - CurrentTimeSvc);
+            DelaySvcTime_History.RemoveAt(0);
             CurrentTimeSvc = time;
             SVC_TIMEMSGID = DemoScanner.MessageId;
         }
