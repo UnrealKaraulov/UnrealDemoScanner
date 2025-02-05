@@ -28,7 +28,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.74.4b";
+        public const string PROGRAMVERSION = "1.75.0b";
 
         public static string FoundNewVersion = "";
 
@@ -212,7 +212,7 @@ namespace DemoScanner.DG
         public static float ViewanglesXBeforeAttack;
         public static float ViewanglesYBeforeAttack;
         public static float CurrentFramePunchangleZ;
-        public static string LastKnowTimeString = "";
+        public static string LastKnowTimeString = "00h:00m:00s:000ms";
         public static float PreviousFramePunchangleZ;
         public static int NeedSearchViewAnglesAfterAttack;
         public static float ViewanglesXAfterAttack;
@@ -533,7 +533,18 @@ namespace DemoScanner.DG
         public static int MaxIdealJumps = 10;
         public static int CurrentIdealJumpsStrike;
         public static bool SearchNextJumpStrike;
-        public static List<string> CommandsDump = new List<string>();
+
+        public struct CmdHistory
+        {
+            public int frameNum;
+            public float cmdTime;
+            public string cmdStr;
+            // 0 - user, 1 - server, 2 - by scanner
+            public byte cmdSource;
+        }
+
+        public static List<CmdHistory> CommandHistory = new List<CmdHistory>();
+
         public static string framecrashcmd = "";
         public static float[] CDFrameYAngleHistory = new float[3] { 0.0f, 0.0f, 0.0f };
 
@@ -544,6 +555,19 @@ namespace DemoScanner.DG
         public static List<CDAngleHistoryAim12item> CDAngleHistoryAim12List = new List<CDAngleHistoryAim12item>();
 
         public static float[] CDFrameYAngleHistoryAim12 = new float[3] { 0.0f, 0.0f, 0.0f };
+
+
+        public struct WarnStruct
+        {
+            public string Warn;
+            public bool Detected;
+            public bool Visited;
+            public bool SkipAllChecks;
+            public float WarnTime;
+            public bool Plugin;
+            public bool HidePrefix;
+            public bool FreezeTime;
+        }
         public static List<WarnStruct> DemoScannerWarnList = new List<WarnStruct>();
         public static string LastWarnStr = "";
         public static float LastAnglePunchSearchTime;
@@ -660,6 +684,8 @@ namespace DemoScanner.DG
         public static int BHOP_GroundSearchDirection;
         public static float LastBhopTime;
         public static int CurrentFrameDuplicated;
+        public static bool InFreezeTime = false;
+        public static float MaxUserSpeed = 999.0f;
         public static int UnknownMessages;
         public static string LastAltTabStart = "00h:00m:00s:000ms";
         public static float LastAltTabStartTime;
@@ -1237,7 +1263,8 @@ namespace DemoScanner.DG
                 SkipAllChecks = skipallchecks,
                 Visited = false,
                 Plugin = uds_plugin,
-                HidePrefix = hide_prefix
+                HidePrefix = hide_prefix,
+                FreezeTime = InFreezeTime
             };
 
             DemoScannerWarnList.Add(warnStruct);
@@ -1256,7 +1283,7 @@ namespace DemoScanner.DG
                     string prefix = string.Empty;
                     string postfix = string.Empty;
 
-                    if ((curwarn.Detected && !IsPlayerLossConnection(curwarn.WarnTime) && RealAlive) ||
+                    if ((curwarn.Detected && !IsPlayerLossConnection(curwarn.WarnTime) && RealAlive && !InFreezeTime && !curwarn.FreezeTime) ||
                         curwarn.SkipAllChecks)
                     {
                         if (curwarn.Plugin)
@@ -1359,6 +1386,12 @@ namespace DemoScanner.DG
 
                             Console.Write(postfix);
                         }
+                        else if (InFreezeTime || curwarn.FreezeTime)
+                        {
+                            postfix = " (FREEZETIME)";
+
+                            Console.Write(postfix);
+                        }
 
                         Console.WriteLine();
                     }
@@ -1435,7 +1468,7 @@ namespace DemoScanner.DG
 
             if (DUMP_ALL_FRAMES)
             {
-                OutDumpString += "{CMD:\"" + s2 + " " + (isstuff ? "STUFFCMD\"" : "\"") + "}\n";
+                OutDumpString += "{CMD:\"" + s2 + (isstuff ? "(STUFFCMD)\"" : "\"") + "}\n";
             }
 
             if (FrameCrash > 4)
@@ -1453,17 +1486,7 @@ namespace DemoScanner.DG
             if (LastStuffCmdCommand != "" && s == LastStuffCmdCommand.Trim().TrimBad())
             {
                 LastStuffCmdCommand = "";
-                CommandsDump.Add("wait" + wait + ";");
-                if (IsRussia)
-                {
-                    CommandsDump.Add(LastKnowTimeString + " [НОМЕР КАДРА: " + CurrentFrameId + "] : " + s + "(" +
-                                     LastKnowRealTime + ") --> ВЫПОЛНЕНО СЕРВЕРОМ");
-                }
-                else
-                {
-                    CommandsDump.Add(LastKnowTimeString + " [FRAME NUMBER: " + CurrentFrameId + "] : " + s + "(" +
-                                     LastKnowRealTime + ") --> EXECUTED BY SERVER");
-                }
+                CommandHistory.Add(new CmdHistory { frameNum = CurrentFrameId, cmdTime = LastKnowRealTime, cmdStr = s, cmdSource = 1 });
 
                 return;
             }
@@ -1471,31 +1494,11 @@ namespace DemoScanner.DG
             LastStuffCmdCommand = "";
             if (isstuff)
             {
-                CommandsDump.Add("wait" + wait + ";");
-                if (IsRussia)
-                {
-                    CommandsDump.Add(LastKnowTimeString + " [НОМЕР КАДРА: " + CurrentFrameId + "] : " + s + "(" +
-                                     LastKnowRealTime + ") --> ВЫПОЛНЕНО ЧЕРЕЗ STUFFTEXT");
-                }
-                else
-                {
-                    CommandsDump.Add(LastKnowTimeString + " [FRAME NUMBER: " + CurrentFrameId + "] : " + s + "(" +
-                                     LastKnowRealTime + ") --> EXECUTED BY STUFFTEXT");
-                }
+                CommandHistory.Add(new CmdHistory { frameNum = CurrentFrameId, cmdStr = s, cmdSource = 2 });
             }
             else
             {
-                CommandsDump.Add("wait" + wait + ";");
-                if (IsRussia)
-                {
-                    CommandsDump.Add(LastKnowTimeString + " [НОМЕР КАДРА: " + CurrentFrameId + "] : " + s + "(" +
-                                     LastKnowRealTime + ")");
-                }
-                else
-                {
-                    CommandsDump.Add(LastKnowTimeString + " [FRAME NUMBER: " + CurrentFrameId + "] : " + s + "(" +
-                                     LastKnowRealTime + ")");
-                }
+                CommandHistory.Add(new CmdHistory { frameNum = CurrentFrameId, cmdStr = s, cmdSource = 0 });
             }
 
             if (sLower == "-showscores")
@@ -2782,33 +2785,48 @@ namespace DemoScanner.DG
                 CurrentDir = CurrentDir.Remove(CurrentDir.Length - 1);
             }
 
-            if (!SKIP_RESULTS)
+            try
             {
-                if (!File.Exists(CurrentDir + "/lang.ru") && !File.Exists(CurrentDir + "/lang.en"))
+                if (!SKIP_RESULTS)
                 {
-                    Console.Write("Enter language EN - Engish / RU - Russian:");
-                    var lang = Console.ReadLine();
-                    if (lang.ToLower() == "en")
+                    if (!File.Exists(CurrentDir + "/lang.ru") && !File.Exists(CurrentDir + "/lang.en"))
                     {
-                        File.Create(CurrentDir + "/lang.en").Close();
+                        Console.Write("Enter language EN - Engish / RU - Russian:");
+                        var lang = Console.ReadLine();
+                        if (lang.ToLower() == "en")
+                        {
+                            IsRussia = false;
+                            File.Create(CurrentDir + "/lang.en").Close();
+                        }
+                        else
+                        {
+                            IsRussia = true;
+                            File.Create(CurrentDir + "/lang.ru").Close();
+                        }
                     }
-                    else
-                    {
-                        File.Create(CurrentDir + "/lang.ru").Close();
-                    }
-                }
-
-                IsRussia = !File.Exists(CurrentDir + "/lang.en");
-            }
-            else
-            {
-                if (LOG_MODE)
-                {
-                    IsRussia = !File.Exists(CurrentDir + "/lang.en");
                 }
                 else
                 {
-                    IsRussia = false;
+                    if (LOG_MODE)
+                    {
+                        IsRussia = !File.Exists(CurrentDir + "/lang.en");
+                    }
+                    else
+                    {
+                        IsRussia = false;
+                    }
+                }
+            }
+            catch
+            {
+                Console.ForegroundColor = ConsoleColor.Red;
+                if (IsRussia)
+                {
+                    Console.WriteLine("У вас нет доступа к каталогу:" + CurrentDir);
+                }
+                else
+                {
+                    Console.WriteLine("No access to:" + CurrentDir + " directory");
                 }
             }
 
@@ -3398,7 +3416,7 @@ namespace DemoScanner.DG
                                             TotalTimeDelayWarns = 0;
                                         }
                                         TotalTimeDelayWarns++;
-                                       // Console.WriteLine("Add warn " + (1.0f - abs(PrevTimeCalculatedDelay / CurTimeCalculatedDelay)));
+                                        // Console.WriteLine("Add warn " + (1.0f - abs(PrevTimeCalculatedDelay / CurTimeCalculatedDelay)));
                                     }
                                     else if (abs((1.0f - abs(PrevTimeCalculatedDelay / CurTimeCalculatedDelay))) < 0.05 && CurTimeCalculatedDelay < -0.0003)
                                     {
@@ -7613,7 +7631,7 @@ namespace DemoScanner.DG
                                         GlobalMovevarsDump += "//THIS IS MOVEVARS CHANGE HISTORY\n";
                                         GlobalMovevarsDump += "//ЭТО СПИСОК MOVEVARS И ИХ ИЗМЕНЕНИЙ СЕРВЕРОМ\n\n";
                                     }
-                                    GlobalMovevarsDump += "[INITIAL CLIENT MOVEVARS]";
+                                    GlobalMovevarsDump += "[" + LastKnowTimeString + "]" + "[INITIAL CLIENT MOVEVARS]";
                                     GlobalMovevarsDump += "\nClient Gravity cvar = " + nf.MVars.Gravity + "\n";
                                     GlobalMovevarsDump += "Client Stopspeed cvar = " + nf.MVars.Stopspeed + "\n";
                                     GlobalMovevarsDump += "Client Maxspeed cvar = " + nf.MVars.Maxspeed + "\n";
@@ -7646,7 +7664,7 @@ namespace DemoScanner.DG
                                     var difflist = GlobalClientMovevars.GetDifferences(nf.MVars);
                                     if (difflist.Count > 0)
                                     {
-                                        GlobalMovevarsDump += "[FOUND CLIENT MOVEVARS CHANGES]\n";
+                                        GlobalMovevarsDump += "[" + LastKnowTimeString + "]" + "[FOUND CLIENT MOVEVARS CHANGES]\n";
                                     }
                                     foreach (var d in difflist)
                                     {
@@ -8845,6 +8863,7 @@ namespace DemoScanner.DG
                     Console.WriteLine(" * Warn types: ");
                     Console.WriteLine(" * (LAG)             ———  Player with unstable connection");
                     Console.WriteLine(" * (DEAD)            ———  Player is dead");
+                    Console.WriteLine(" * (FREEZETIME)      ———  Player in freezetime");
                     Console.WriteLine(
                         " * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ");
                     Console.WriteLine(
@@ -8855,6 +8874,7 @@ namespace DemoScanner.DG
                     Console.WriteLine(" * Warn types: ");
                     Console.WriteLine(" * (LAG)             ———  У игрока были лаги во время этого варна");
                     Console.WriteLine(" * (DEAD)            ———  Игрок умер");
+                    Console.WriteLine(" * (FREEZETIME)      ———  Раунд не начался, отмечаем как вероятно ложное");
                     Console.WriteLine(
                         " * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * ");
                     Console.WriteLine(
@@ -8885,7 +8905,48 @@ namespace DemoScanner.DG
                 {
                     try
                     {
-                        CommandsDump.Insert(0, "This file created by Unreal Demo Scanner\n\n");
+                        List<string> CommandsDump = new List<string>();
+                        CommandsDump.Add("This file created by Unreal Demo Scanner\n\n");
+
+                        int prevFrameNum = 0;
+                        foreach (var cmd in CommandHistory)
+                        {
+                            if (prevFrameNum != 0)
+                            {
+                                CommandsDump.Add("wait" + (cmd.frameNum - prevFrameNum) + ";");
+                            }
+
+                            string timeCmdStr = "[ERROR]";
+
+                            try
+                            {
+                                var t = TimeSpan.FromSeconds(cmd.cmdTime);
+                                timeCmdStr = string.Format("{0:D2}h:{1:D2}m:{2:D2}s:{3:D3}ms", t.Hours,
+                                    t.Minutes, t.Seconds, t.Milliseconds);
+                            }
+                            catch
+                            { }
+
+                            if (IsRussia)
+                            {
+                                CommandsDump.Add(timeCmdStr + " [НОМЕР КАДРА: " + cmd.frameNum + "] : " + cmd.cmdStr + "(" +
+                                                 LastKnowRealTime + ")" + (cmd.cmdSource == 1 ?
+                                                 " --> ВЫПОЛНЕНО СЕРВЕРОМ" : cmd.cmdSource == 2 ? " --> ВЫПОЛНЕНО ЧЕРЕЗ STUFFTEXT" : ""));
+                            }
+                            else
+                            {
+                                CommandsDump.Add(timeCmdStr + " [FRAME NUMBER: " + cmd.frameNum + "] : " + cmd.cmdStr + "(" +
+                                                 LastKnowRealTime + ")" + (cmd.cmdSource == 1 ?
+                                                 " --> EXECUTED BY SERVER" : cmd.cmdSource == 2 ? " --> EXECUTED BY SERVER" : ""));
+                            }
+
+                            if (cmd.cmdSource == 0 && cmd.cmdStr.IndexOf(';') > -1)
+                            {
+                                CommandsDump[CommandsDump.Count - 1] += " [ILLEGAL!!]";
+                            }
+
+                            prevFrameNum = cmd.frameNum;
+                        }
 
                         var textdatapath = CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 4) +
                                               "_cmds.txt";
@@ -10766,17 +10827,6 @@ namespace DemoScanner.DG
                 X = x;
                 Y = y;
             }
-        }
-
-        public struct WarnStruct
-        {
-            public string Warn;
-            public bool Detected;
-            public bool Visited;
-            public bool SkipAllChecks;
-            public float WarnTime;
-            public bool Plugin;
-            public bool HidePrefix;
         }
 
         public struct UcmdLerpAndMs
@@ -13063,7 +13113,7 @@ namespace DemoScanner.DG
                     GlobalMovevarsDump += "//THIS IS MOVEVARS CHANGE HISTORY\n";
                     GlobalMovevarsDump += "//ЭТО СПИСОК MOVEVARS И ИХ ИЗМЕНЕНИЙ СЕРВЕРОМ\n\n";
                 }
-                GlobalMovevarsDump += "[INITIAL SERVER MOVEVARS]";
+                GlobalMovevarsDump += "[" + LastKnowTimeString + "][INITIAL SERVER MOVEVARS]";
                 GlobalMovevarsDump += "\nServer Gravity cvar = " + tmpMoveVars.Gravity + "\n";
                 GlobalMovevarsDump += "Server Stopspeed cvar = " + tmpMoveVars.Stopspeed + "\n";
                 GlobalMovevarsDump += "Server Maxspeed cvar = " + tmpMoveVars.Maxspeed + "\n";
@@ -13096,7 +13146,7 @@ namespace DemoScanner.DG
                 var difflist = GlobalServerMovevars.GetDifferences(tmpMoveVars);
                 if (difflist.Count > 0)
                 {
-                    GlobalMovevarsDump += "[FOUND SERVER MOVEVARS CHANGES]\n";
+                    GlobalMovevarsDump += "[" + LastKnowTimeString + "]" + "[FOUND SERVER MOVEVARS CHANGES]\n";
                 }
                 foreach (var d in difflist)
                 {
@@ -14877,6 +14927,13 @@ namespace DemoScanner.DG
                                     {
                                         SkipNextAttack = 2;
                                     }
+                                }
+
+                                if (entryList[index].Name == "maxspeed")
+                                {
+                                    var maxspeed = value != null ? (float)value : 0.0f;
+                                    InFreezeTime = abs(maxspeed - 1.0f) < 0.01f;
+                                    MaxUserSpeed = maxspeed;
                                 }
 
                                 if (entryList[index].Name == "punchangle[0]")
