@@ -28,7 +28,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.75.0b";
+        public const string PROGRAMVERSION = "1.75.1b";
 
         public static string FoundNewVersion = "";
 
@@ -1494,11 +1494,11 @@ namespace DemoScanner.DG
             LastStuffCmdCommand = "";
             if (isstuff)
             {
-                CommandHistory.Add(new CmdHistory { frameNum = CurrentFrameId, cmdStr = s, cmdSource = 2 });
+                CommandHistory.Add(new CmdHistory { frameNum = CurrentFrameId, cmdTime = LastKnowRealTime, cmdStr = s, cmdSource = 2 });
             }
             else
             {
-                CommandHistory.Add(new CmdHistory { frameNum = CurrentFrameId, cmdStr = s, cmdSource = 0 });
+                CommandHistory.Add(new CmdHistory { frameNum = CurrentFrameId, cmdTime = LastKnowRealTime, cmdStr = s, cmdSource = 0 });
             }
 
             if (sLower == "-showscores")
