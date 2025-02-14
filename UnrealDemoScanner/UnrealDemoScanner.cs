@@ -28,7 +28,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.75.1b";
+        public const string PROGRAMVERSION = "1.75.2b";
 
         public static string FoundNewVersion = "";
 
@@ -1148,7 +1148,6 @@ namespace DemoScanner.DG
                 return;
             }
 
-
             msg = msg.Replace("\n", "^n").Replace("\r", "^n").Replace("\x01", "^1").Replace("\x02", "^2")
                 .Replace("\x03", "^3").Replace("\x04", "^4");
             if (msg.Length == 0)
@@ -1156,7 +1155,12 @@ namespace DemoScanner.DG
                 return;
             }
 
-            OutTextMessages.Add("[" + type + "] : [" + msg + "]" + " at (" + time + ") " + timestring);
+            type = type.PadRight(20);
+            msg = msg.PadRight(25);
+
+            string frameId = CurrentFrameId.ToString().PadLeft(4);
+
+            OutTextMessages.Add("[" + type + "] " + " [FRAME NUMBER: " + frameId + "] : [" + msg + "]" + " at (" + time + ") " + timestring);
         }
 
         public static void DemoScanner_AddInfo(string info, bool is_plugin = false, bool no_prefix = false)
@@ -2785,23 +2789,40 @@ namespace DemoScanner.DG
                 CurrentDir = CurrentDir.Remove(CurrentDir.Length - 1);
             }
 
+            IsRussia = File.Exists(CurrentDir + "/lang.ru") || File.Exists("lang.ru");
+
             try
             {
                 if (!SKIP_RESULTS)
                 {
-                    if (!File.Exists(CurrentDir + "/lang.ru") && !File.Exists(CurrentDir + "/lang.en"))
+                    if (!File.Exists(CurrentDir + "/lang.ru") && !File.Exists(CurrentDir + "/lang.en") &&
+                        !File.Exists( "lang.ru") && !File.Exists("lang.en"))
                     {
                         Console.Write("Enter language EN - Engish / RU - Russian:");
                         var lang = Console.ReadLine();
                         if (lang.ToLower() == "en")
                         {
                             IsRussia = false;
-                            File.Create(CurrentDir + "/lang.en").Close();
+                            try
+                            {
+                                File.Create(CurrentDir + "/lang.en").Close();
+                            }
+                            catch
+                            {
+                                File.Create("lang.en").Close();
+                            }
                         }
                         else
                         {
                             IsRussia = true;
-                            File.Create(CurrentDir + "/lang.ru").Close();
+                            try
+                            {
+                                File.Create(CurrentDir + "/lang.ru").Close();
+                            }
+                            catch
+                            {
+                                File.Create("lang.ru").Close();
+                            }
                         }
                     }
                 }
@@ -2829,6 +2850,8 @@ namespace DemoScanner.DG
                     Console.WriteLine("No access to:" + CurrentDir + " directory");
                 }
             }
+
+            IsRussia = File.Exists(CurrentDir + "/lang.ru") || File.Exists("lang.ru");
 
             try
             {
@@ -8317,6 +8340,7 @@ namespace DemoScanner.DG
                 }
 
                 Console.ForegroundColor = ConsoleColor.Red;
+
                 if (IsRussia)
                 {
                     Console.WriteLine("ВАЖНО!");
@@ -8911,11 +8935,7 @@ namespace DemoScanner.DG
                         int prevFrameNum = 0;
                         foreach (var cmd in CommandHistory)
                         {
-                            if (prevFrameNum != 0)
-                            {
-                                CommandsDump.Add("wait" + (cmd.frameNum - prevFrameNum) + ";");
-                            }
-
+                            
                             string timeCmdStr = "[ERROR]";
 
                             try
@@ -8929,13 +8949,13 @@ namespace DemoScanner.DG
 
                             if (IsRussia)
                             {
-                                CommandsDump.Add(timeCmdStr + " [НОМЕР КАДРА: " + cmd.frameNum + "] : " + cmd.cmdStr + "(" +
+                                CommandsDump.Add(timeCmdStr + " [НОМЕР КАДРА: " + cmd.frameNum + "] : " + cmd.cmdStr + ";wait" + (cmd.frameNum - prevFrameNum) + ";" + "(" +
                                                  LastKnowRealTime + ")" + (cmd.cmdSource == 1 ?
                                                  " --> ВЫПОЛНЕНО СЕРВЕРОМ" : cmd.cmdSource == 2 ? " --> ВЫПОЛНЕНО ЧЕРЕЗ STUFFTEXT" : ""));
                             }
                             else
                             {
-                                CommandsDump.Add(timeCmdStr + " [FRAME NUMBER: " + cmd.frameNum + "] : " + cmd.cmdStr + "(" +
+                                CommandsDump.Add(timeCmdStr + " [FRAME NUMBER: " + cmd.frameNum + "] : " + cmd.cmdStr + ";wait" + (cmd.frameNum - prevFrameNum) + ";" + "(" +
                                                  LastKnowRealTime + ")" + (cmd.cmdSource == 1 ?
                                                  " --> EXECUTED BY SERVER" : cmd.cmdSource == 2 ? " --> EXECUTED BY SERVER" : ""));
                             }
@@ -9550,7 +9570,7 @@ namespace DemoScanner.DG
                         }
                     }
 
-                    if (IsRussia)
+                    if (!IsRussia)
                     {
                         if (PlayerSensUsageList.Count > 1)
                         {
