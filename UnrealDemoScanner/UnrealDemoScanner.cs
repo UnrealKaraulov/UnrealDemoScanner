@@ -536,7 +536,7 @@ namespace DemoScanner.DG
 
         public struct CmdHistory
         {
-            public int frameNum;
+            public int frameNextNum;
             public float cmdTime;
             public string cmdStr;
             // 0 - user, 1 - server, 2 - by scanner
@@ -1233,21 +1233,23 @@ namespace DemoScanner.DG
                 warn = Rusifikator(warn);
             }
 
-            if (GameEnd && !uds_plugin)
+
+            if (CL_Intermission != 0 && !uds_plugin)
             {
                 if (detected)
                 {
-                    WarnsAfterGameEnd++;
+                    WarnsDuringLevel++;
                 }
 
                 return false;
             }
 
-            if (CL_Intermission != 0)
+
+            if (GameEnd && !uds_plugin)
             {
                 if (detected)
                 {
-                    WarnsDuringLevel++;
+                    WarnsAfterGameEnd++;
                 }
 
                 return false;
@@ -1490,19 +1492,30 @@ namespace DemoScanner.DG
             if (LastStuffCmdCommand != "" && s == LastStuffCmdCommand.Trim().TrimBad())
             {
                 LastStuffCmdCommand = "";
-                CommandHistory.Add(new CmdHistory { frameNum = CurrentFrameId, cmdTime = LastKnowRealTime, cmdStr = s, cmdSource = 1 });
-
+                CommandHistory.Add(new CmdHistory { frameNextNum = CurrentFrameId, cmdTime = LastKnowRealTime, cmdStr = s, cmdSource = 1 });
+                if (CommandHistory.Count > 1)
+                {
+                    var tmpCmd = CommandHistory[CommandHistory.Count - 2];
+                    tmpCmd.frameNextNum = CurrentFrameId;
+                    CommandHistory[CommandHistory.Count - 2] = tmpCmd;
+                }
                 return;
             }
 
             LastStuffCmdCommand = "";
             if (isstuff)
             {
-                CommandHistory.Add(new CmdHistory { frameNum = CurrentFrameId, cmdTime = LastKnowRealTime, cmdStr = s, cmdSource = 2 });
+                CommandHistory.Add(new CmdHistory { frameNextNum = CurrentFrameId, cmdTime = LastKnowRealTime, cmdStr = s, cmdSource = 2 });
             }
             else
             {
-                CommandHistory.Add(new CmdHistory { frameNum = CurrentFrameId, cmdTime = LastKnowRealTime, cmdStr = s, cmdSource = 0 });
+                CommandHistory.Add(new CmdHistory { frameNextNum = CurrentFrameId, cmdTime = LastKnowRealTime, cmdStr = s, cmdSource = 0 });
+            }
+            if (CommandHistory.Count > 1)
+            {
+                var tmpCmd = CommandHistory[CommandHistory.Count - 2];
+                tmpCmd.frameNextNum = CurrentFrameId;
+                CommandHistory[CommandHistory.Count - 2] = tmpCmd;
             }
 
             if (sLower == "-showscores")
@@ -2796,7 +2809,7 @@ namespace DemoScanner.DG
                 if (!SKIP_RESULTS)
                 {
                     if (!File.Exists(CurrentDir + "/lang.ru") && !File.Exists(CurrentDir + "/lang.en") &&
-                        !File.Exists( "lang.ru") && !File.Exists("lang.en"))
+                        !File.Exists("lang.ru") && !File.Exists("lang.en"))
                     {
                         Console.Write("Enter language EN - Engish / RU - Russian:");
                         var lang = Console.ReadLine();
@@ -3166,7 +3179,7 @@ namespace DemoScanner.DG
             }
 
             var halfLifeDemoParser = new HalfLifeDemoParser(CurrentDemoFile);
-            if (usagesrccode != 1)
+            if (usagesrccode < 1)
             {
                 return;
             }
@@ -3296,6 +3309,8 @@ namespace DemoScanner.DG
                         typeof(DemoScanner)
                             .GetConstructor(BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public, null,
                                 new Type[0], null).Invoke(null, null);
+
+                        SourceCode = "https://github.com/UnrealKaraulov/UnrealDemoScanner";
                         /* END: VERY DARK BLACK MAGIC!!!!!! */
                         DemoRescanned = true;
                         FirstBypassKill = false;
@@ -5096,6 +5111,7 @@ namespace DemoScanner.DG
                                         typeof(DemoScanner)
                                             .GetConstructor(BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public, null,
                                                 new Type[0], null).Invoke(null, null);
+                                        SourceCode = "https://github.com/UnrealKaraulov/UnrealDemoScanner";
                                         /* END: VERY DARK BLACK MAGIC!!!!!! */
 
                                         DUMP_ALL_FRAMES = isDump;
@@ -6177,12 +6193,15 @@ namespace DemoScanner.DG
                                                 AirStuckWarnTimes++;
                                                 if (AirStuckWarnTimes > 50)
                                                 {
-                                                    if (DemoScanner_AddWarn("[BETA] [AIRSTUCK HACK] at (" + LastKnowRealTime +
-                                                                        ") : " + LastKnowTimeString))
+                                                    if (!GameEnd)
                                                     {
-                                                        KreedzHacksCount++;
-                                                        AirStuckWarnTimes = 0;
+                                                        if (DemoScanner_AddWarn("[BETA] [AIRSTUCK HACK] at (" + LastKnowRealTime +
+                                                                            ") : " + LastKnowTimeString))
+                                                        {
+                                                            KreedzHacksCount++;
+                                                        }
                                                     }
+                                                    AirStuckWarnTimes = 0;
                                                 }
                                             }
                                         }
@@ -8933,10 +8952,16 @@ namespace DemoScanner.DG
                         CommandsDump.Add("This file created by Unreal Demo Scanner\n\n");
 
                         int prevFrameNum = 0;
+                        float prevCmdTime = 0.0f;
                         foreach (var cmd in CommandHistory)
                         {
-                            
                             string timeCmdStr = "[ERROR]";
+
+                            if (prevFrameNum == 0)
+                            {
+                                prevFrameNum = cmd.frameNextNum;
+                                prevCmdTime = cmd.cmdTime;
+                            }
 
                             try
                             {
@@ -8947,17 +8972,35 @@ namespace DemoScanner.DG
                             catch
                             { }
 
-                            if (IsRussia)
+                            if (abs(prevCmdTime - cmd.cmdTime) > 1.0f)
                             {
-                                CommandsDump.Add(timeCmdStr + " [НОМЕР КАДРА: " + cmd.frameNum + "] : " + cmd.cmdStr + ";wait" + (cmd.frameNum - prevFrameNum) + ";" + "(" +
-                                                 LastKnowRealTime + ")" + (cmd.cmdSource == 1 ?
-                                                 " --> ВЫПОЛНЕНО СЕРВЕРОМ" : cmd.cmdSource == 2 ? " --> ВЫПОЛНЕНО ЧЕРЕЗ STUFFTEXT" : ""));
+                                if (IsRussia)
+                                {
+                                    CommandsDump.Add(timeCmdStr + " [НОМЕР КАДРА: " + cmd.frameNextNum + "] : " + cmd.cmdStr + ";wait" + (cmd.frameNextNum - prevFrameNum) + ";" + "(" +
+                                                     cmd.cmdTime + ")" + (cmd.cmdSource == 1 ?
+                                                     " --> ВЫПОЛНЕНО СЕРВЕРОМ" : cmd.cmdSource == 2 ? " --> ВЫПОЛНЕНО ЧЕРЕЗ STUFFTEXT" : ""));
+                                }
+                                else
+                                {
+                                    CommandsDump.Add(timeCmdStr + " [FRAME NUMBER: " + cmd.frameNextNum + "] : " + cmd.cmdStr + ";wait" + (cmd.frameNextNum - prevFrameNum) + ";" + "(" +
+                                                     cmd.cmdTime + ")" + (cmd.cmdSource == 1 ?
+                                                     " --> EXECUTED BY SERVER" : cmd.cmdSource == 2 ? " --> EXECUTED BY SERVER" : ""));
+                                }
                             }
                             else
                             {
-                                CommandsDump.Add(timeCmdStr + " [FRAME NUMBER: " + cmd.frameNum + "] : " + cmd.cmdStr + ";wait" + (cmd.frameNum - prevFrameNum) + ";" + "(" +
-                                                 LastKnowRealTime + ")" + (cmd.cmdSource == 1 ?
-                                                 " --> EXECUTED BY SERVER" : cmd.cmdSource == 2 ? " --> EXECUTED BY SERVER" : ""));
+                                if (IsRussia)
+                                {
+                                    CommandsDump.Add(timeCmdStr + " [НОМЕР КАДРА: " + cmd.frameNextNum + "] : " + cmd.cmdStr + ";" + "(" +
+                                                     cmd.cmdTime + ")" + (cmd.cmdSource == 1 ?
+                                                     " --> ВЫПОЛНЕНО СЕРВЕРОМ" : cmd.cmdSource == 2 ? " --> ВЫПОЛНЕНО ЧЕРЕЗ STUFFTEXT" : ""));
+                                }
+                                else
+                                {
+                                    CommandsDump.Add(timeCmdStr + " [FRAME NUMBER: " + cmd.frameNextNum + "] : " + cmd.cmdStr + ";" + "(" +
+                                                     cmd.cmdTime + ")" + (cmd.cmdSource == 1 ?
+                                                     " --> EXECUTED BY SERVER" : cmd.cmdSource == 2 ? " --> EXECUTED BY SERVER" : ""));
+                                }
                             }
 
                             if (cmd.cmdSource == 0 && cmd.cmdStr.IndexOf(';') > -1)
@@ -8965,7 +9008,8 @@ namespace DemoScanner.DG
                                 CommandsDump[CommandsDump.Count - 1] += " [ILLEGAL!!]";
                             }
 
-                            prevFrameNum = cmd.frameNum;
+                            prevCmdTime = cmd.cmdTime;
+                            prevFrameNum = cmd.frameNextNum;
                         }
 
                         var textdatapath = CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 4) +
@@ -9392,12 +9436,18 @@ namespace DemoScanner.DG
                         Console.WriteLine("Bad Shots fired:" + attackscounter5);
                         Console.WriteLine("Attack in air:" + AirShots);
                         Console.WriteLine("Teleport count:" + PlayerTeleportus);
-                        Console.WriteLine("Fly time: " +
-                                          Convert.ToInt32(100.0 / (TotalFramesOnFly + TotalFramesOnGround) *
-                                                          TotalFramesOnFly) + "%");
-                        Console.WriteLine("Attack in fly: " +
-                                          Convert.ToInt32(100.0 / (TotalFramesOnFly + TotalFramesOnGround) *
-                                                          TotalAttackFramesOnFly) + "%");
+                        try
+                        {
+                            Console.WriteLine("Fly time: " +
+                                              Convert.ToInt32(100.0 / (TotalFramesOnFly + TotalFramesOnGround) *
+                                                              TotalFramesOnFly) + "%");
+                            Console.WriteLine("Attack in fly: " +
+                                              Convert.ToInt32(100.0 / (TotalFramesOnFly + TotalFramesOnGround) *
+                                                              TotalAttackFramesOnFly) + "%");
+                        }
+                        catch
+                        {
+                        }
                     }
                     else
                     {
@@ -9406,12 +9456,18 @@ namespace DemoScanner.DG
                                           attackscounter5);
                         Console.WriteLine("Выстрелов в воздухе:" + AirShots);
                         Console.WriteLine("Количество респавнов(или телепортов):" + PlayerTeleportus);
-                        Console.WriteLine("Время в полете: " +
+                        try
+                        {
+                            Console.WriteLine("Время в полете: " +
                                           Convert.ToInt32(100.0 / (TotalFramesOnFly + TotalFramesOnGround) *
                                                           TotalFramesOnFly) + "%");
-                        Console.WriteLine("Процент атаки в полете: " +
-                                          Convert.ToInt32(100.0 / (TotalFramesOnFly + TotalFramesOnGround) *
-                                                          TotalAttackFramesOnFly) + "%");
+                            Console.WriteLine("Процент атаки в полете: " +
+                                              Convert.ToInt32(100.0 / (TotalFramesOnFly + TotalFramesOnGround) *
+                                                              TotalAttackFramesOnFly) + "%");
+                        }
+                        catch
+                        {
+                        }
                     }
 
                     table = new ConsoleTable("УБИЙСТВ /KILLS", "СМЕРТЕЙ/DEATHS");
@@ -15820,6 +15876,11 @@ namespace DemoScanner.DG
 
         public override void Write(string value)
         {
+            if (value == null)
+            {
+                Console.Write("NULL");
+                return;
+            }
             foreach (char c in value)
             {
                 Write(c);
