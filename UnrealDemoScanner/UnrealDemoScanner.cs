@@ -28,7 +28,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.75.2b";
+        public const string PROGRAMVERSION = "1.75.4b";
 
         public static string FoundNewVersion = "";
 
@@ -536,7 +536,7 @@ namespace DemoScanner.DG
 
         public struct CmdHistory
         {
-            public int frameNextNum;
+            public int cmdFrameId;
             public float cmdTime;
             public string cmdStr;
             // 0 - user, 1 - server, 2 - by scanner
@@ -1492,30 +1492,19 @@ namespace DemoScanner.DG
             if (LastStuffCmdCommand != "" && s == LastStuffCmdCommand.Trim().TrimBad())
             {
                 LastStuffCmdCommand = "";
-                CommandHistory.Add(new CmdHistory { frameNextNum = CurrentFrameId, cmdTime = LastKnowRealTime, cmdStr = s, cmdSource = 1 });
-                if (CommandHistory.Count > 1)
-                {
-                    var tmpCmd = CommandHistory[CommandHistory.Count - 2];
-                    tmpCmd.frameNextNum = CurrentFrameId;
-                    CommandHistory[CommandHistory.Count - 2] = tmpCmd;
-                }
+                CommandHistory.Add(new CmdHistory { cmdFrameId = CurrentFrameId, cmdTime = LastKnowRealTime, cmdStr = s, cmdSource = 1 });
                 return;
             }
 
             LastStuffCmdCommand = "";
+
             if (isstuff)
             {
-                CommandHistory.Add(new CmdHistory { frameNextNum = CurrentFrameId, cmdTime = LastKnowRealTime, cmdStr = s, cmdSource = 2 });
+                CommandHistory.Add(new CmdHistory { cmdFrameId = CurrentFrameId, cmdTime = LastKnowRealTime, cmdStr = s, cmdSource = 2 });
             }
             else
             {
-                CommandHistory.Add(new CmdHistory { frameNextNum = CurrentFrameId, cmdTime = LastKnowRealTime, cmdStr = s, cmdSource = 0 });
-            }
-            if (CommandHistory.Count > 1)
-            {
-                var tmpCmd = CommandHistory[CommandHistory.Count - 2];
-                tmpCmd.frameNextNum = CurrentFrameId;
-                CommandHistory[CommandHistory.Count - 2] = tmpCmd;
+                CommandHistory.Add(new CmdHistory { cmdFrameId = CurrentFrameId, cmdTime = LastKnowRealTime, cmdStr = s, cmdSource = 0 });
             }
 
             if (sLower == "-showscores")
@@ -8951,65 +8940,83 @@ namespace DemoScanner.DG
                         List<string> CommandsDump = new List<string>();
                         CommandsDump.Add("This file created by Unreal Demo Scanner\n\n");
 
-                        int prevFrameNum = 0;
-                        float prevCmdTime = 0.0f;
-                        foreach (var cmd in CommandHistory)
-                        {
-                            string timeCmdStr = "[ERROR]";
+                        //CommandHistory.Add(CommandHistory[CommandHistory.Count - 1]);
 
-                            if (prevFrameNum == 0)
-                            {
-                                prevFrameNum = cmd.frameNextNum;
-                                prevCmdTime = cmd.cmdTime;
-                            }
+                        for (int i = 1; i < CommandHistory.Count; i++)
+                        {
+                            var cur_cmd = CommandHistory[i];
+                            var prev_cmd = CommandHistory[i - 1];
+
+                            string timeCmdStr = "[ERROR]";
 
                             try
                             {
-                                var t = TimeSpan.FromSeconds(cmd.cmdTime);
+                                var t = TimeSpan.FromSeconds(cur_cmd.cmdTime);
                                 timeCmdStr = string.Format("{0:D2}h:{1:D2}m:{2:D2}s:{3:D3}ms", t.Hours,
                                     t.Minutes, t.Seconds, t.Milliseconds);
                             }
                             catch
                             { }
 
-                            if (abs(prevCmdTime - cmd.cmdTime) > 1.0f)
+                            bool foundIllegal = false;
+                            string combinedCmdStr = prev_cmd.cmdStr;
+
+                            if (cur_cmd.cmdSource == 0 && cur_cmd.cmdStr.IndexOf(';') > -1)
+                            {
+                                foundIllegal = true;
+                            } 
+
+                            while (i < CommandHistory.Count && prev_cmd.cmdFrameId == cur_cmd.cmdFrameId
+                                && prev_cmd.cmdSource == cur_cmd.cmdSource)
+                            {
+                                if (cur_cmd.cmdSource == 0 && cur_cmd.cmdStr.IndexOf(';') > -1)
+                                {
+                                    foundIllegal = true;
+                                }
+
+                                combinedCmdStr += ";" + cur_cmd.cmdStr;
+
+                                i++;
+                                if (i < CommandHistory.Count)
+                                {
+                                    prev_cmd = cur_cmd;
+                                    cur_cmd = CommandHistory[i];
+                                }
+                            }
+
+                            int waitTime = cur_cmd.cmdFrameId - prev_cmd.cmdFrameId;
+
+                            if (Math.Abs(prev_cmd.cmdTime - cur_cmd.cmdTime) < 1.0f)
                             {
                                 if (IsRussia)
                                 {
-                                    CommandsDump.Add(timeCmdStr + " [НОМЕР КАДРА: " + cmd.frameNextNum + "] : " + cmd.cmdStr + ";wait" + (cmd.frameNextNum - prevFrameNum) + ";" + "(" +
-                                                     cmd.cmdTime + ")" + (cmd.cmdSource == 1 ?
-                                                     " --> ВЫПОЛНЕНО СЕРВЕРОМ" : cmd.cmdSource == 2 ? " --> ВЫПОЛНЕНО ЧЕРЕЗ STUFFTEXT" : ""));
+                                    CommandsDump.Add(timeCmdStr + " [НОМЕР КАДРА: " + prev_cmd.cmdFrameId + "] : " + combinedCmdStr + ";wait" + waitTime + ";" + (prev_cmd.cmdSource == 1 ?
+                                                     " --> ВЫПОЛНЕНО СЕРВЕРОМ" : prev_cmd.cmdSource == 2 ? " --> ВЫПОЛНЕНО ЧЕРЕЗ STUFFTEXT" : ""));
                                 }
                                 else
                                 {
-                                    CommandsDump.Add(timeCmdStr + " [FRAME NUMBER: " + cmd.frameNextNum + "] : " + cmd.cmdStr + ";wait" + (cmd.frameNextNum - prevFrameNum) + ";" + "(" +
-                                                     cmd.cmdTime + ")" + (cmd.cmdSource == 1 ?
-                                                     " --> EXECUTED BY SERVER" : cmd.cmdSource == 2 ? " --> EXECUTED BY SERVER" : ""));
+                                    CommandsDump.Add(timeCmdStr + " [FRAME NUMBER: " + prev_cmd.cmdFrameId + "] : " + combinedCmdStr + ";wait" + waitTime + ";" + (prev_cmd.cmdSource == 1 ?
+                                                     " --> EXECUTED BY SERVER" : prev_cmd.cmdSource == 2 ? " --> EXECUTED BY STUFFTEXT" : ""));
                                 }
                             }
                             else
                             {
                                 if (IsRussia)
                                 {
-                                    CommandsDump.Add(timeCmdStr + " [НОМЕР КАДРА: " + cmd.frameNextNum + "] : " + cmd.cmdStr + ";" + "(" +
-                                                     cmd.cmdTime + ")" + (cmd.cmdSource == 1 ?
-                                                     " --> ВЫПОЛНЕНО СЕРВЕРОМ" : cmd.cmdSource == 2 ? " --> ВЫПОЛНЕНО ЧЕРЕЗ STUFFTEXT" : ""));
+                                    CommandsDump.Add(timeCmdStr + " [НОМЕР КАДРА: " + prev_cmd.cmdFrameId + "] : " + combinedCmdStr + ";" + (prev_cmd.cmdSource == 1 ?
+                                                     " --> ВЫПОЛНЕНО СЕРВЕРОМ" : prev_cmd.cmdSource == 2 ? " --> ВЫПОЛНЕНО ЧЕРЕЗ STUFFTEXT" : ""));
                                 }
                                 else
                                 {
-                                    CommandsDump.Add(timeCmdStr + " [FRAME NUMBER: " + cmd.frameNextNum + "] : " + cmd.cmdStr + ";" + "(" +
-                                                     cmd.cmdTime + ")" + (cmd.cmdSource == 1 ?
-                                                     " --> EXECUTED BY SERVER" : cmd.cmdSource == 2 ? " --> EXECUTED BY SERVER" : ""));
+                                    CommandsDump.Add(timeCmdStr + " [FRAME NUMBER: " + prev_cmd.cmdFrameId + "] : " + combinedCmdStr + ";" + (prev_cmd.cmdSource == 1 ?
+                                                     " --> EXECUTED BY SERVER" : prev_cmd.cmdSource == 2 ? " --> EXECUTED BY STUFFTEXT" : ""));
                                 }
                             }
 
-                            if (cmd.cmdSource == 0 && cmd.cmdStr.IndexOf(';') > -1)
+                            if (foundIllegal)
                             {
                                 CommandsDump[CommandsDump.Count - 1] += " [ILLEGAL!!]";
                             }
-
-                            prevCmdTime = cmd.cmdTime;
-                            prevFrameNum = cmd.frameNextNum;
                         }
 
                         var textdatapath = CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 4) +

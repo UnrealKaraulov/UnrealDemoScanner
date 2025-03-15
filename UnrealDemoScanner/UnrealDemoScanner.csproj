@@ -43,6 +43,9 @@
     <ManifestCertificateThumbprint>6E93957E0B8D90149B2EC282DD300092259499CE</ManifestCertificateThumbprint>
   </PropertyGroup>
   <PropertyGroup>
+    <IsPublishable>True</IsPublishable>
+  </PropertyGroup>	
+  <PropertyGroup>
     <ManifestKeyFile>
     </ManifestKeyFile>
   </PropertyGroup>
@@ -63,22 +66,18 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <CodeAnalysisRuleSet>
     </CodeAnalysisRuleSet>
-    <FileAlignment>512</FileAlignment>
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <WarningLevel>6</WarningLevel>
-    <NoWarn />
-    <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
-    <IsPublishable>True</IsPublishable>
     <Prefer32Bit>True</Prefer32Bit>
+    <IsPublishable>True</IsPublishable>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <WarningLevel>6</WarningLevel>
     <NoWarn />
     <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
-    <FileAlignment>512</FileAlignment>
-    <IsPublishable>True</IsPublishable>
     <Prefer32Bit>True</Prefer32Bit>
+    <IsPublishable>True</IsPublishable>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="EntitiesPreviewWindow.cs" />
