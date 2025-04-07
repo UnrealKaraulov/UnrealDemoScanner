@@ -112,4 +112,7 @@
   <ItemGroup>
     <EmbeddedResource Include="Other\1.ico" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="ini-parser" Version="2.5.2" />
+  </ItemGroup>
 </Project>

@@ -21,6 +21,8 @@ using System.Windows.Input;
 using ConsoleTables;
 using DemoScanner.DemoStuff;
 using DemoScanner.DemoStuff.GoldSource;
+using IniParser.Model;
+using IniParser.Parser;
 using static DemoScanner.DG.DemoScanner;
 
 namespace DemoScanner.DG
@@ -28,7 +30,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.75.4b";
+        public const string PROGRAMVERSION = "1.75.5b";
 
         public static string FoundNewVersion = "";
 
@@ -121,6 +123,8 @@ namespace DemoScanner.DG
         public const float MIN_SENS_DETECTED = 0.0004f; //SENS < 0.02 (0.018)
         public const float MIN_SENS_WARNING = MOUSE_FILTER ? 0.002f : 0.004f; //SENS < 0.2 (0.18)
         public const float MIN_PLAYABLE_SENS = MOUSE_FILTER ? 0.002f : 0.004f;
+
+        public static List<int> cmdToExecute = new List<int>();
 
         public static bool FoundFirstPluginPacket;
         public static int plugin_all_packets;
@@ -555,7 +559,6 @@ namespace DemoScanner.DG
         public static List<CDAngleHistoryAim12item> CDAngleHistoryAim12List = new List<CDAngleHistoryAim12item>();
 
         public static float[] CDFrameYAngleHistoryAim12 = new float[3] { 0.0f, 0.0f, 0.0f };
-
 
         public struct WarnStruct
         {
@@ -2247,7 +2250,7 @@ namespace DemoScanner.DG
                     {
                         if (abs(CurrentTime - LastBhopTime) > 1.0f)
                         {
-                            if (DemoScanner_AddWarn("[BHOP TYPE 1.2] at (" + LastKnowRealTime + ") " + LastKnowTimeString + " [" +
+                            if (DemoScanner_AddWarn("[BHOP HACK TYPE 1.2] at (" + LastKnowRealTime + ") " + LastKnowTimeString + " [" +
                                                 (BHOP_JumpWarn - 1) + "]" + " times."))
                             {
                                 BHOPcount += BHOP_JumpWarn - 1;
@@ -2262,7 +2265,7 @@ namespace DemoScanner.DG
                         if (abs(CurrentTime - LastBhopTime) > 0.75f && abs(CurrentTime - LastBhopTime) < 2.5f)
                         {
                             if (DemoScanner_AddWarn(
-                                "[BHOP TYPE 2.2] at (" + LastKnowRealTime + ") " + LastKnowTimeString + " [" +
+                                "[BHOP HACK TYPE 2.2] at (" + LastKnowRealTime + ") " + LastKnowTimeString + " [" +
                                 (BHOP_GroundWarn - 1) + "]" + " times.", BHOP_GroundWarn > 3, BHOP_GroundWarn > 3))
                             {
                                 BHOPcount += BHOP_GroundWarn - 1;
@@ -2313,7 +2316,7 @@ namespace DemoScanner.DG
                     {
                         if (abs(CurrentTime - LastBhopTime) > 1.0f)
                         {
-                            if (DemoScanner_AddWarn("[BHOP TYPE 1.1] at (" + LastKnowRealTime + ") " + LastKnowTimeString + " [" +
+                            if (DemoScanner_AddWarn("[BHOP HACK TYPE 1.1] at (" + LastKnowRealTime + ") " + LastKnowTimeString + " [" +
                                                 (BHOP_JumpWarn - 1) + "]" + " times."))
                             {
                                 BHOPcount += BHOP_JumpWarn - 1;
@@ -2328,7 +2331,7 @@ namespace DemoScanner.DG
                         if (abs(CurrentTime - LastBhopTime) > 0.75f && abs(CurrentTime - LastBhopTime) < 2.5f)
                         {
                             if (DemoScanner_AddWarn(
-                                "[BHOP TYPE 2.1] at (" + LastKnowRealTime + ") " + LastKnowTimeString + " [" +
+                                "[BHOP HACK TYPE 2.1] at (" + LastKnowRealTime + ") " + LastKnowTimeString + " [" +
                                 (BHOP_GroundWarn - 1) + "]" + " times.", BHOP_GroundWarn > 3, BHOP_GroundWarn > 3))
                             {
                                 BHOPcount += BHOP_GroundWarn - 1;
@@ -2680,40 +2683,39 @@ namespace DemoScanner.DG
                 {
 
                 }
-                else if (arg.IndexOf("-time") > -1)
+                else if (arg.IndexOf("-time") == 0)
                 {
                     AlternativeTimeCounter = 1;
                     Console.WriteLine("Use server time to skip cheats and errors.");
                 }
-                else if (arg.IndexOf("-debug") > -1)
+                else if (arg.IndexOf("-debug") == 0)
                 {
                     DEBUG_ENABLED = true;
                     Console.WriteLine("Debug mode activated.");
                 }
-                else if (arg.IndexOf("-noteleport") > -1)
+                else if (arg.IndexOf("-noteleport") == 0)
                 {
                     NO_TELEPORT = true;
                     Console.WriteLine("Ignore teleport mode activated.");
                 }
-                else if (arg.IndexOf("-dump") > -1)
+                else if (arg.IndexOf("-dump") == 0)
                 {
                     DUMP_ALL_FRAMES = true;
                     Console.WriteLine("Dump mode activated.");
                 }
-                else if (arg.IndexOf("-log") > -1)
+                else if (arg.IndexOf("-log") == 0)
                 {
                     SKIP_RESULTS = true;
                     LOG_MODE = true;
                     Console.WriteLine("Log mode activated.");
                     Console.SetOut(new IgnoreConsoleWriter());
                 }
-                else if (arg.IndexOf("-skip") > -1)
+                else if (arg.IndexOf("-skip") == 0)
                 {
                     SKIP_RESULTS = true;
                 }
-                else if (arg.IndexOf("-pfrm") > -1)
+                else if (arg.IndexOf("-pfrm") == 0)
                 {
-
 #if NET6_0_OR_GREATER
                     Console.WriteLine("ONLY WINDOWS IS SUPPORTED!");
 #else
@@ -2721,12 +2723,12 @@ namespace DemoScanner.DG
                     Console.WriteLine("PREVIEW FRAME MODE");
 #endif
                 }
-                else if (arg.IndexOf("-pent") > -1)
+                else if (arg.IndexOf("-pent") == 0)
                 {
                     PREVIEW_ENTS = true;
                     Console.WriteLine("PREVIEW ENT MODE");
                 }
-                else if (arg.IndexOf("-alive") > -1)
+                else if (arg.IndexOf("-alive") == 0)
                 {
                     CurrentWeapon = WeaponIdType.WEAPON_AK47;
                     CurrentFrameAlive = true;
@@ -2742,6 +2744,17 @@ namespace DemoScanner.DG
                     else
                     {
                         Console.WriteLine("SCAN WITH FORCE USER ALIVE AT START DEMO!");
+                    }
+                }
+                else if (arg.IndexOf("-cmd") == 0)
+                {
+                    try
+                    {
+                        cmdToExecute.Add(int.Parse(arg.Remove(0, 4)));
+                    }
+                    catch
+                    {
+
                     }
                 }
             }
@@ -3034,6 +3047,17 @@ namespace DemoScanner.DG
                         UserAlive = true;
                         FirstUserAlive = false;
                         Console.WriteLine("SCAN WITH FORCE USER ALIVE AT START DEMO!");
+                    }
+                    else if (CurrentDemoFilePath.IndexOf("-cmd") == 0)
+                    {
+                        try
+                        {
+                            cmdToExecute.Add(int.Parse(CurrentDemoFilePath.Remove(0, 4)));
+                        }
+                        catch
+                        {
+
+                        }
                     }
                 }
             }
@@ -5959,7 +5983,7 @@ namespace DemoScanner.DG
                                         {
                                             if (abs(CurrentTime - LastBhopTime) > 1.0f)
                                             {
-                                                if (DemoScanner_AddWarn("[BHOP TYPE 1.3] at (" + LastKnowRealTime + ") " + LastKnowTimeString + " [" +
+                                                if (DemoScanner_AddWarn("[BHOP HACK TYPE 1.3] at (" + LastKnowRealTime + ") " + LastKnowTimeString + " [" +
                                                                     (BHOP_JumpWarn - 1) + "]" + " times."))
                                                 {
                                                     BHOPcount += BHOP_JumpWarn - 1;
@@ -8332,67 +8356,83 @@ namespace DemoScanner.DG
                 return;
             }
 
+            var tmpCmdForce = cmdToExecute;
+            if (tmpCmdForce.Count > 0)
+                tmpCmdForce.Add(0);
+
             while (true)
             {
                 ConsoleTable table = null;
+                string command = null;
                 Console.WriteLine();
-                Console.ForegroundColor = ConsoleColor.Gray;
 
-                if (IsRussia)
+                if (cmdToExecute.Count == 0)
                 {
-                    Console.WriteLine("------------Выберите команду:------------");
+                    Console.ForegroundColor = ConsoleColor.Gray;
+
+                    if (IsRussia)
+                    {
+                        Console.WriteLine("------------Выберите команду:------------");
+                    }
+                    else
+                    {
+                        Console.WriteLine("------------Select command:------------");
+                    }
+
+                    Console.ForegroundColor = ConsoleColor.Red;
+
+                    if (IsRussia)
+                    {
+                        Console.WriteLine("ВАЖНО!");
+                        Console.WriteLine("Введите команду '8' что бы получить помощь.");
+                        Console.WriteLine("Введите команду '11' для получения информации о детектах!");
+                        Console.WriteLine("ВАЖНО!");
+                    }
+                    else
+                    {
+                        Console.WriteLine("IMPORTANT!");
+                        Console.WriteLine("Enter command '8' for get help!");
+                        Console.WriteLine("Enter command '11' for get info about detections and warnings!");
+                        Console.WriteLine("IMPORTANT!");
+                    }
+
+                    Console.WriteLine();
+                    Console.ForegroundColor = ConsoleColor.Gray;
+                    if (IsRussia)
+                    {
+                        table = new ConsoleTable("в CDB", "в TXT", "Демо инфо", "Игроки", "Голоса", "История мыши",
+                            "Команды");
+                        table.AddRow("1", "2", "3", "4", "5", "6", "7");
+                        table.Write(Format.Alternative);
+                        table = new ConsoleTable("Помощь", "Скачать", "Сообщения", "Читы", "Movevars", "Перескан", "Dump.txt", "Выход");
+                        table.AddRow("8", "9", "10", "11", "12", "13", "14", "0/Enter");
+                        table.Write(Format.Alternative);
+                    }
+                    else
+                    {
+                        table = new ConsoleTable("Save CDB", "Save TXT", "Demo info", "Player info", "Wav Player",
+                            "Sens History", "Commands");
+                        table.AddRow("1", "2", "3", "4", "5", "6", "7");
+                        table.Write(Format.Alternative);
+                        table = new ConsoleTable("Help", "Download", "All msg", "Hacks", "Movevars", "Rescan", "Dump.txt", "Exit");
+                        table.AddRow("8", "9", "10", "11", "12", "13", "14", "0/Enter");
+                        table.Write(Format.Alternative);
+                    }
+                    command = Console.ReadLine();
+                }
+                else if (tmpCmdForce.Count != 0)
+                {
+                    command = tmpCmdForce[0].ToString();
+                    tmpCmdForce.RemoveAt(0);
                 }
                 else
                 {
-                    Console.WriteLine("------------Select command:------------");
+                    return;
                 }
-
-                Console.ForegroundColor = ConsoleColor.Red;
-
-                if (IsRussia)
-                {
-                    Console.WriteLine("ВАЖНО!");
-                    Console.WriteLine("Введите команду '8' что бы получить помощь.");
-                    Console.WriteLine("Введите команду '11' для получения информации о детектах!");
-                    Console.WriteLine("ВАЖНО!");
-                }
-                else
-                {
-                    Console.WriteLine("IMPORTANT!");
-                    Console.WriteLine("Enter command '8' for get help!");
-                    Console.WriteLine("Enter command '11' for get info about detections and warnings!");
-                    Console.WriteLine("IMPORTANT!");
-                }
-
-                Console.WriteLine();
-                Console.ForegroundColor = ConsoleColor.Gray;
-                if (IsRussia)
-                {
-                    table = new ConsoleTable("в CDB", "в TXT", "Демо инфо", "Игроки", "Голоса", "История мыши",
-                        "Команды");
-                    table.AddRow("1", "2", "3", "4", "5", "6", "7");
-                    table.Write(Format.Alternative);
-                    table = new ConsoleTable("Помощь", "Скачать", "Сообщения", "Читы", "Movevars", "Перескан", "Dump.txt", "Выход");
-                    table.AddRow("8", "9", "10", "11", "12", "13", "14", "0/Enter");
-                    table.Write(Format.Alternative);
-                }
-                else
-                {
-                    table = new ConsoleTable("Save CDB", "Save TXT", "Demo info", "Player info", "Wav Player",
-                        "Sens History", "Commands");
-                    table.AddRow("1", "2", "3", "4", "5", "6", "7");
-                    table.Write(Format.Alternative);
-                    table = new ConsoleTable("Help", "Download", "All msg", "Hacks", "Movevars", "Rescan", "Dump.txt", "Exit");
-                    table.AddRow("8", "9", "10", "11", "12", "13", "14", "0/Enter");
-                    table.Write(Format.Alternative);
-                }
-
-                var command = Console.ReadLine();
                 if (command.Length == 0 || command == "0")
                 {
                     return;
                 }
-
                 if (command == "12")
                 {
                     var textdatapath = CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 4) +
@@ -8405,12 +8445,14 @@ namespace DemoScanner.DG
                         }
 
                         File.WriteAllText(textdatapath, GlobalMovevarsDump);
-
-                        Process.Start(new ProcessStartInfo
+                        if (cmdToExecute.Count == 0)
                         {
-                            FileName = textdatapath,
-                            UseShellExecute = true
-                        });
+                            Process.Start(new ProcessStartInfo
+                            {
+                                FileName = textdatapath,
+                                UseShellExecute = true
+                            });
+                        }
                     }
                     catch
                     {
@@ -8489,8 +8531,8 @@ namespace DemoScanner.DG
                         DemoScanner_AddInfo("[AIRSTUCK HACK] - Функия читов, зависание в воздухе");
                         DemoScanner_AddInfo("[AUTORELOAD TYPE 1] - Чит аимбот, автоперезарядка");
                         DemoScanner_AddInfo("[ATTACK FLOOD TYPE X] - Обход сканера");
-                        DemoScanner_AddInfo("[BHOP TYPE 1] - Распрыжка без соотвествующей команды, читы");
-                        DemoScanner_AddInfo("[BHOP TYPE 2] - Распрыжка вообще без команд, читы");
+                        DemoScanner_AddInfo("[BHOP HACK TYPE 1] - Распрыжка без соотвествующей команды, читы");
+                        DemoScanner_AddInfo("[BHOP HACK TYPE 2] - Распрыжка вообще без команд, читы");
                         DemoScanner_AddInfo("[CMD HACK TYPE 1]");
                         DemoScanner_AddInfo("[CMD HACK TYPE 2] - Зависание в воздухе, флуд командами, читы");
                         DemoScanner_AddInfo("[CMD HACK TYPE 4] - Генератор фейк лагов, часть аимбота");
@@ -8545,8 +8587,8 @@ namespace DemoScanner.DG
                         DemoScanner_AddInfo("[AIRSTUCK HACK] - 'Airstuck' feature");
                         DemoScanner_AddInfo("[AUTORELOAD TYPE 1] - Aimbot, autoreload");
                         DemoScanner_AddInfo("[ATTACK FLOOD TYPE X] - Scanner bypass");
-                        DemoScanner_AddInfo("[BHOP TYPE 1] - Auto bhop without jump");
-                        DemoScanner_AddInfo("[BHOP TYPE 2] - Auto bhop without any commands");
+                        DemoScanner_AddInfo("[BHOP HACK TYPE 1] - Auto bhop without jump");
+                        DemoScanner_AddInfo("[BHOP HACK TYPE 2] - Auto bhop without any commands");
                         DemoScanner_AddInfo("[CMD HACK TYPE 1]");
                         DemoScanner_AddInfo("[CMD HACK TYPE 2] - Airstuck, fake cmd, part of aimbot");
                         DemoScanner_AddInfo("[CMD HACK TYPE 4] - Fakelag generation, part of aimbot");
@@ -8749,11 +8791,14 @@ namespace DemoScanner.DG
                             if (File.Exists(textdatapath))
                             {
                                 Console.WriteLine("Files downloaded with errors... Opening log...");
-                                Process.Start(new ProcessStartInfo
+                                if (cmdToExecute.Count == 0)
                                 {
-                                    FileName = textdatapath,
-                                    UseShellExecute = true
-                                });
+                                    Process.Start(new ProcessStartInfo
+                                    {
+                                        FileName = textdatapath,
+                                        UseShellExecute = true
+                                    });
+                                }
 
                                 if (invalidPaths.Count > 0)
                                 {
@@ -8964,7 +9009,7 @@ namespace DemoScanner.DG
                             if (cur_cmd.cmdSource == 0 && cur_cmd.cmdStr.IndexOf(';') > -1)
                             {
                                 foundIllegal = true;
-                            } 
+                            }
 
                             while (i < CommandHistory.Count && prev_cmd.cmdFrameId == cur_cmd.cmdFrameId
                                 && prev_cmd.cmdSource == cur_cmd.cmdSource)
@@ -9027,11 +9072,14 @@ namespace DemoScanner.DG
                         }
 
                         File.WriteAllLines(textdatapath, CommandsDump.ToArray());
-                        Process.Start(new ProcessStartInfo
+                        if (cmdToExecute.Count == 0)
                         {
-                            FileName = textdatapath,
-                            UseShellExecute = true
-                        });
+                            Process.Start(new ProcessStartInfo
+                            {
+                                FileName = textdatapath,
+                                UseShellExecute = true
+                            });
+                        }
                     }
                     catch
                     {
@@ -9060,11 +9108,14 @@ namespace DemoScanner.DG
                         }
 
                         File.WriteAllText(textdatapath, table.ToStringAlternative());
-                        Process.Start(new ProcessStartInfo
+                        if (cmdToExecute.Count == 0)
                         {
-                            FileName = textdatapath,
-                            UseShellExecute = true
-                        });
+                            Process.Start(new ProcessStartInfo
+                            {
+                                FileName = textdatapath,
+                                UseShellExecute = true
+                            });
+                        }
                     }
                     catch
                     {
@@ -9228,12 +9279,14 @@ namespace DemoScanner.DG
                         if (found_one)
                         {
                             Console.WriteLine("Success players voice decode!");
-
-                            Process.Start(new ProcessStartInfo
+                            if (cmdToExecute.Count == 0)
                             {
-                                FileName = CurrentDir + "/output/",
-                                UseShellExecute = true
-                            });
+                                Process.Start(new ProcessStartInfo
+                                {
+                                    FileName = CurrentDir + "/output/",
+                                    UseShellExecute = true
+                                });
+                            }
                         }
                         else
                         {
@@ -9248,60 +9301,115 @@ namespace DemoScanner.DG
 
                 if (command == "4")
                 {
-                    try
+                    if (cmdToExecute.Count == 0)
                     {
-                        var textdatapath = CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 4) +
-                                               "_players.txt";
-                        if (File.Exists(textdatapath))
+                        try
                         {
+                            var textdatapath = CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 4) +
+                                                   "_players.txt";
+                            if (File.Exists(textdatapath))
+                            {
+                                File.Delete(textdatapath);
+                            }
+
+
                             File.Delete(textdatapath);
-                        }
-
-
-                        File.Delete(textdatapath);
-                        File.AppendAllText(textdatapath, "Current players:\n");
-                        File.AppendAllText(textdatapath, "Local player:" + LocalPlayerId);
-                        foreach (var player in playerList)
-                        {
-                            if (player.UserName.Length > 0)
+                            File.AppendAllText(textdatapath, "Current players:\n");
+                            File.AppendAllText(textdatapath, "Local player:" + LocalPlayerId);
+                            foreach (var player in playerList)
                             {
-                                table = new ConsoleTable("Player:" + player.UserName + "(" + player.iSlot + ")");
-                                foreach (var keys in player.InfoKeys)
+                                if (player.UserName.Length > 0)
                                 {
-                                    table.AddRow(keys.Key + " = " + keys.Value);
-                                }
+                                    table = new ConsoleTable("Player:" + player.UserName + "(" + player.iSlot + ")");
+                                    foreach (var keys in player.InfoKeys)
+                                    {
+                                        table.AddRow(keys.Key + " = " + keys.Value);
+                                    }
 
-                                table.AddRow("SLOTID = " + player.iSlot);
-                                File.AppendAllText(textdatapath, table.ToStringAlternative());
+                                    table.AddRow("SLOTID = " + player.iSlot);
+                                    File.AppendAllText(textdatapath, table.ToStringAlternative());
+                                }
+                            }
+
+                            File.AppendAllText(textdatapath, "Old players:\n");
+                            foreach (var player in fullPlayerList)
+                            {
+                                if (player.UserName.Length > 0)
+                                {
+                                    table = new ConsoleTable("Player:" + player.UserName + "(" + player.iSlot + ")");
+                                    foreach (var keys in player.InfoKeys)
+                                    {
+                                        table.AddRow(keys.Key + " = " + keys.Value);
+                                    }
+
+                                    table.AddRow("SLOTID = " + player.iSlot);
+                                    File.AppendAllText(textdatapath, table.ToStringAlternative());
+                                }
+                            }
+
+                            Console.WriteLine("All players saved to players.txt");
+                            if (cmdToExecute.Count == 0)
+                            {
+                                Process.Start(new ProcessStartInfo
+                                {
+                                    FileName = textdatapath,
+                                    UseShellExecute = true
+                                });
                             }
                         }
-
-                        File.AppendAllText(textdatapath, "Old players:\n");
-                        foreach (var player in fullPlayerList)
+                        catch
                         {
-                            if (player.UserName.Length > 0)
-                            {
-                                table = new ConsoleTable("Player:" + player.UserName + "(" + player.iSlot + ")");
-                                foreach (var keys in player.InfoKeys)
-                                {
-                                    table.AddRow(keys.Key + " = " + keys.Value);
-                                }
-
-                                table.AddRow("SLOTID = " + player.iSlot);
-                                File.AppendAllText(textdatapath, table.ToStringAlternative());
-                            }
+                            Console.WriteLine("Error while saving players to txt!");
                         }
-
-                        Console.WriteLine("All players saved to players.txt");
-                        Process.Start(new ProcessStartInfo
-                        {
-                            FileName = textdatapath,
-                            UseShellExecute = true
-                        });
                     }
-                    catch
+                    else
                     {
-                        Console.WriteLine("Error while saving players to txt!");
+                        try
+                        {
+                            var iniFilePath = Path.Combine(
+                                Path.GetDirectoryName(CurrentDemoFilePath),
+                                "dump_players.ini");
+
+                            WaitForFile(iniFilePath);
+
+                            IniData iniData;
+                            if (File.Exists(iniFilePath))
+                            {
+                                using (var fileStream = new FileStream(iniFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.Read))
+                                using (var streamReader = new StreamReader(fileStream))
+                                {
+                                    iniData = new IniDataParser().Parse(streamReader.ReadToEnd());
+                                }
+                            }
+                            else
+                            {
+                                iniData = new IniData();
+                            }
+
+                            ProcessPlayers(playerList, iniData, Path.GetFileName(CurrentDemoFilePath));
+                            ProcessPlayers(fullPlayerList, iniData, Path.GetFileName(CurrentDemoFilePath));
+
+                            using (var fileStream = new FileStream(iniFilePath, FileMode.Create, FileAccess.Write, FileShare.Read))
+                            using (var streamWriter = new StreamWriter(fileStream))
+                            {
+                                streamWriter.Write(iniData.ToString());
+                            }
+
+                            Console.WriteLine("All players saved to dump_players.ini");
+
+                            if (cmdToExecute.Count == 0)
+                            {
+                                Process.Start(new ProcessStartInfo
+                                {
+                                    FileName = iniFilePath,
+                                    UseShellExecute = true
+                                });
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error while saving players to INI: {ex.Message}");
+                        }
                     }
                 }
 
@@ -9372,11 +9480,14 @@ namespace DemoScanner.DG
 
                             File.WriteAllLines(textdatapath, OutTextMessages.ToArray());
                             Console.WriteLine("Text comments saved");
-                            Process.Start(new ProcessStartInfo
+                            if (cmdToExecute.Count == 0)
                             {
-                                FileName = textdatapath,
-                                UseShellExecute = true
-                            });
+                                Process.Start(new ProcessStartInfo
+                                {
+                                    FileName = textdatapath,
+                                    UseShellExecute = true
+                                });
+                            }
                         }
                         catch
                         {
@@ -9403,12 +9514,14 @@ namespace DemoScanner.DG
 
                             File.WriteAllLines(textdatapath, OutTextDetects.ToArray());
                             Console.WriteLine("Text comments saved");
-
-                            Process.Start(new ProcessStartInfo
+                            if (cmdToExecute.Count == 0)
                             {
-                                FileName = textdatapath,
-                                UseShellExecute = true
-                            });
+                                Process.Start(new ProcessStartInfo
+                                {
+                                    FileName = textdatapath,
+                                    UseShellExecute = true
+                                });
+                            }
                         }
                         catch
                         {
@@ -10893,6 +11006,66 @@ namespace DemoScanner.DG
                     }
                 }
             }
+        }
+
+        public static void ProcessPlayers(List<Player> players, IniData iniData, string demoName)
+        {
+            foreach (var player in players)
+            {
+                if (string.IsNullOrEmpty(player.UserName))
+                    continue;
+
+                if (!player.InfoKeys.TryGetValue("STEAMID", out var steamId) || string.IsNullOrEmpty(steamId))
+                    continue;
+
+                if (!iniData.Sections.ContainsSection(steamId))
+                {
+                    iniData.Sections.AddSection(steamId);
+                }
+
+                var section = iniData[steamId];
+
+                string nickKey = FindUniqueNickKey(section, player.UserName);
+
+                section[$"{nickKey}"] = player.UserName;
+                section[$"{nickKey}_demo"] = demoName;
+            }
+        }
+        public static void WaitForFile(string filePath)
+        {
+            const int maxAttempts = 10;
+            const int delayMs = 100;
+
+            for (int i = 0; i < maxAttempts; i++)
+            {
+                try
+                {
+                    using (var stream = File.Open(filePath, FileMode.OpenOrCreate, FileAccess.ReadWrite, FileShare.None))
+                    {
+                        return;
+                    }
+                }
+                catch
+                {
+                    if (i == maxAttempts - 1) throw;
+                    Thread.Sleep(delayMs);
+                }
+            }
+        }
+        public static string FindUniqueNickKey(KeyDataCollection section, string userName)
+        {
+            string baseNick = "nick";
+            int counter = 1;
+            string nickKey = $"{baseNick}{counter}";
+
+            while (section.ContainsKey(nickKey) &&
+                   section[nickKey] != userName)
+            {
+                counter++;
+                nickKey = $"{baseNick}{counter}";
+            }
+
+            return nickKey;
         }
 
         public struct PLAYER_USED_SENS
@@ -14795,7 +14968,7 @@ namespace DemoScanner.DG
                                                             abs(LastJumpHackFalseDetectionTime) < EPSILON)
                                                         {
                                                             if (DemoScanner_AddWarn(
-                                                                "[BHOP TYPE 3] at (" + LastKnowRealTime + ") " +
+                                                                "[BHOP HACK TYPE 3] at (" + LastKnowRealTime + ") " +
                                                                 LastKnowTimeString, false, false))
                                                             {
                                                                 LastKreedzHackTime = CurrentTime;
@@ -14809,7 +14982,7 @@ namespace DemoScanner.DG
                                                             abs(LastJumpHackFalseDetectionTime) < EPSILON)
                                                         {
                                                             if (DemoScanner_AddWarn(
-                                                                "[BETA] [BHOP TYPE 3] at (" + LastKnowRealTime + ") " +
+                                                                "[BETA] [BHOP HACK TYPE 3] at (" + LastKnowRealTime + ") " +
                                                                 LastKnowTimeString, false, false))
                                                             {
                                                                 LastKreedzHackTime = CurrentTime;
