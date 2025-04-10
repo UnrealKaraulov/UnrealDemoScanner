@@ -21,8 +21,6 @@ using System.Windows.Input;
 using ConsoleTables;
 using DemoScanner.DemoStuff;
 using DemoScanner.DemoStuff.GoldSource;
-using IniParser.Model;
-using IniParser.Parser;
 using static DemoScanner.DG.DemoScanner;
 
 namespace DemoScanner.DG
@@ -30,7 +28,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.75.5b";
+        public const string PROGRAMVERSION = "1.75.8b";
 
         public static string FoundNewVersion = "";
 
@@ -181,7 +179,9 @@ namespace DemoScanner.DG
         public static float LastUnDuckTime;
         public static float LastDuckTime;
         public static int MouseJumps = -1;
+        public static int MouseDucks = -1;
         public static int JumpWithAlias = -1;
+        public static int DuckWithAlias = -1;
         public static int LocalPlayerId = -1;
         public static int LocalPlayerUserId = -1;
         public static int LocalPlayerUserId2 = -1;
@@ -482,6 +482,7 @@ namespace DemoScanner.DG
 
         public static float LastFloodAttackTime = 0.0f;
         public static float LastFloodDuckTime = 0.0f;
+        public static string LastFloodDuckTimeStr = "";
 
         public static float ChangeWeaponTime = -999.0f;
         public static float ChangeWeaponTime2 = -999.0f;
@@ -533,7 +534,8 @@ namespace DemoScanner.DG
         public static float OldAimType7Time;
         public static int OldAimType7Frames;
         public static int AimType7Event;
-        public static bool SearchJumpBug;
+        public static bool SearchJumpBug = false;
+        public static bool SearchDuck = false;
         public static int MaxIdealJumps = 10;
         public static int CurrentIdealJumpsStrike;
         public static bool SearchNextJumpStrike;
@@ -670,6 +672,7 @@ namespace DemoScanner.DG
         public static float LastUnMoveForward;
         public static float LastMoveForward;
         public static int DuckStrikes;
+        public static int DuckCount = 0;
         public static bool NeedDetectThirdPersonHack;
         public static int ThirdPersonHackDetectionTimeout = -1;
         public static float NoSpreadDetectionTime;
@@ -1486,9 +1489,14 @@ namespace DemoScanner.DG
                 FirstJump = false;
                 FirstAttack = false;
                 SearchJumpBug = false;
+                SearchDuck = false;
                 if (JumpWithAlias >= -1 && FrameCrash <= 7)
                 {
                     JumpWithAlias--;
+                }
+                if (DuckWithAlias >= -1 && FrameCrash <= 7)
+                {
+                    DuckWithAlias--;
                 }
             }
 
@@ -1738,28 +1746,40 @@ namespace DemoScanner.DG
 
             if (sLower.IndexOf("duck") > -1)
             {
-                if (sLower == DuckFloodCmd && abs(LastKnowRealTime - DuckFloodTime) < 0.2)
+                if (LastFloodDuckTime < 0.01f)
                 {
-                    DuckFloodTimes++;
-                    if (DuckFloodTimes >= 6)
+                    if (sLower == DuckFloodCmd && abs(LastKnowRealTime - DuckFloodTime) < 0.2)
                     {
-                        if (abs(CurrentTime - LastFloodDuckTime) > 20.0)
+                        DuckFloodTimes++;
+                        if (DuckFloodTimes >= 6)
                         {
-                            if (DemoScanner_AddWarn("[DUCK FLOOD TYPE 1] at (" + LastKnowRealTime + ") " + LastKnowTimeString))
-                            {
-                                TotalAimBotDetected++;
-                                LastFloodDuckTime = CurrentTime;
-                                DuckFloodTimes = 0;
-                            }
+                            LastFloodDuckTime = CurrentTime;
+                            LastFloodDuckTimeStr = LastKnowTimeString;
                         }
                     }
+                    else
+                    {
+                        DuckFloodTimes = 0;
+                    }
+                    DuckFloodTime = LastKnowRealTime;
+                    DuckFloodCmd = sLower;
                 }
                 else
                 {
+                    if (sLower.IndexOf("-duck") > -1)
+                    {
+                        LastFloodDuckTime = 0.0f;
+                    }
+                    else if (abs(LastKnowRealTime - LastFloodDuckTime) > 25.0f)
+                    {
+                        if (DemoScanner_AddWarn("[DUCK FLOOD TYPE 1] at (" + LastFloodDuckTime + ") " + LastFloodDuckTimeStr))
+                        {
+                            LastFloodDuckTime = 0.0f;
+                            DuckFloodTimes = 0;
+                        }
+                    }
                     DuckFloodTimes = 0;
                 }
-                DuckFloodTime = LastKnowRealTime;
-                DuckFloodCmd = sLower;
             }
 
             if (sLower == "+attack")
@@ -2006,6 +2026,7 @@ namespace DemoScanner.DG
 
             if (sLower == "+duck")
             {
+                SearchDuck = true;
                 if (!IsDuckPressed)
                 {
                     if (CurrentIdealJumpsStrike > 6)
@@ -2014,18 +2035,43 @@ namespace DemoScanner.DG
                     }
                 }
 
+                if (abs(LastDuckTime - CurrentTime) < EPSILON && abs(LastDuckTime) > EPSILON)
+                {
+                    MouseDucks++;
+                }
+
+                if (IsDuckPressed2)
+                {
+                    MouseDucks++;
+                }
+
                 //DuckHack4Search = 0;
                 FrameCrash = 0;
                 IsDuckPressed = true;
                 IsDuckPressed2 = true;
                 DuckStrikes++;
+                if (IsUserAlive())
+                {
+                    DuckCount++;
+                }
                 FirstDuck = true;
+
                 LastDuckTime = CurrentTime;
                 IsDuckHackTime = 0.0f;
             }
             else if (sLower == "-duck")
             {
                 //DuckHack4Search = 0;
+                if (abs(LastDuckTime - CurrentTime) < EPSILON && abs(LastDuckTime) > EPSILON)
+                {
+                    MouseDucks++;
+                }
+                if (!IsDuckPressed2 && SearchDuck)
+                {
+                    DuckWithAlias++;
+                }
+
+
                 IsDuckPressed = false;
                 IsDuckPressed2 = false;
                 FirstDuck = true;
@@ -4794,6 +4840,7 @@ namespace DemoScanner.DG
                                     FirstJump = false;
                                     FirstAttack = false;
                                     SearchJumpBug = false;
+                                    SearchDuck = false;
                                     TmpPlayerEnt = -1;
                                     TmpPlayerNum = -1;
                                     LocalPlayerId = -1;
@@ -6556,11 +6603,15 @@ namespace DemoScanner.DG
                                             {
                                                 MaxIdealJumps = 8;
                                             }
+                                            else if (tmpafps < 90.0f)
+                                            {
+                                                MaxIdealJumps = 6;
+                                            }
                                             else if (tmpafps < 100.0f)
                                             {
                                                 MaxIdealJumps = 5;
                                             }
-                                            else if (tmpafps < 150.0f)
+                                            else if (tmpafps < 130.0f)
                                             {
                                                 MaxIdealJumps = 4;
                                             }
@@ -7789,11 +7840,10 @@ namespace DemoScanner.DG
                                 //subnode.Text += "msg = " + nf.Msg + "\n";
                                 if (abs(CurrentTime) > 0 && (FirstAttack || FirstJump) && !NewDirectory)
                                 {
-                                    if (LastIncomingSequence > 0 &&
+                                    if (LastIncomingSequence > 0 && LastOutgoingSequence > 0 &&
                                         CurrentFrameDuplicated == 0 &&
-                                        Math.Abs(nf.IncomingSequence - LastIncomingSequence) > LastLossPacketCount + 3 &&
-                                        Math.Abs(nf.IncomingSequence - LastIncomingSequence) > 8 &&
-                                        Math.Abs(nf.OutgoingSequence - LastOutgoingSequence) > 6)
+                                        Math.Abs(nf.IncomingSequence - LastIncomingSequence) > 11 &&
+                                        Math.Abs(nf.OutgoingSequence - LastOutgoingSequence) > 11)
                                     {
                                         if (FrameErrors > 0 && IsUserAlive())
                                         {
@@ -8152,12 +8202,21 @@ namespace DemoScanner.DG
                 }
             }
 
+            if (MouseJumps < 0)
+            {
+                MouseJumps = 0;
+            }
+            if (MouseDucks < 0)
+            {
+                MouseDucks = 0;
+            }
+
             if (MouseJumps > 10)
             {
                 if (IsRussia)
                 {
-                    OutTextDetects.Add("Обнаружен бинд прыжка на колесо мыши. Количество прыжков:" + MouseJumps);
-                    Console.WriteLine("Обнаружен бинд прыжка на колесо мыши. Количество прыжков:" + MouseJumps);
+                    OutTextDetects.Add("Использовался бинд +jump на колесо мыши. Количество:" + MouseJumps);
+                    Console.WriteLine("Использовался бинд +jump на колесо мыши. Количество:" + MouseJumps);
                 }
                 else
                 {
@@ -8166,7 +8225,22 @@ namespace DemoScanner.DG
                 }
             }
 
-            if (JumpWithAlias > 15 && MouseJumps > 15)
+            if (MouseDucks > 10)
+            {
+                if (IsRussia)
+                {
+                    OutTextDetects.Add("Использовался бинд +duck на колесо мыши. Количество:" + MouseDucks);
+                    Console.WriteLine("Использовался бинд +duck на колесо мыши. Количество:" + MouseDucks);
+                }
+                else
+                {
+                    OutTextDetects.Add("Detected [MOUSE DUCK] bind. Detect count:" + MouseDucks);
+                    Console.WriteLine("Detected [MOUSE DUCK] bind. Detect count:" + MouseDucks);
+                }
+            }
+
+
+            if (JumpWithAlias > 15 && JumpCount > 15)
             {
                 if (IsRussia)
                 {
@@ -8193,6 +8267,42 @@ namespace DemoScanner.DG
                         Console.WriteLine("Mouse jump / alias ratio: " +
                                           Math.Round(
                                               Convert.ToSingle(JumpWithAlias) / Convert.ToSingle(MouseJumps) * 100.0f,
+                                              1) + "%");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Hight alias ratio detected.");
+                    }
+                }
+            }
+
+            if (DuckWithAlias > 15 && DuckCount > 15)
+            {
+                if (IsRussia)
+                {
+                    OutTextDetects.Add("Обнаружен алиас \"+duck;wait;-duck; like alias\". Количество:" + DuckWithAlias);
+                    Console.WriteLine("Обнаружен алиас \"+duck;wait;-duck; like alias\". Количество:" + DuckWithAlias);
+                    if (MouseDucks > DuckWithAlias)
+                    {
+                        Console.WriteLine("Вероятность использования: " +
+                                          Math.Round(
+                                              Convert.ToSingle(DuckWithAlias) / Convert.ToSingle(MouseDucks) * 100.0f,
+                                              1) + "%");
+                    }
+                    else
+                    {
+                        Console.WriteLine("Высокая вероятность использования.");
+                    }
+                }
+                else
+                {
+                    OutTextDetects.Add("Detected \"+duck;wait;-duck; like alias\". Detect count:" + DuckWithAlias);
+                    Console.WriteLine("Detected \"+duck;wait;-duck; like alias\". Detect count:" + DuckWithAlias);
+                    if (MouseDucks > DuckWithAlias)
+                    {
+                        Console.WriteLine("Mouse duck / alias ratio: " +
+                                          Math.Round(
+                                              Convert.ToSingle(DuckWithAlias) / Convert.ToSingle(MouseDucks) * 100.0f,
                                               1) + "%");
                     }
                     else
@@ -8351,7 +8461,7 @@ namespace DemoScanner.DG
                 Console.WriteLine();
             }
 
-            if (SKIP_RESULTS)
+            if (SKIP_RESULTS && cmdToExecute.Count == 0)
             {
                 return;
             }
@@ -8433,6 +8543,7 @@ namespace DemoScanner.DG
                 {
                     return;
                 }
+
                 if (command == "12")
                 {
                     var textdatapath = CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 4) +
@@ -8607,8 +8718,7 @@ namespace DemoScanner.DG
                         DemoScanner_AddInfo("[FPS HACK TYPE 1]");
                         DemoScanner_AddInfo("[FPS HACK TYPE 2] - FPS-booster, can be part of hack");
                         DemoScanner_AddInfo("[FPS HACK TYPE 3] - Really big FPS, can be part of hack");
-                        DemoScanner_AddInfo(
-                            "[IDEALJUMP] - One-Frame ideal jump, can be part of hack (or server plugin)");
+                        DemoScanner_AddInfo("[IDEALJUMP] - One-Frame ideal jump, can be part of hack (or server plugin)");
                         DemoScanner_AddInfo("[JUMPHACK XTREME] - XTREME Jump");
                         DemoScanner_AddInfo(
                             "[JUMPHACK HPP] - HPP JumpHack (Or extreme server settings like accelerate)");
@@ -9299,9 +9409,9 @@ namespace DemoScanner.DG
                     }
                 }
 
-                if (command == "4")
+                if (command == "4" || command == "40")
                 {
-                    if (cmdToExecute.Count == 0)
+                    if (cmdToExecute.Count == 0 && command == "4")
                     {
                         try
                         {
@@ -9372,27 +9482,47 @@ namespace DemoScanner.DG
 
                             WaitForFile(iniFilePath);
 
-                            IniData iniData;
+                            Dictionary<string, Dictionary<string, string>> iniData = new Dictionary<string, Dictionary<string, string>>();
+
                             if (File.Exists(iniFilePath))
                             {
-                                using (var fileStream = new FileStream(iniFilePath, FileMode.Open, FileAccess.ReadWrite, FileShare.Read))
-                                using (var streamReader = new StreamReader(fileStream))
+                                string currentSection = "";
+                                foreach (var line in File.ReadAllLines(iniFilePath))
                                 {
-                                    iniData = new IniDataParser().Parse(streamReader.ReadToEnd());
+                                    string trimmedLine = line.Trim();
+                                    if (trimmedLine.StartsWith("[") && trimmedLine.EndsWith("]"))
+                                    {
+                                        currentSection = trimmedLine.Substring(1, trimmedLine.Length - 2);
+                                        if (!iniData.ContainsKey(currentSection))
+                                        {
+                                            iniData[currentSection] = new Dictionary<string, string>();
+                                        }
+                                    }
+                                    else if (!string.IsNullOrEmpty(currentSection) && trimmedLine.Contains("="))
+                                    {
+                                        var parts = trimmedLine.Split(new[] { '=' }, 2);
+                                        if (parts.Length == 2)
+                                        {
+                                            iniData[currentSection][parts[0].Trim()] = parts[1].Trim();
+                                        }
+                                    }
                                 }
-                            }
-                            else
-                            {
-                                iniData = new IniData();
                             }
 
                             ProcessPlayers(playerList, iniData, Path.GetFileName(CurrentDemoFilePath));
                             ProcessPlayers(fullPlayerList, iniData, Path.GetFileName(CurrentDemoFilePath));
 
-                            using (var fileStream = new FileStream(iniFilePath, FileMode.Create, FileAccess.Write, FileShare.Read))
-                            using (var streamWriter = new StreamWriter(fileStream))
+                            using (var streamWriter = new StreamWriter(iniFilePath, false))
                             {
-                                streamWriter.Write(iniData.ToString());
+                                foreach (var section in iniData)
+                                {
+                                    streamWriter.WriteLine($"[{section.Key}]");
+                                    foreach (var keyValue in section.Value)
+                                    {
+                                        streamWriter.WriteLine($"{keyValue.Key}={keyValue.Value}");
+                                    }
+                                    streamWriter.WriteLine();
+                                }
                             }
 
                             Console.WriteLine("All players saved to dump_players.ini");
@@ -9410,6 +9540,7 @@ namespace DemoScanner.DG
                         {
                             Console.WriteLine($"Error while saving players to INI: {ex.Message}");
                         }
+
                     }
                 }
 
@@ -11008,7 +11139,7 @@ namespace DemoScanner.DG
             }
         }
 
-        public static void ProcessPlayers(List<Player> players, IniData iniData, string demoName)
+        public static void ProcessPlayers(List<Player> players, Dictionary<string, Dictionary<string, string>> iniData, string demoName)
         {
             foreach (var player in players)
             {
@@ -11018,9 +11149,9 @@ namespace DemoScanner.DG
                 if (!player.InfoKeys.TryGetValue("STEAMID", out var steamId) || string.IsNullOrEmpty(steamId))
                     continue;
 
-                if (!iniData.Sections.ContainsSection(steamId))
+                if (!iniData.ContainsKey(steamId))
                 {
-                    iniData.Sections.AddSection(steamId);
+                    iniData[steamId] = new Dictionary<string, string>();
                 }
 
                 var section = iniData[steamId];
@@ -11052,20 +11183,23 @@ namespace DemoScanner.DG
                 }
             }
         }
-        public static string FindUniqueNickKey(KeyDataCollection section, string userName)
-        {
-            string baseNick = "nick";
-            int counter = 1;
-            string nickKey = $"{baseNick}{counter}";
 
-            while (section.ContainsKey(nickKey) &&
-                   section[nickKey] != userName)
+        private static string FindUniqueNickKey(Dictionary<string, string> section, string userName)
+        {
+            int index = 0;
+            string baseKey = "nick";
+            string key = baseKey;
+
+            while (section.ContainsKey(key))
             {
-                counter++;
-                nickKey = $"{baseNick}{counter}";
+                if (section[key] == userName)
+                    return key;
+
+                index++;
+                key = $"{baseKey}{index}";
             }
 
-            return nickKey;
+            return key;
         }
 
         public struct PLAYER_USED_SENS
@@ -12206,7 +12340,7 @@ namespace DemoScanner.DG
                     {
                         bool oldbad = false;
                         infoKeyTokens[n] = Regex.Replace(infoKeyTokens[n],
-@"[^\u0000-\u007F\u0400-\u04FF\u0080-\u00FF\u0370-\u03FF\u0500-\u052F\u4E00-\u9FFF\u3400-\u4DBF\u20000-\u2A6DF\u2A700-\u2B73F\u2B740-\u2B81F\u3040-\u309F\u30A0-\u30FF]",
+    @"[^\u0000-\u007F\u0400-\u04FF\u0080-\u00FF\u0370-\u03FF\u0500-\u052F\u4E00-\u9FFF\u3400-\u4DBF\u20000-\u2A6DF\u2A700-\u2B73F\u2B740-\u2B81F\u3040-\u309F\u30A0-\u30FF]",
             a => { badKeyFound = true; oldbad = true; return StringToHex(a.Value); });
 
                         if (oldbad)
@@ -12793,7 +12927,7 @@ namespace DemoScanner.DG
                     Seek(10);
                     break;
                 case 23: // TE_GLOWSPRITE
-                    // SDK is wrong
+                         // SDK is wrong
                     /*
                         write_coord()	 position
                         write_coord()
@@ -12857,7 +12991,7 @@ namespace DemoScanner.DG
                     Seek(5);
                     break;
                 case 106: // TE_MODEL
-                    // WRITE_ANGLE could be a short..
+                          // WRITE_ANGLE could be a short..
                     Seek(17);
                     break;
                 case 107: // TE_EXPLODEMODEL
