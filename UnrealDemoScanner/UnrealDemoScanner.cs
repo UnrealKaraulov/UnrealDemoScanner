@@ -28,7 +28,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.75.9";
+        public const string PROGRAMVERSION = "1.75.10";
 
         public static string FoundNewVersion = "";
 
@@ -89,6 +89,7 @@ namespace DemoScanner.DG
             WEAPON_SHIELDGUN = 99,
             WEAPON_BAD2 = 255
         }
+
         public static void ClearCurrentConsoleLine()
         {
             int currentLineCursor = Console.CursorTop;
@@ -6249,13 +6250,13 @@ namespace DemoScanner.DG
                                         var abssimorgz = abs(nf.RParms.Simorg.Z);
                                         if (abssimvelz > 50.0)
                                         {
-                                            if (abs(PreviousSimvelZ_forstuck) < 0.01)
+                                            if (abs(PreviousSimvelZ_forstuck) < 0.01f)
                                             {
                                                 PreviousSimvelZ_forstuck = abssimvelz;
                                                 PreviousSimorgZ_forstuck = abssimorgz;
                                             }
-                                            else if (abs(abssimvelz - PreviousSimvelZ_forstuck) > 3.0 ||
-                                                     abs(abssimorgz - PreviousSimorgZ_forstuck) > 3.0)
+                                            else if (abs(abssimvelz - PreviousSimvelZ_forstuck) > 2.0f ||
+                                                     abs(abssimorgz - PreviousSimorgZ_forstuck) > 2.0f)
                                             {
                                                 PreviousSimvelZ_forstuck = 0.0f;
                                                 PreviousSimorgZ_forstuck = 0.0f;
@@ -6269,7 +6270,7 @@ namespace DemoScanner.DG
                                                     if (!GameEnd)
                                                     {
                                                         if (DemoScanner_AddWarn("[AIRSTUCK HACK] at (" + LastKnowRealTime +
-                                                                            ") : " + LastKnowTimeString))
+                                                                            ") : " + LastKnowTimeString, false))
                                                         {
                                                             KreedzHacksCount++;
                                                         }
@@ -8243,38 +8244,36 @@ namespace DemoScanner.DG
 
             if ((JumpWithAlias > 25 && JumpCount > 100) || JumpWithAlias > 120)
             {
-                if (IsRussia)
+                float ratio = Convert.ToSingle(JumpWithAlias) / Convert.ToSingle(MouseJumps) * 100.0f;
+                if (ratio >= 35)
                 {
-                    OutTextDetects.Add("Обнаружен алиас \"+jump;wait;-jump; like alias\". Количество:" + JumpWithAlias);
-                    Console.WriteLine("Обнаружен алиас \"+jump;wait;-jump; like alias\". Количество:" + JumpWithAlias);
-                    if (MouseJumps > JumpWithAlias)
+                    if (IsRussia)
                     {
-                        float ratio = Convert.ToSingle(JumpWithAlias) / Convert.ToSingle(MouseJumps) * 100.0f;
-                        string message = ratio < 20 ?
-                            "Низкая вероятность использования." :
-                            "Вероятность использования: " + Math.Round(ratio, 1) + "%";
-                        Console.WriteLine(message);
+                        OutTextDetects.Add("Обнаружен алиас \"+jump;wait;-jump; like alias\". Количество:" + JumpWithAlias);
+                        Console.WriteLine("Обнаружен алиас \"+jump;wait;-jump; like alias\". Количество:" + JumpWithAlias);
+                        if (MouseJumps > JumpWithAlias)
+                        {
+                            string message = "^ Вероятность использования: " + Math.Round(ratio, 1) + "%";
+                            Console.WriteLine(message);
+                        }
+                        else
+                        {
+                            Console.WriteLine("Высокая вероятность использования.");
+                        }
                     }
                     else
                     {
-                        Console.WriteLine("Высокая вероятность использования.");
-                    }
-                }
-                else
-                {
-                    OutTextDetects.Add("Detected \"+jump;wait;-jump; like alias\". Detect count:" + JumpWithAlias);
-                    Console.WriteLine("Detected \"+jump;wait;-jump; like alias\". Detect count:" + JumpWithAlias);
-                    if (MouseJumps > JumpWithAlias)
-                    {
-                        float ratio = Convert.ToSingle(JumpWithAlias) / Convert.ToSingle(MouseJumps) * 100.0f;
-                        string message = ratio < 20 ?
-                            "Low alias ratio detected." :
-                            "Mouse jump / alias ratio: " + Math.Round(ratio, 1) + "%";
-                        Console.WriteLine(message);
-                    }
-                    else
-                    {
-                        Console.WriteLine("Hight alias ratio detected.");
+                        OutTextDetects.Add("Detected \"+jump;wait;-jump; like alias\". Detect count:" + JumpWithAlias);
+                        Console.WriteLine("Detected \"+jump;wait;-jump; like alias\". Detect count:" + JumpWithAlias);
+                        if (MouseJumps > JumpWithAlias)
+                        {
+                            string message = "^ Вероятность использования: " + Math.Round(ratio, 1) + "%";
+                            Console.WriteLine(message);
+                        }
+                        else
+                        {
+                            Console.WriteLine("Hight alias ratio detected.");
+                        }
                     }
                 }
             }
@@ -8296,38 +8295,36 @@ namespace DemoScanner.DG
 
             if ((DuckWithAlias > 25 && MouseDucks > 100) || DuckWithAlias > 120)
             {
-                if (IsRussia)
+                float ratio = Convert.ToSingle(DuckWithAlias) / Convert.ToSingle(MouseDucks) * 100.0f;
+                if (ratio >= 35)
                 {
-                    OutTextDetects.Add("Обнаружен алиас \"+duck;wait;-duck; like alias\". Количество:" + DuckWithAlias);
-                    Console.WriteLine("Обнаружен алиас \"+duck;wait;-duck; like alias\". Количество:" + DuckWithAlias);
-                    if (MouseDucks > DuckWithAlias)
+                    if (IsRussia)
                     {
-                        float ratio = Convert.ToSingle(DuckWithAlias) / Convert.ToSingle(MouseDucks) * 100.0f;
-                        string message = ratio < 25 ?
-                            "Низкая вероятность использования." :
-                            "Вероятность использования: " + Math.Round(ratio, 1) + "%";
-                        Console.WriteLine(message);
+                        OutTextDetects.Add("Обнаружен алиас \"+duck;wait;-duck; like alias\". Количество:" + DuckWithAlias);
+                        Console.WriteLine("Обнаружен алиас \"+duck;wait;-duck; like alias\". Количество:" + DuckWithAlias);
+                        if (MouseDucks > DuckWithAlias)
+                        {
+                            string message = "Вероятность использования: " + Math.Round(ratio, 1) + "%";
+                            Console.WriteLine(message);
+                        }
+                        else
+                        {
+                            Console.WriteLine("Высокая вероятность использования.");
+                        }
                     }
                     else
                     {
-                        Console.WriteLine("Высокая вероятность использования.");
-                    }
-                }
-                else
-                {
-                    OutTextDetects.Add("Detected \"+duck;wait;-duck; like alias\". Detect count:" + DuckWithAlias);
-                    Console.WriteLine("Detected \"+duck;wait;-duck; like alias\". Detect count:" + DuckWithAlias);
-                    if (MouseDucks > DuckWithAlias)
-                    {
-                        float ratio = Convert.ToSingle(DuckWithAlias) / Convert.ToSingle(MouseDucks) * 100.0f;
-                        string message = ratio < 25 ?
-                            "Low alias ratio detected." :
-                            "Mouse duck / alias ratio: " + Math.Round(ratio, 1) + "%";
-                        Console.WriteLine(message);
-                    }
-                    else
-                    {
-                        Console.WriteLine("Hight alias ratio detected.");
+                        OutTextDetects.Add("Detected \"+duck;wait;-duck; like alias\". Detect count:" + DuckWithAlias);
+                        Console.WriteLine("Detected \"+duck;wait;-duck; like alias\". Detect count:" + DuckWithAlias);
+                        if (MouseDucks > DuckWithAlias)
+                        {
+                            string message = "Mouse duck / alias ratio: " + Math.Round(ratio, 1) + "%";
+                            Console.WriteLine(message);
+                        }
+                        else
+                        {
+                            Console.WriteLine("Hight alias ratio detected.");
+                        }
                     }
                 }
             }
