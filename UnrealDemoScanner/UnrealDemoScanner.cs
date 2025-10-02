@@ -28,7 +28,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.75.10";
+        public const string PROGRAMVERSION = "1.75.11";
 
         public static string FoundNewVersion = "";
 
@@ -1153,8 +1153,11 @@ namespace DemoScanner.DG
 
         public static void DemoScanner_AddTextMessage(string msg, string type, float time, string timestring)
         {
+            string frameId = CurrentFrameId.ToString().PadLeft(4);
+
             if (msg.Length == 0)
             {
+                OutTextMessages.Add("[" + type + "] " + " [FRAME NUMBER: " + frameId + "] : EMPTY MESSAGE" + " at (" + time + ") " + timestring);
                 return;
             }
 
@@ -1168,7 +1171,6 @@ namespace DemoScanner.DG
             type = type.PadRight(20);
             msg = msg.PadRight(25);
 
-            string frameId = CurrentFrameId.ToString().PadLeft(4);
 
             OutTextMessages.Add("[" + type + "] " + " [FRAME NUMBER: " + frameId + "] : [" + msg + "]" + " at (" + time + ") " + timestring);
         }
@@ -1597,7 +1599,7 @@ namespace DemoScanner.DG
                     {
                         if (ReturnToGameDetects > 1)
                         {
-                            DemoScanner_AddWarn("['RETURN TO GAME' TYPE 1] ", true, true, true);
+                            DemoScanner_AddWarn("['RETURN TO GAME' TYPE 1] ", false, true, true);
                         }
 
                         ReturnToGameDetects++;
@@ -14991,12 +14993,12 @@ namespace DemoScanner.DG
             var flags = delta.FindEntryValue("flags");
 
             name = name != null ? (string)name : "unnamed";
-            nBits = nBits != null ? (uint)nBits : 0;
-            divisor = divisor != null ? (float)divisor : 0.0f;
-            preMultiplier = preMultiplier != null ? (float)preMultiplier : 1.0f;
+            nBits = nBits != null ? Convert.ToUInt32(nBits) : 0;
+            divisor = divisor != null ? Convert.ToSingle(divisor) : 0.0f;
+            preMultiplier = preMultiplier != null ? Convert.ToSingle(preMultiplier) : 1.0f;
             flags = flags != null ? (ENTRY_TYPES)(uint)flags : ENTRY_TYPES.Integer;
 
-            AddEntry(name as string, (uint)nBits, (float)divisor, (float)preMultiplier,
+            AddEntry(name as string, Convert.ToUInt32(nBits), Convert.ToSingle(divisor), Convert.ToSingle(preMultiplier),
                (ENTRY_TYPES)flags);
         }
 
@@ -15082,7 +15084,7 @@ namespace DemoScanner.DG
                                 {
                                     if (entryList[index].Name == "angles[1]")
                                     {
-                                        var tmpAngle = value != null ? (float)value : 1.0f;
+                                        var tmpAngle = value != null ? Convert.ToSingle(value) : 1.0f;
                                         //if (abs(CurrentNetMsgFrame.RParms.Punchangle.Y) < EPSILON && 
                                         //    !isAngleInViewListYDelta(tmpAngle)
                                         //    && IsUserAlive())
@@ -15094,14 +15096,14 @@ namespace DemoScanner.DG
 
                                     if (entryList[index].Name == "movetype")
                                     {
-                                        var movetype = value != null ? (uint)value : 0;
+                                        var movetype = value != null ? Convert.ToUInt32(value) : 0;
                                         // Console.WriteLine("Change movetype to :" + movetype);
                                         FlyDirection = 0;
                                     }
 
                                     if (entryList[index].Name == "usehull")
                                     {
-                                        var usehull = value != null ? (uint)value : 0;
+                                        var usehull = value != null ? Convert.ToUInt32(value) : 0;
                                         //  Console.WriteLine("Change usehull to :" + usehull + "_" + IsDuckPressed);
                                         LastPlayerHull = usehull;
                                         //if (LastPlayerHull == 0 || LastPlayerHull == 1)
@@ -15116,7 +15118,7 @@ namespace DemoScanner.DG
 
                                     if (entryList[index].Name == "gaitsequence")
                                     {
-                                        var seqnum = value != null ? (uint)value : 0;
+                                        var seqnum = value != null ? Convert.ToUInt32(value) : 0;
                                         if (seqnum > 0 && !UserAlive && CL_Intermission == 0 && !FirstUserAlive)
                                         {
                                             if (DEBUG_ENABLED)
@@ -15197,7 +15199,7 @@ namespace DemoScanner.DG
                                     }
 
                                     PrevWaitPrimaryAttackTime = WaitPrimaryAttackTime;
-                                    WaitPrimaryAttackTime = value != null ? (float)value : 1.0f;
+                                    WaitPrimaryAttackTime = value != null ? Convert.ToSingle(value) : 1.0f;
 
                                     if (WaitPrimaryAttackTime <= 0.016 || (CurrentWeapon == WeaponIdType.WEAPON_DEAGLE &&
                                                           WaitPrimaryAttackTime <= 0.025))
@@ -15301,7 +15303,7 @@ namespace DemoScanner.DG
 
                                 if (entryList[index].Name == "m_fInReload")
                                 {
-                                    var reloadstatus = value != null ? (uint)value : 0;
+                                    var reloadstatus = value != null ? Convert.ToUInt32(value) : 0;
                                     if (LastWeaponReloadStatus == reloadstatus)
                                     {
                                         ReloadWarns = 0;
@@ -15368,14 +15370,14 @@ namespace DemoScanner.DG
 
                                 if (entryList[index].Name == "maxspeed")
                                 {
-                                    var maxspeed = value != null ? (float)value : 0.0f;
+                                    var maxspeed = value != null ? Convert.ToSingle(value) : 0.0f;
                                     InFreezeTime = abs(maxspeed - 1.0f) < 0.01f;
                                     MaxUserSpeed = maxspeed;
                                 }
 
                                 if (entryList[index].Name == "punchangle[0]")
                                 {
-                                    var punchangle_x = value != null ? (float)value : 0.0f;
+                                    var punchangle_x = value != null ? Convert.ToSingle(value) : 0.0f;
 
                                     //Console.WriteLine("punchangle[0] = " + punchangle_x);
 
@@ -15403,7 +15405,7 @@ namespace DemoScanner.DG
 
                                     if (entryList[index].Name == "origin[0]")
                                     {
-                                        var origin_x = value != null ? (float)value : 0.0f;
+                                        var origin_x = value != null ? Convert.ToSingle(value) : 0.0f;
                                         DetectCmdHackType10 = true;
                                         CmdHack10_origX = origin_x;
                                         if (abs(origin_x - curoriginpos.X) > 25.0f
@@ -15415,7 +15417,7 @@ namespace DemoScanner.DG
 
                                     if (entryList[index].Name == "origin[1]")
                                     {
-                                        var origin_y = value != null ? (float)value : 0.0f;
+                                        var origin_y = value != null ? Convert.ToSingle(value) : 0.0f;
                                         DetectCmdHackType10 = true;
                                         CmdHack10_origY = origin_y;
 
@@ -15428,7 +15430,7 @@ namespace DemoScanner.DG
 
                                     if (entryList[index].Name == "origin[2]")
                                     {
-                                        var origin_z = value != null ? (float)value : 0.0f;
+                                        var origin_z = value != null ? Convert.ToSingle(value) : 0.0f;
                                         DetectCmdHackType10 = true;
                                         CmdHack10_origZ = origin_z;
 
@@ -15465,7 +15467,7 @@ namespace DemoScanner.DG
 
                                 if (entryList[index].Name == "velocity[0]" || entryList[index].Name == "velocity[1]")
                                 {
-                                    var velocity = value != null ? (float)value : 0.0f;
+                                    var velocity = value != null ? Convert.ToSingle(value) : 0.0f;
                                     if (abs(velocity) > EPSILON)
                                     {
                                         FoundVelocityTime = CurrentTime;
@@ -15479,7 +15481,7 @@ namespace DemoScanner.DG
 
                                 if (entryList[index].Name == "fov")
                                 {
-                                    var fov = value != null ? (float)value : 0.0f;
+                                    var fov = value != null ? Convert.ToSingle(value) : 0.0f;
                                     if (abs(fov - ClientFov) > EPSILON && abs(fov - ClientFov2) > EPSILON)
                                     {
                                         ClientFov2 = ClientFov;
@@ -15489,7 +15491,7 @@ namespace DemoScanner.DG
 
                                 if (entryList[index].Name == "fuser2")
                                 {
-                                    var rg_jump_time = value != null ? (float)value : 0.0f;
+                                    var rg_jump_time = value != null ? Convert.ToSingle(value) : 0.0f;
 
                                     if (rg_jump_time > last_rg_jump_time + 0.1f)
                                     {
@@ -15517,7 +15519,7 @@ namespace DemoScanner.DG
 
                                 if (entryList[index].Name == "health")
                                 {
-                                    var hp = value != null ? (float)value : 0.0f;
+                                    var hp = value != null ? Convert.ToSingle(value) : 0.0f;
                                     if (hp <= 0 && (UserAlive || FirstUserAlive))
                                     {
                                         LastDeathTime = CurrentTime;
@@ -15545,7 +15547,7 @@ namespace DemoScanner.DG
 
                                 if (entryList[index].Name == "bInDuck")
                                 {
-                                    var bInDuck = value != null ? (uint)value > 0 : false;
+                                    var bInDuck = value != null ? Convert.ToUInt32(value) > 0 : false;
                                     if (bInDuck && !IsDuckPressed2 && !IsDuckPressed && abs(CurrentTime - LastDuckTime) > 0.55f)
                                     {
                                         if (IsUserAlive() && abs(CurrentTime - LastKreedzHackTime) > 1.0 &&
@@ -15570,7 +15572,7 @@ namespace DemoScanner.DG
 
                                 if (entryList[index].Name == "flags")
                                 {
-                                    var flags = value != null ? (uint)value : 0;
+                                    var flags = value != null ? Convert.ToUInt32(value) : 0;
                                     if ((flags & 4096) > 0 && !PlayerFrozen)
                                     {
                                         PlayerFrozen = true;
@@ -15679,7 +15681,7 @@ namespace DemoScanner.DG
                                 NoWeaponData = false;
                                 if (NeedCheckAttack2 && entryList[index].Name == "m_fAimedDamage")
                                 {
-                                    var damage = value != null ? (float)value : 0;
+                                    var damage = value != null ? Convert.ToSingle(value) : 0.0f;
                                     NeedCheckAttack2 = false;
                                     if (FirstUserAlive && !IsUserAlive())
                                     {
@@ -15763,7 +15765,7 @@ namespace DemoScanner.DG
                                 if (NeedCheckAttack && entryList[index].Name == "m_iClip")
                                 {
                                     NeedCheckAttack = false;
-                                    var ammocount = value != null ? (int)value : 0;
+                                    var ammocount = value != null ? Convert.ToInt32(value) : 0;
                                     if (FirstUserAlive && !IsUserAlive())
                                     {
                                         if (DEBUG_ENABLED)
