@@ -2,8 +2,10 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
+using static DemoScanner.DG.HalfLifeDemoParser;
 
 namespace DemoScanner.DemoStuff.GoldSource
 {
@@ -153,7 +155,7 @@ namespace DemoScanner.DemoStuff.GoldSource
             IN_SCORE = 1 << 15,
         };
 
-        public enum DemoFrameType
+        public enum DemoFrameType : byte
         {
             None = 0,
             NetMsg = 1,
@@ -175,22 +177,30 @@ namespace DemoScanner.DemoStuff.GoldSource
             /// <summary>
             ///     Byte offset untill the first directory enry
             /// </summary>
-            public int DirectoryOffset;
+            public int DirectoryOffset = 0;
 
             /// <summary>
             ///     Map ID
             /// </summary>
-            public uint MapCrc;
+            public uint MapCrc = 0;
         }
 
         public struct FramesHren
         {
             public DemoFrame Key;
             public IFrame Value;
+            public byte[] rawData;
             public FramesHren(DemoFrame key, IFrame value)
             {
-                this.Key = key;
-                this.Value = value;
+                Key = key;
+                Value = value;
+                rawData = null;
+            }
+            public FramesHren(DemoFrame key, byte [] value)
+            {
+                Key = key;
+                Value = null;
+                rawData = value;
             }
         }
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -779,18 +789,21 @@ namespace DemoScanner.DemoStuff.GoldSource
                 {
                     //var s1 = new System.Diagnostics.Stopwatch();
                     //s1.Start();
-                    var mw = Encoding.ASCII.GetString(br.ReadBytes(8)).Trim('\0').Replace("\0", string.Empty);
+                    var mw = Encoding.ASCII.GetString(br.ReadBytes(6));
 
-                    if (DemoScanner.DG.DemoScanner.DEBUG_ENABLED)
-                        Console.WriteLine("DEMO HEADER: \"" + mw + "\" = " + (mw == "HLDEMO").ToString());
+                    br.BaseStream.Seek(0, SeekOrigin.Begin);
+                    var mw2 = Encoding.ASCII.GetString(br.ReadBytes(4)).Trim('\0').Replace("\0", string.Empty);
+                    br.BaseStream.Seek(0, SeekOrigin.Begin);
 
                     if (mw == "HLDEMO")
                     {
-                        if (UnexpectedEof(br, 4 + 4 + 260 + 260 + 4))
+                        if (UnexpectedEof(br, 8 + 4 + 4 + 260 + 260 + 4))
                         {
                             gDemo.ParsingErrors.Add("Unexpected end of file at the header!");
                             throw new Exception("E1");
                         }
+                        br.BaseStream.Seek(8, SeekOrigin.Begin);
+
                         gDemo.Header.DemoProtocol = br.ReadInt32();
                         gDemo.Header.NetProtocol = br.ReadInt32();
                         gDemo.Header.MapName = Encoding.ASCII.GetString(br.ReadBytes(260))
@@ -804,7 +817,7 @@ namespace DemoScanner.DemoStuff.GoldSource
 
                         if (DemoScanner.DG.DemoScanner.DEBUG_ENABLED)
                         {
-                            Console.WriteLine("DEMO PROTOCOL: " + gDemo.Header.DemoProtocol + " / " + gDemo.Header.NetProtocol);
+                            Console.WriteLine("DEMO PROTOCOL GOLDSRC: " + gDemo.Header.DemoProtocol + " / " + gDemo.Header.NetProtocol);
                             Console.WriteLine("DEMO MAP, DIR, CRC, DIR OFFSET: \"" + gDemo.Header.MapName + "\" , \""
                                + gDemo.Header.GameDir + "\" , " + (int)gDemo.Header.MapCrc + " , " + gDemo.Header.DirectoryOffset.ToString("x2"));
                         }
@@ -847,19 +860,6 @@ namespace DemoScanner.DemoStuff.GoldSource
                             br.BaseStream.Seek(fileMark, SeekOrigin.Begin);
                             gDemo.Header.DirectoryOffset = 0;
                         }
-
-                        //if (entryCount < 1 || entryCount > 5)
-                        //{
-                        //   // entryCount = 2;
-                        //    Console.WriteLine(gDemo.Header.DemoProtocol);
-                        //    Console.WriteLine(gDemo.Header.NetProtocol);
-                        //    Console.WriteLine(gDemo.Header.MapName);
-                        //    Console.WriteLine(gDemo.Header.GameDir);
-                        //    Console.WriteLine(gDemo.Header.MapCrc);
-                        //    Console.WriteLine(gDemo.Header.DirectoryOffset);
-                        //    Console.WriteLine(entryCount);
-                        //    Console.WriteLine("Warning!Hacked demo! ");
-                        //}
 
                         if (entryCount > 0)
                         {
@@ -949,18 +949,6 @@ namespace DemoScanner.DemoStuff.GoldSource
 
                                     var type = br.ReadByte();
 
-                                    //if (firsframe)
-                                    //{
-                                    //    firsframe = false;
-                                    //    if (type < 1 || type > 9)
-                                    //    {
-                                    //        while(type != 2)
-                                    //        {
-                                    //            type = br.ReadByte();
-                                    //        }
-                                    //    }
-                                    //}
-
                                     var currentDemoFrame = new GoldSource.DemoFrame
                                     {
                                         Type = (GoldSource.DemoFrameType)type,
@@ -979,7 +967,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             if (UnexpectedEof(br, 64))
                                             {
                                                 gDemo.ParsingErrors.Add(
-                                                    "Unexpected end of file when reading console command at frame: " +
+                                                    $"{currentDemoFrame.Type} Unexpected end of file when reading console command at frame: " +
                                                     ind);
                                                 nextSectionRead = true;
                                                 break;
@@ -994,7 +982,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             if (UnexpectedEof(br, 4 + 4 + 4 + 4 + 4 + 4 + 4 + 4))
                                             {
                                                 gDemo.ParsingErrors.Add(
-                                                    "Unexpected end of file when reading clientdataframe at frame: " +
+                                                    $"{currentDemoFrame.Type} Unexpected end of file when reading clientdataframe at frame: " +
                                                     ind);
                                                 nextSectionRead = true;
                                                 break;
@@ -1022,7 +1010,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             if (UnexpectedEof(br, 22 * 4))
                                             {
                                                 gDemo.ParsingErrors.Add(
-                                                    "Unexpected end of file at when reading eventframe on frame: " + ind);
+                                                    $"{currentDemoFrame.Type} Unexpected end of file at when reading eventframe on frame: " + ind);
                                                 nextSectionRead = true;
                                                 break;
                                             }
@@ -1067,7 +1055,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             if (UnexpectedEof(br, 4 + 4))
                                             {
                                                 gDemo.ParsingErrors.Add(
-                                                    "Unexpected end of file when reading weaponanim at frame: " + ind);
+                                                    $"{currentDemoFrame.Type} Unexpected end of file when reading weaponanim at frame: " + ind);
                                                 nextSectionRead = true;
                                                 break;
                                             }
@@ -1080,7 +1068,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             if (UnexpectedEof(br, 4 + 4))
                                             {
                                                 gDemo.ParsingErrors.Add(
-                                                    "Unexpected end of file when reading sound channel at frame: " + ind);
+                                                    $"{currentDemoFrame.Type} Unexpected end of file when reading sound channel at frame: " + ind);
                                                 nextSectionRead = true;
                                                 break;
                                             }
@@ -1089,7 +1077,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             if (UnexpectedEof(br, samplelength + 4 + 4 + 4 + 4))
                                             {
                                                 gDemo.ParsingErrors.Add(
-                                                    "Unexpected end of file when reading sound data at frame: " + ind);
+                                                    $"{currentDemoFrame.Type} Unexpected end of file when reading sound data at frame: " + ind);
                                                 nextSectionRead = true;
                                                 break;
                                             }
@@ -1112,22 +1100,22 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             if (UnexpectedEof(br, 4))
                                             {
                                                 gDemo.ParsingErrors.Add(
-                                                    "Unexpected end of file when demobuffer data at frame: " + ind);
+                                                   $"{currentDemoFrame.Type} Unexpected end of file when demobuffer data at frame: " + ind);
                                                 nextSectionRead = true;
                                                 break;
                                             }
-                                            var buggerlength = br.ReadInt32();
-                                            if (UnexpectedEof(br, buggerlength))
+                                            var bufferlength = br.ReadInt32();
+                                            if (UnexpectedEof(br, bufferlength))
                                             {
                                                 gDemo.ParsingErrors.Add(
-                                                    "Unexpected end of file when reading buffer data at frame: " + ind);
+                                                   $"{currentDemoFrame.Type} Unexpected end of file when reading buffer data at frame: " + ind);
                                                 nextSectionRead = true;
                                                 break;
                                             }
                                             bframe.Buffer = new List<byte>();
-                                            if (buggerlength > 0)
+                                            if (bufferlength > 0)
                                             {
-                                                bframe.Buffer.AddRange(br.ReadBytes(buggerlength));
+                                                bframe.Buffer.AddRange(br.ReadBytes(bufferlength));
                                             }
                                             entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame, bframe));
                                             break;
@@ -1137,7 +1125,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             if (UnexpectedEof(br, 468))
                                             {
                                                 gDemo.ParsingErrors.Add(
-                                                    "Unexpected end of file when default frame at frame: " + ind);
+                                                    $"{currentDemoFrame.Type} Unexpected end of file when default frame at frame: " + ind);
                                                 nextSectionRead = true;
                                                 break;
                                             }
@@ -1303,7 +1291,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             if (msglength < 0 || UnexpectedEof(br, msglength))
                                             {
                                                 gDemo.ParsingErrors.Add(
-                                                    "Unexpected end of file when default frame message at frame: " + ind);
+                                                    $"{currentDemoFrame.Type} Unexpected end of file when default frame message at frame: " + ind);
                                                 nextSectionRead = true;
                                                 break;
                                             }
@@ -1311,7 +1299,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             if (nf.MsgBytes.Length != msglength)
                                             {
                                                 gDemo.ParsingErrors.Add(
-                                                    "Cant read all game data from" + ind);
+                                                    $"{currentDemoFrame.Type} Cant read all game data from" + ind);
                                             }
                                             else
                                             {
@@ -1329,10 +1317,289 @@ namespace DemoScanner.DemoStuff.GoldSource
                             }
                         }
                     }
+                    else if (mw2 == "IDEM")
+                    {
+                        if (UnexpectedEof(br, 4 + 4 + 8 + 64 + 64 + 64 + 4))
+                        {
+                            gDemo.ParsingErrors.Add("Unexpected end of file at the header!");
+                            throw new Exception("E1");
+                        }
+                        br.BaseStream.Seek(4, SeekOrigin.Begin);
+
+                        gDemo.Header.DemoProtocol = br.ReadInt32();
+                        gDemo.Header.NetProtocol = br.ReadInt32() & ~(1 << 7);
+                        gDemo.Header.HostFps = br.ReadDouble();
+
+                        gDemo.Header.MapName = Encoding.ASCII.GetString(br.ReadBytes(64))
+                           .Trim('\0')
+                           .Replace("\0", string.Empty);
+
+                        gDemo.Header.Comment = Encoding.ASCII.GetString(br.ReadBytes(64))
+                           .Trim('\0')
+                           .Replace("\0", string.Empty);
+
+                        gDemo.Header.GameDir = Encoding.ASCII.GetString(br.ReadBytes(64))
+                            .Trim('\0')
+                            .Replace("\0", string.Empty);
+
+                        gDemo.Header.DirectoryOffset = br.ReadInt32();
+
+                        if (DemoScanner.DG.DemoScanner.DEBUG_ENABLED)
+                        {
+                            Console.WriteLine("DEMO PROTOCOL XASH/GOLDSRC/HLTV: " + gDemo.Header.DemoProtocol + " / " + gDemo.Header.NetProtocol);
+                            Console.WriteLine("DEMO MAP, DIR, CRC, DIR OFFSET: \"" + gDemo.Header.MapName + "\" , \""
+                               + gDemo.Header.GameDir + "\" , " + (int)gDemo.Header.MapCrc + " , " + gDemo.Header.DirectoryOffset.ToString("x2"));
+                        }
+
+                        long fileMark = br.BaseStream.Position;
+                        int entryCount = 0;
+
+                        try
+                        {
+                            br.BaseStream.Seek(gDemo.Header.DirectoryOffset, SeekOrigin.Begin);
+                            if (gDemo.Header.DirectoryOffset < 0 || gDemo.Header.DirectoryOffset >= br.BaseStream.Length)
+                            {
+                                gDemo.ParsingErrors.Add("Unexpected directory offset.");
+                                throw new Exception("Bad directory offset.");
+                            }
+                        }
+                        catch
+                        {
+                            gDemo.ParsingErrors.Add("Error while seeking to directory offset");
+                            gDemo.Header.DirectoryOffset = 0;
+                        }
+
+                        if (!UnexpectedEof(br, 4))
+                        {
+                            entryCount = br.ReadInt32();
+                            if (entryCount > 0 && entryCount <= 1024)
+                            {
+
+                            }
+                            else
+                            {
+                                br.BaseStream.Seek(fileMark, SeekOrigin.Begin);
+                                entryCount = 0;
+                                gDemo.Header.DirectoryOffset = 0;
+                            }
+                        }
+                        else
+                        {
+                            entryCount = 0;
+                            br.BaseStream.Seek(fileMark, SeekOrigin.Begin);
+                            gDemo.Header.DirectoryOffset = 0;
+                        }
+
+                        if (entryCount > 0)
+                        {
+                            for (var i = 0; i < entryCount; i++)
+                            {
+                                if (UnexpectedEof(br, 4 + 4 + 4 + 4 + 4 + 4 + 64))
+                                {
+                                    gDemo.ParsingErrors.Add("Unexpected end of file when reading the directory entries! (" + i + ") of " + entryCount);
+                                    break;
+                                }
+                                var tempvar = new GoldSource.DemoDirectoryEntry
+                                {
+                                    Type = br.ReadInt32(),
+                                    TrackTime = br.ReadSingle(),
+                                    FrameCount = br.ReadInt32(),
+                                    Offset = br.ReadInt32(),
+                                    FileLength = br.ReadInt32(),
+                                    Flags = br.ReadInt32(),
+                                    Description =
+                                        Encoding.ASCII.GetString(br.ReadBytes(64)).Trim('\0').Replace("\0", string.Empty),
+
+                                    Frames = new List<GoldSource.FramesHren>()
+                                };
+
+                                if (DemoScanner.DG.DemoScanner.DEBUG_ENABLED)
+                                {
+                                    Console.WriteLine("Entry type: " + tempvar.Type + ". Description:" + tempvar.Description + ". Flags:" + tempvar.Flags);
+                                    Console.WriteLine("CdTrack: " + tempvar.CdTrack + ". TrackTime:" + tempvar.TrackTime + ". FrameCount:" + tempvar.FrameCount);
+                                    Console.WriteLine("Offset: " + tempvar.Offset + ". FileLength:" + tempvar.FileLength);
+                                }
+
+                                gDemo.DirectoryEntries.Add(tempvar);
+                            }
+                        }
+                        else
+                        {
+                            //Console.WriteLine("Warning! Bad entries count! Using 'bruteforce' read method!");
+                            var tempvar = new GoldSource.DemoDirectoryEntry
+                            {
+                                Type = 0,
+                                Description =
+                                       "Playback",
+                                Flags = 0,
+                                CdTrack = 0,
+                                TrackTime = 0.0f,
+                                FrameCount = 0,
+                                Offset = 0,
+                                FileLength = 0,
+                                Frames = new List<GoldSource.FramesHren>()
+                            };
+                            gDemo.DirectoryEntries.Add(tempvar);
+                            br.BaseStream.Seek(fileMark, SeekOrigin.Begin);
+                        }
+
+                        int directory_error_counter = 10;
+
+                        foreach (var entry in gDemo.DirectoryEntries)
+                        {
+                            try
+                            {
+                                if (entry.Offset != 0)
+                                {
+                                    if (UnexpectedEof(br, entry.Offset - br.BaseStream.Position))
+                                    {
+                                        gDemo.ParsingErrors.Add("Unexpected end of file when seeking to directory entry " + entry + "!");
+                                        if (directory_error_counter-- > 0)
+                                            continue;
+                                        else
+                                            break;
+                                    }
+                                    br.BaseStream.Seek(entry.Offset, SeekOrigin.Begin);
+                                }
+                                var ind = 0;
+                                var frameIdx = 0;
+                                var nextSectionRead = false;
+                                while (!nextSectionRead)
+                                {
+                                    ind++;
+
+                                    if (UnexpectedEof(br, 1 + 4 + 4))
+                                    {
+                                        if (entry.Offset != 0)
+                                            gDemo.ParsingErrors.Add(
+                                            "Unexpected end of file when reading the header of the frame: " + ind + 1);
+                                        nextSectionRead = true;
+                                        break;
+                                    }
+
+                                    var type = br.ReadByte();
+
+                                    var currentDemoFrame = new GoldSource.DemoFrame();
+                                    currentDemoFrame.Type = (GoldSource.DemoFrameType)type;
+                                    frameIdx++;
+                                    if (currentDemoFrame.Type != 0)
+                                    {
+                                        currentDemoFrame.Time = br.ReadSingle();
+                                        currentDemoFrame.FrameIndex = frameIdx;
+                                        currentDemoFrame.Index = ind;
+                                    }
+
+                                   // Console.WriteLine(type.ToString() + " time " + currentDemoFrame.Time);
+
+                                    switch ((int)type)
+                                    {
+                                        case 1:
+                                        case 2:
+                                            {
+                                                if (UnexpectedEof(br, 4))
+                                                {
+                                                    gDemo.ParsingErrors.Add(
+                                                       $"{type} Unexpected end of file when demobuffer data at frame: " + ind);
+                                                    nextSectionRead = true;
+                                                    break;
+                                                }
+
+                                                // sequences
+                                                br.ReadInt32(); br.ReadInt32(); br.ReadInt32(); br.ReadInt32(); br.ReadInt32(); br.ReadInt32(); br.ReadInt32();
+
+                                                var bufferlength = br.ReadInt32();
+                                                var curOffset = br.BaseStream.Position;
+
+
+                                                //Console.WriteLine(bufferlength + " offset " + curOffset);
+
+                                                if (UnexpectedEof(br, bufferlength))
+                                                {
+                                                    gDemo.ParsingErrors.Add(
+                                                       $"{type} Unexpected end of file when reading buffer data at frame: " + ind);
+                                                    nextSectionRead = true;
+                                                    break;
+                                                }
+
+                                                entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame,br.ReadBytes(bufferlength)));
+
+                                                br.BaseStream.Seek(bufferlength + curOffset, SeekOrigin.Begin);
+                                            }
+                                            break;
+                                        case 4: //demobuf?
+                                            {
+                                                if (UnexpectedEof(br, 4))
+                                                {
+                                                    gDemo.ParsingErrors.Add(
+                                                       $"{type} Unexpected end of file when demobuffer data at frame: " + ind);
+                                                    nextSectionRead = true;
+                                                    break;
+                                                }
+                                                var bufferlength = br.ReadInt32();
+                                                if (UnexpectedEof(br, bufferlength))
+                                                {
+                                                    gDemo.ParsingErrors.Add(
+                                                       $"{type} Unexpected end of file when reading buffer data at frame: " + ind);
+                                                    nextSectionRead = true;
+                                                    break;
+                                                }
+
+                                                entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame, br.ReadBytes(bufferlength)));
+                                            }
+                                            break;
+                                        case 5: // cmd
+                                            {
+                                                // outgoing
+                                                br.ReadInt32();
+                                                // cmd num
+                                                br.ReadInt32();
+
+                                                var bufferlength = br.ReadInt16();
+                                                var curOffset = br.BaseStream.Position;
+
+
+                                               // Console.WriteLine(bufferlength + " offset " + curOffset);
+
+                                                if (UnexpectedEof(br, bufferlength))
+                                                {
+                                                    gDemo.ParsingErrors.Add(
+                                                       $"{type} Unexpected end of file when reading buffer data at frame: " + ind);
+                                                    nextSectionRead = true;
+                                                    break;
+                                                }
+
+                                                var tmpData = new GoldSource.FramesHren(currentDemoFrame, br.ReadBytes(bufferlength));
+                                                List<byte> tmpRawData = new List<byte>();
+                                                tmpRawData.AddRange(tmpData.rawData);
+                                                tmpRawData.Insert(0, (byte)MessageId.svc_clientdata);
+
+                                                entry.Frames.Add(tmpData);
+
+                                                br.BaseStream.Seek(bufferlength + curOffset, SeekOrigin.Begin);
+                                            }
+                                            break;
+                                        case 6: // next
+                                        case 7: // entry
+                                            nextSectionRead = true;
+                                            continue;
+                                        case 0: // NOP
+                                        case 3: // SKIP
+                                        default:
+                                            break;
+                                    }
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.WriteLine("Fatal error:" + ex.Message);
+                            }
+                        }
+                    }
                     else
                     {
-                        gDemo.ParsingErrors.Add("Non goldsource demo file");
+                        gDemo.ParsingErrors.Add("CRITICAL ERROR: NOT GOLDSRC/XASH-GOLDSRC DEMO FILE!!");
                         br.Close();
+                        Console.ReadKey();
                     }
                 }
             }

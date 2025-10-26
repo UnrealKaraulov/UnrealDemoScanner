@@ -17,6 +17,8 @@ using System.Threading.Tasks;
 #if !NET6_0_OR_GREATER
 using System.Windows.Forms;
 using System.Windows.Input;
+#else 
+using System.Runtime.Loader;
 #endif
 using ConsoleTables;
 using DemoScanner.DemoStuff;
@@ -28,7 +30,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.75.11";
+        public const string PROGRAMVERSION = "1.75.13";
 
         public static string FoundNewVersion = "";
 
@@ -109,6 +111,9 @@ namespace DemoScanner.DG
                 Nodes = new List<MyTreeNode>();
             }
         }
+
+        public static HalfLifeDemoParser halfLifeDemoParser = null;
+        public static GoldSourceDemoInfo CurrentDemoFile = null;
 
         public const bool MOUSE_FILTER = true;
 
@@ -2704,6 +2709,7 @@ namespace DemoScanner.DG
                     Console.WriteLine("Critical error. Analyzing can not be continued.");
                 }
                 Console.WriteLine(ex.Message);
+                Console.ReadKey();
             }
 
         }
@@ -3239,7 +3245,7 @@ namespace DemoScanner.DG
                 }
             }
 
-            var CurrentDemoFile = GoldSourceParser.ReadGoldSourceDemo(CurrentDemoFilePath);
+            CurrentDemoFile = GoldSourceParser.ReadGoldSourceDemo(CurrentDemoFilePath);
             if (File.Exists(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) + "log"))
             {
                 if (File.Exists(CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 3) + "log.bak"))
@@ -3283,6 +3289,19 @@ namespace DemoScanner.DG
             Console.WriteLine("DEMO " + Path.GetFileName(CurrentDemoFilePath));
             DemoName = Truncate(Path.GetFileName(CurrentDemoFilePath), 25);
 
+            Console.ForegroundColor = ConsoleColor.Red;
+            if (CurrentDemoFile.Header.DemoProtocol == 3)
+            {
+                if (IsRussia)
+                {
+                    Console.WriteLine("Извините, демо XASH не поддерживается!");
+                }
+                else
+                {
+                    Console.WriteLine("XASH DEMO NOT SUPPORTED !");
+                }
+            }
+
             Console.ForegroundColor = ConsoleColor.Green;
             if (IsRussia)
             {
@@ -3293,7 +3312,7 @@ namespace DemoScanner.DG
                 Console.WriteLine("Start demo analyze.....");
             }
 
-            var halfLifeDemoParser = new HalfLifeDemoParser(CurrentDemoFile);
+            halfLifeDemoParser = new HalfLifeDemoParser(CurrentDemoFile);
             if (usagesrccode < 1)
             {
                 return;
@@ -3406,41 +3425,109 @@ namespace DemoScanner.DG
                         }
 
                         Console.WriteLine();
-                        /* START: SOME BLACK MAGIC OUTSIDE HOGWARTS */
-                        FieldInfo[] fields = typeof(DemoScanner).GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+#if !NET6_0_OR_GREATER
+                     /* START: SOME BLACK MAGIC OUTSIDE HOGWARTS */
+                    FieldInfo[] fields = typeof(DemoScanner).GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
 
-                        foreach (var field in fields)
+                    foreach (var field in fields)
+                    {
+                        try
                         {
+                            Type fieldType = field.FieldType;
+                            object defaultValue = fieldType.IsValueType ? Activator.CreateInstance(fieldType) : null;
+                            field.SetValue(null, defaultValue);
+                        }
+                        catch
+                        {
+                        }
+                    }
+                    typeof(DemoScanner)
+                        .GetConstructor(BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public, null,
+                            new Type[0], null).Invoke(null, null);
+                    /* END: VERY DARK BLACK MAGIC!!!!!! */
+#else
+                        // NET 6 NOT SUPPORT HOGWARTS MAGIC, NEED USE ANOTHER
+                        /* START: ULTRA BLACK MAGIC */
+                        var asmPath = Assembly.GetAssembly(typeof(DemoScanner))!.Location;
+                        var alc = new AssemblyLoadContext("reset", isCollectible: true);
+                        var freshAsm = alc.LoadFromAssemblyPath(asmPath);
+                        var freshType = freshAsm.GetType(typeof(DemoScanner).FullName!)!;
+
+                        foreach (var freshField in freshType.GetFields(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic))
+                        {
+                            var liveField = typeof(DemoScanner).GetField(freshField.Name,
+                                BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+
+                            if (liveField == null) continue;
+
                             try
                             {
-                                Type fieldType = field.FieldType;
-                                object defaultValue = fieldType.IsValueType ? Activator.CreateInstance(fieldType) : null;
-                                field.SetValue(null, defaultValue);
+                                if (liveField != null)
+                                {
+                                    liveField.SetValue(null, freshField.GetValue(null));
+                                }
+                                else
+                                {
+                                    liveField.SetValue(null, Activator.CreateInstance(liveField.FieldType));
+                                }
                             }
                             catch
                             {
+
                             }
                         }
-                        typeof(DemoScanner)
-                            .GetConstructor(BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public, null,
-                                new Type[0], null).Invoke(null, null);
 
-                        SourceCode = "https://github.com/UnrealKaraulov/UnrealDemoScanner";
-                        /* END: VERY DARK BLACK MAGIC!!!!!! */
+                        alc.Unload();
+                        /* END: ULTRA BLACK MAGIC */
+#endif
                         DemoRescanned = true;
                         FirstBypassKill = false;
                         NeedSkipDemoRescan = 2;
                         goto DEMO_FULLRESET;
                     }
 
-                    var frame = CurrentDemoFile.DirectoryEntries[index].Frames[frameindex];
-                    try
+                    if (CurrentDemoFile.Header.DemoProtocol != 3)
                     {
-                        switch (frame.Key.Type)
+
+                        var frame = CurrentDemoFile.DirectoryEntries[index].Frames[frameindex];
+                        try
                         {
-                            case GoldSource.DemoFrameType.NetMsg:
-                                if (abs(((GoldSource.NetMsgFrame)frame.Value).RParms.Time) > EPSILON)
-                                {
+                            switch (frame.Key.Type)
+                            {
+                                case GoldSource.DemoFrameType.NetMsg:
+                                    if (abs(((GoldSource.NetMsgFrame)frame.Value).RParms.Time) > EPSILON)
+                                    {
+                                        if (abs(((GoldSource.NetMsgFrame)frame.Value).RParms.Time) > EPSILON &&
+                                            abs(GameStartTime) < EPSILON)
+                                        {
+                                            GameStartTime = ((GoldSource.NetMsgFrame)frame.Value).RParms.Time;
+                                        }
+
+                                        if (((GoldSource.NetMsgFrame)frame.Value).RParms.Time > GameEndTime2 + EPSILON &&
+                                            abs(((GoldSource.NetMsgFrame)frame.Value).RParms.Time - GameStartTime) > EPSILON)
+                                        {
+                                            GameEndTime2 = ((GoldSource.NetMsgFrame)frame.Value).RParms.Time;
+                                        }
+                                    }
+
+                                    break;
+                                case GoldSource.DemoFrameType.DemoStart:
+                                    break;
+                                case GoldSource.DemoFrameType.ConsoleCommand:
+                                    break;
+                                case GoldSource.DemoFrameType.ClientData:
+                                    break;
+                                case GoldSource.DemoFrameType.NextSection:
+                                    break;
+                                case GoldSource.DemoFrameType.Event:
+                                    break;
+                                case GoldSource.DemoFrameType.WeaponAnim:
+                                    break;
+                                case GoldSource.DemoFrameType.Sound:
+                                    break;
+                                case GoldSource.DemoFrameType.DemoBuffer:
+                                    break;
+                                default:
                                     if (abs(((GoldSource.NetMsgFrame)frame.Value).RParms.Time) > EPSILON &&
                                         abs(GameStartTime) < EPSILON)
                                     {
@@ -3452,44 +3539,15 @@ namespace DemoScanner.DG
                                     {
                                         GameEndTime2 = ((GoldSource.NetMsgFrame)frame.Value).RParms.Time;
                                     }
-                                }
 
-                                break;
-                            case GoldSource.DemoFrameType.DemoStart:
-                                break;
-                            case GoldSource.DemoFrameType.ConsoleCommand:
-                                break;
-                            case GoldSource.DemoFrameType.ClientData:
-                                break;
-                            case GoldSource.DemoFrameType.NextSection:
-                                break;
-                            case GoldSource.DemoFrameType.Event:
-                                break;
-                            case GoldSource.DemoFrameType.WeaponAnim:
-                                break;
-                            case GoldSource.DemoFrameType.Sound:
-                                break;
-                            case GoldSource.DemoFrameType.DemoBuffer:
-                                break;
-                            default:
-                                if (abs(((GoldSource.NetMsgFrame)frame.Value).RParms.Time) > EPSILON &&
-                                    abs(GameStartTime) < EPSILON)
-                                {
-                                    GameStartTime = ((GoldSource.NetMsgFrame)frame.Value).RParms.Time;
-                                }
+                                    break;
+                            }
 
-                                if (((GoldSource.NetMsgFrame)frame.Value).RParms.Time > GameEndTime2 + EPSILON &&
-                                    abs(((GoldSource.NetMsgFrame)frame.Value).RParms.Time - GameStartTime) > EPSILON)
-                                {
-                                    GameEndTime2 = ((GoldSource.NetMsgFrame)frame.Value).RParms.Time;
-                                }
-
-                                break;
                         }
-                    }
-                    catch
-                    {
-                        Console.WriteLine("Error parsing game start time.");
+                        catch
+                        {
+                            Console.WriteLine("Error parsing game start time.");
+                        }
                     }
                 }
             }
@@ -3597,10 +3655,13 @@ namespace DemoScanner.DG
                                         {
                                             if (abs(CurrentTime - LastKreedzHackTime) > 5.0f)
                                             {
-                                                string hackType = percentage > 0 ? "SPEEDHACK TYPE 1" : "SLOWMOTION HACK TYPE 1";
-                                                DemoScanner_AddWarn($"[{hackType}] {abs(percentage)}% at ({LastKnowRealTime}):{LastKnowTimeString}",
-                                                                   abs(percentage) > 15 && CurrentFpsSecond < 950 &&
-                                        CurrentFps2Second < 950 && CurrentFps3Second < 950, true, true);
+                                                if (abs(percentage) > 13)
+                                                {
+                                                    string hackType = percentage > 0 ? "SPEEDHACK TYPE 1" : "SLOWMOTION HACK TYPE 1";
+                                                    DemoScanner_AddWarn($"[{hackType}] {abs(percentage)}% at ({LastKnowRealTime}):{LastKnowTimeString}",
+                                                                       abs(percentage) > 15 && CurrentFpsSecond < 950 &&
+                                            CurrentFps2Second < 950 && CurrentFps3Second < 950 && (percentage > 0 || percentage < -80), true, true);
+                                                }
                                                 LastKreedzHackTime = CurrentTime;
                                             }
 
@@ -3636,1049 +3697,1060 @@ namespace DemoScanner.DG
                     //    }
                     //}
                     //frame_num = frame.Key.FrameIndex;
-                    switch (frame.Key.Type)
+
+                    if (CurrentDemoFile.Header.DemoProtocol != 3)
                     {
-                        case GoldSource.DemoFrameType.DemoStart:
-                            LASTFRAMEISCLIENTDATA = false;
-                            break;
-                        case GoldSource.DemoFrameType.ConsoleCommand:
-                            {
-                                var cmdframe = (GoldSource.ConsoleCommandFrame)frame.Value;
+                        switch (frame.Key.Type)
+                        {
+                            case GoldSource.DemoFrameType.DemoStart:
                                 LASTFRAMEISCLIENTDATA = false;
-                                if (DUMP_ALL_FRAMES)
-                                {
-                                    subnode.Text += "{\n";
-                                    subnode.Text += cmdframe.Command;
-                                    //subnode.Text += "(" + cmdframe.BxtData.Length + ")";
-                                    subnode.Text += "}\n";
-                                }
-
-                                CheckConsoleCommand(cmdframe.Command);
                                 break;
-                            }
-                        case GoldSource.DemoFrameType.ClientData:
-                            {
-                                if (CurrentFrameDuplicated > 0)
+                            case GoldSource.DemoFrameType.ConsoleCommand:
                                 {
-                                    CurrentFrameDuplicated -= 1;
-                                }
-
-                                ClientDataCountDemos++;
-                                LastClientDataTime = CurrentTime;
-                                NeedSearchID = CurrentFrameIdAll;
-                                CurrentFrameId++;
-                                if (DUMP_ALL_FRAMES)
-                                {
-                                    subnode.Text += "{\n";
-                                }
-
-                                var cdframe = (GoldSource.ClientDataFrame)frame.Value;
-
-                                PREV_CDFRAME_ViewAngles = CDFRAME_ViewAngles;
-
-                                CDFRAME_ViewAngles = cdframe.Viewangles;
-
-                                if (CDAngleHistoryAim12List.Count > 0 &&
-                                    abs(CDAngleHistoryAim12List[0].tmp[2] - (-99999.0f)) < 0.1f)
-                                {
-                                    CDAngleHistoryAim12List[0].tmp[2] =
-                                       fullnormalizeangle(CDFRAME_ViewAngles.Y);
-                                }
-
-                                oldoriginpos.X = curoriginpos.X;
-                                oldoriginpos.Y = curoriginpos.Y;
-                                oldoriginpos.Z = curoriginpos.Z;
-                                curoriginpos.X = cdframe.Origin.X;
-                                curoriginpos.Y = cdframe.Origin.Y;
-                                curoriginpos.Z = cdframe.Origin.Z;
-
-                                if (DUMP_ALL_FRAMES)
-                                {
-                                    subnode.Text += "Origin.X = " + cdframe.Origin.X + "\n";
-                                    subnode.Text += "Origin.Y = " + cdframe.Origin.Y + "\n";
-                                    subnode.Text += "Origin.Z = " + cdframe.Origin.Z + "\n";
-                                    subnode.Text += "Viewangles.X = " + cdframe.Viewangles.X + "\n";
-                                    subnode.Text += "Viewangles.Y = " + cdframe.Viewangles.Y + "\n";
-                                    subnode.Text += "Viewangles.Z = " + cdframe.Viewangles.Z + "\n";
-                                    subnode.Text += "WeaponBits = " + cdframe.WeaponBits + "\n";
-                                    subnode.Text += "Fov = " + cdframe.Fov + "\n";
-                                    subnode.Text += "}\n";
-                                }
-
-                                if (DetectCmdHackType10)
-                                {
-                                    DetectCmdHackType10 = false;
-                                    if (RealAlive && abs(CurrentTime - LastDeathTime) > 5.0f &&
-                                        abs(CurrentTime - LastAliveTime) > 2.0f)
+                                    var cmdframe = (GoldSource.ConsoleCommandFrame)frame.Value;
+                                    LASTFRAMEISCLIENTDATA = false;
+                                    if (DUMP_ALL_FRAMES)
                                     {
-                                        if (abs(CurrentTime - CmdHack10_detecttime) > 30.0f)
+                                        subnode.Text += "{\n";
+                                        subnode.Text += cmdframe.Command;
+                                        //subnode.Text += "(" + cmdframe.BxtData.Length + ")";
+                                        subnode.Text += "}\n";
+                                    }
+
+                                    CheckConsoleCommand(cmdframe.Command);
+                                    break;
+                                }
+                            case GoldSource.DemoFrameType.ClientData:
+                                {
+                                    if (CurrentFrameDuplicated > 0)
+                                    {
+                                        CurrentFrameDuplicated -= 1;
+                                    }
+
+                                    ClientDataCountDemos++;
+                                    LastClientDataTime = CurrentTime;
+                                    NeedSearchID = CurrentFrameIdAll;
+                                    CurrentFrameId++;
+                                    if (DUMP_ALL_FRAMES)
+                                    {
+                                        subnode.Text += "{\n";
+                                    }
+
+                                    var cdframe = (GoldSource.ClientDataFrame)frame.Value;
+
+                                    PREV_CDFRAME_ViewAngles = CDFRAME_ViewAngles;
+
+                                    CDFRAME_ViewAngles = cdframe.Viewangles;
+
+                                    if (CDAngleHistoryAim12List.Count > 0 &&
+                                        abs(CDAngleHistoryAim12List[0].tmp[2] - (-99999.0f)) < 0.1f)
+                                    {
+                                        CDAngleHistoryAim12List[0].tmp[2] =
+                                           fullnormalizeangle(CDFRAME_ViewAngles.Y);
+                                    }
+
+                                    oldoriginpos.X = curoriginpos.X;
+                                    oldoriginpos.Y = curoriginpos.Y;
+                                    oldoriginpos.Z = curoriginpos.Z;
+                                    curoriginpos.X = cdframe.Origin.X;
+                                    curoriginpos.Y = cdframe.Origin.Y;
+                                    curoriginpos.Z = cdframe.Origin.Z;
+
+                                    if (DUMP_ALL_FRAMES)
+                                    {
+                                        subnode.Text += "Origin.X = " + cdframe.Origin.X + "\n";
+                                        subnode.Text += "Origin.Y = " + cdframe.Origin.Y + "\n";
+                                        subnode.Text += "Origin.Z = " + cdframe.Origin.Z + "\n";
+                                        subnode.Text += "Viewangles.X = " + cdframe.Viewangles.X + "\n";
+                                        subnode.Text += "Viewangles.Y = " + cdframe.Viewangles.Y + "\n";
+                                        subnode.Text += "Viewangles.Z = " + cdframe.Viewangles.Z + "\n";
+                                        subnode.Text += "WeaponBits = " + cdframe.WeaponBits + "\n";
+                                        subnode.Text += "Fov = " + cdframe.Fov + "\n";
+                                        subnode.Text += "}\n";
+                                    }
+
+                                    if (DetectCmdHackType10)
+                                    {
+                                        DetectCmdHackType10 = false;
+                                        if (RealAlive && abs(CurrentTime - LastDeathTime) > 5.0f &&
+                                            abs(CurrentTime - LastAliveTime) > 2.0f)
                                         {
-                                            if (abs(CmdHack10_detecttime) > 0.0001f)
+                                            if (abs(CurrentTime - CmdHack10_detecttime) > 30.0f)
                                             {
-                                                if (ThirdHackDetected <= 0)
+                                                if (abs(CmdHack10_detecttime) > 0.0001f)
                                                 {
-                                                    if (abs(CmdHack10_origX) > 0.001f &&
-                                                        abs(CmdHack10_origX - cdframe.Origin.X) > 0.001f)
+                                                    if (ThirdHackDetected <= 0)
                                                     {
-                                                        DemoScanner_AddWarn(
-                                                            "[THIRD PERSON TYPE 2] at (" + LastKnowRealTime + "):" +
-                                                            LastKnowTimeString,
-                                                            false /*!IsAngleEditByEngine() && !IsPlayerLossConnection()*/);
+                                                        if (abs(CmdHack10_origX) > 0.001f &&
+                                                            abs(CmdHack10_origX - cdframe.Origin.X) > 0.001f)
+                                                        {
+                                                            DemoScanner_AddWarn(
+                                                                "[THIRD PERSON TYPE 2] at (" + LastKnowRealTime + "):" +
+                                                                LastKnowTimeString,
+                                                                false /*!IsAngleEditByEngine() && !IsPlayerLossConnection()*/);
+                                                        }
+
+                                                        if (abs(CmdHack10_origY) > 0.001f &&
+                                                            abs(CmdHack10_origY - cdframe.Origin.Y) > 0.001f)
+                                                        {
+                                                            DemoScanner_AddWarn(
+                                                                "[THIRD PERSON TYPE 2] at (" + LastKnowRealTime + "):" +
+                                                                LastKnowTimeString,
+                                                                false /*!IsAngleEditByEngine() && !IsPlayerLossConnection()*/);
+                                                        }
+
+                                                        if (abs(CmdHack10_origZ) > 0.001f &&
+                                                            abs(CmdHack10_origZ - cdframe.Origin.Z) > 0.001f)
+                                                        {
+                                                            DemoScanner_AddWarn(
+                                                                "[THIRD PERSON TYPE 2] at (" + LastKnowRealTime + "):" +
+                                                                LastKnowTimeString,
+                                                                false /*!IsAngleEditByEngine() && !IsPlayerLossConnection()*/);
+                                                        }
                                                     }
 
-                                                    if (abs(CmdHack10_origY) > 0.001f &&
-                                                        abs(CmdHack10_origY - cdframe.Origin.Y) > 0.001f)
-                                                    {
-                                                        DemoScanner_AddWarn(
-                                                            "[THIRD PERSON TYPE 2] at (" + LastKnowRealTime + "):" +
-                                                            LastKnowTimeString,
-                                                            false /*!IsAngleEditByEngine() && !IsPlayerLossConnection()*/);
-                                                    }
+                                                    CmdHack10_detecttime = CurrentTime;
+                                                }
+                                            }
+                                        }
 
-                                                    if (abs(CmdHack10_origZ) > 0.001f &&
-                                                        abs(CmdHack10_origZ - cdframe.Origin.Z) > 0.001f)
+                                        CmdHack10_origX = CmdHack10_origY = CmdHack10_origZ = 0.0f;
+                                    }
+
+                                    cdframeFov = cdframe.Fov;
+                                    if (RealAlive && (CurrentFrameAttacked || CurrentFrameJumped) &&
+                                        abs(CurrentTime - LastDeathTime) > 5.0f && abs(CurrentTime - LastAliveTime) > 2.0f)
+                                    {
+                                        if (abs(CurrentTime - FovHackTime) > 30.0f)
+                                        {
+                                            if (FovHackDetected <= 10 && !FoundNextClient)
+                                            {
+                                                /* AWP, SCOUT, ETC ... for next update weapon check */
+                                                var fov2_clean1 = CalcFov(10.0f, LastResolutionX, LastResolutionY);
+                                                var fov2_clean2 = CalcFov(15.0f, LastResolutionX, LastResolutionY);
+                                                var fov2_clean3 = CalcFov(40.0f, LastResolutionX, LastResolutionY);
+                                                var fov2_clean4 = CalcFov(55.0f, LastResolutionX, LastResolutionY);
+                                                var fov_clean1 = 10.0f;
+                                                var fov_clean2 = 15.0f;
+                                                var fov_clean3 = 40.0f;
+                                                var fov_clean4 = 55.0f;
+                                                // NORMAL FOV FOR CUSTOM GAME CLIENT
+                                                var fov2_clean5 = CalcFov(90.0f, LastResolutionX, LastResolutionY);
+                                                var fov_clean5 = 90.0f;
+                                                // IF fov found, and fov not clean:
+                                                if (checkFov2 > 0.01 && abs(checkFov - fov_clean1) > 0.01 &&
+                                                    abs(checkFov - fov_clean2) > 0.01 && abs(checkFov - fov_clean3) > 0.01 &&
+                                                    abs(checkFov - fov_clean4) > 0.01 && abs(checkFov - fov_clean5) > 0.01 &&
+                                                    abs(checkFov - fov2_clean1) > 0.01 && abs(checkFov - fov2_clean2) > 0.01 &&
+                                                    abs(checkFov - fov2_clean3) > 0.01 && abs(checkFov - fov2_clean4) > 0.01 &&
+                                                    abs(checkFov - fov2_clean5) > 0.01)
+                                                {
+                                                    var fov1 = CalcFov(ClientFov, LastResolutionX, LastResolutionY);
+                                                    var fov2 = CalcFov(ClientFov2, LastResolutionX, LastResolutionY);
+                                                    var fov3 = CalcFov(FovByFunc, LastResolutionX, LastResolutionY);
+                                                    var fov4 = CalcFov(FovByFunc2, LastResolutionX, LastResolutionY);
+                                                    // If fov not by server
+                                                    if (abs(checkFov - fov1) > 0.01 && abs(checkFov - fov2) > 0.01 &&
+                                                        abs(checkFov - fov3) > 0.01 && abs(checkFov - fov4) > 0.01)
                                                     {
                                                         DemoScanner_AddWarn(
-                                                            "[THIRD PERSON TYPE 2] at (" + LastKnowRealTime + "):" +
-                                                            LastKnowTimeString,
-                                                            false /*!IsAngleEditByEngine() && !IsPlayerLossConnection()*/);
+                                                            "[FOV HACK TYPE 2] [" + checkFov + " FOV] at (" + LastKnowRealTime +
+                                                            "):" + LastKnowTimeString,
+                                                            abs(checkFov - ClientFov) > 0.01 &&
+                                                            abs(checkFov - ClientFov2) > 0.01 &&
+                                                            abs(checkFov - FovByFunc) > 0.01 &&
+                                                            abs(checkFov - FovByFunc2) > 0.01 && !IsAngleEditByEngine() &&
+                                                            !IsPlayerLossConnection());
+                                                        FovHackTime = CurrentTime;
+                                                        FovHackDetected += 1;
                                                     }
                                                 }
-
-                                                CmdHack10_detecttime = CurrentTime;
                                             }
                                         }
                                     }
 
-                                    CmdHack10_origX = CmdHack10_origY = CmdHack10_origZ = 0.0f;
-                                }
-
-                                cdframeFov = cdframe.Fov;
-                                if (RealAlive && (CurrentFrameAttacked || CurrentFrameJumped) &&
-                                    abs(CurrentTime - LastDeathTime) > 5.0f && abs(CurrentTime - LastAliveTime) > 2.0f)
-                                {
-                                    if (abs(CurrentTime - FovHackTime) > 30.0f)
+                                    checkFov = cdframeFov;
+                                    CDFrameYAngleHistory[0] = CDFrameYAngleHistory[1];
+                                    CDFrameYAngleHistory[1] = CDFrameYAngleHistory[2];
+                                    if (CDFrameYAngleHistory[2] > 360.0f && cdframe.Viewangles.Y < 10.0f)
                                     {
-                                        if (FovHackDetected <= 10 && !FoundNextClient)
+                                        if (LASTFRAMEISCLIENTDATA)
                                         {
-                                            /* AWP, SCOUT, ETC ... for next update weapon check */
-                                            var fov2_clean1 = CalcFov(10.0f, LastResolutionX, LastResolutionY);
-                                            var fov2_clean2 = CalcFov(15.0f, LastResolutionX, LastResolutionY);
-                                            var fov2_clean3 = CalcFov(40.0f, LastResolutionX, LastResolutionY);
-                                            var fov2_clean4 = CalcFov(55.0f, LastResolutionX, LastResolutionY);
-                                            var fov_clean1 = 10.0f;
-                                            var fov_clean2 = 15.0f;
-                                            var fov_clean3 = 40.0f;
-                                            var fov_clean4 = 55.0f;
-                                            // NORMAL FOV FOR CUSTOM GAME CLIENT
-                                            var fov2_clean5 = CalcFov(90.0f, LastResolutionX, LastResolutionY);
-                                            var fov_clean5 = 90.0f;
-                                            // IF fov found, and fov not clean:
-                                            if (checkFov2 > 0.01 && abs(checkFov - fov_clean1) > 0.01 &&
-                                                abs(checkFov - fov_clean2) > 0.01 && abs(checkFov - fov_clean3) > 0.01 &&
-                                                abs(checkFov - fov_clean4) > 0.01 && abs(checkFov - fov_clean5) > 0.01 &&
-                                                abs(checkFov - fov2_clean1) > 0.01 && abs(checkFov - fov2_clean2) > 0.01 &&
-                                                abs(checkFov - fov2_clean3) > 0.01 && abs(checkFov - fov2_clean4) > 0.01 &&
-                                                abs(checkFov - fov2_clean5) > 0.01)
+                                            BadAnglesFoundCount++;
+                                        }
+                                    }
+
+                                    CDFrameYAngleHistory[2] = cdframe.Viewangles.Y;
+                                    LASTFRAMEISCLIENTDATA = true;
+                                    //if (GetDistance(curoriginpos, oldoriginpos) > 100)
+                                    //{
+                                    //    PlayerTeleportus++;
+                                    //    ReloadWarns = 0;
+                                    //    if (DEBUG_ENABLED)
+                                    //    {
+                                    //        Console.WriteLine("Teleportus " + LastKnowRealTime + ":" + LastKnowTimeString);
+                                    //    }
+
+                                    //    if (abs(LastGameMaximizeTime) > EPSILON && abs(LastTeleportusTime) > EPSILON &&
+                                    //        abs(LastGameMaximizeTime - CurrentTime) < EPSILON && abs(GameEndTime) < EPSILON)
+                                    //    {
+                                    //        if (ReturnToGameDetects > 1)
+                                    //        {
+                                    //            DemoScanner_AddWarn("['RETURN TO GAME' FEATURE] ", true, true, true);
+                                    //        }
+
+                                    //        ReturnToGameDetects++;
+                                    //    }
+
+                                    //    LastTeleportusTime = CurrentTime;
+                                    //}
+                                    //else
+                                    //{
+                                    //    for (var n = frameindex + 2;
+                                    //         n < CurrentDemoFile.DirectoryEntries[index].Frames.Count;
+                                    //         n++)
+                                    //    {
+                                    //        var tmpframe = CurrentDemoFile.DirectoryEntries[index].Frames[n];
+                                    //        if (tmpframe.Key.Type == GoldSource.DemoFrameType.ClientData)
+                                    //        {
+                                    //            var cdframe2 = (GoldSource.ClientDataFrame)tmpframe.Value;
+                                    //            if (GetDistance(new FPoint(cdframe2.Origin.X, cdframe2.Origin.Y),
+                                    //                    curoriginpos) > 250)
+                                    //            {
+                                    //                LastTeleportusTime = CurrentTime;
+                                    //            }
+
+                                    //            break;
+                                    //        }
+                                    //    }
+                                    //}
+
+                                    if (abs(CurrentTime) > EPSILON)
+                                    {
+                                        if (LastFpsCheckTime < 0.0)
+                                        {
+                                            LastFpsCheckTime = CurrentTime;
+                                        }
+
+                                        if (abs(CurrentTime - LastFpsCheckTime) >= 1.0f)
+                                        {
+                                            LastFpsCheckTime = CurrentTime;
+                                            if (DUMP_ALL_FRAMES)
                                             {
-                                                var fov1 = CalcFov(ClientFov, LastResolutionX, LastResolutionY);
-                                                var fov2 = CalcFov(ClientFov2, LastResolutionX, LastResolutionY);
-                                                var fov3 = CalcFov(FovByFunc, LastResolutionX, LastResolutionY);
-                                                var fov4 = CalcFov(FovByFunc2, LastResolutionX, LastResolutionY);
-                                                // If fov not by server
-                                                if (abs(checkFov - fov1) > 0.01 && abs(checkFov - fov2) > 0.01 &&
-                                                    abs(checkFov - fov3) > 0.01 && abs(checkFov - fov4) > 0.01)
+                                                subnode.Text += "CurrentFps:" + CurrentFps + "\n";
+                                            }
+
+                                            if (CurrentFps > RealFpsMax)
+                                            {
+                                                RealFpsMax = CurrentFps;
+                                            }
+
+                                            if (CurrentFps < RealFpsMin && CurrentFps > 0)
+                                            {
+                                                RealFpsMin = CurrentFps;
+                                            }
+
+                                            if (abs(CurrentTime) <= EPSILON || abs(CurrentTime2) <= EPSILON)
+                                            {
+                                                CurrentMsgBytes = CurrentMsgHudCount =
+                                                    CurrentMsgStuffCmdCount = CurrentMsgPrintCount = CurrentMsgDHudCount = 0;
+                                            }
+                                            else
+                                            {
+
+                                                if (MaxBytesPerSecond < CurrentMsgBytes)
                                                 {
-                                                    DemoScanner_AddWarn(
-                                                        "[FOV HACK TYPE 2] [" + checkFov + " FOV] at (" + LastKnowRealTime +
-                                                        "):" + LastKnowTimeString,
-                                                        abs(checkFov - ClientFov) > 0.01 &&
-                                                        abs(checkFov - ClientFov2) > 0.01 &&
-                                                        abs(checkFov - FovByFunc) > 0.01 &&
-                                                        abs(checkFov - FovByFunc2) > 0.01 && !IsAngleEditByEngine() &&
-                                                        !IsPlayerLossConnection());
-                                                    FovHackTime = CurrentTime;
-                                                    FovHackDetected += 1;
+                                                    MaxBytesPerSecond = CurrentMsgBytes;
+                                                }
+
+                                                BytesPerSecond.Add(CurrentMsgBytes);
+
+                                                if (CurrentMsgBytes >= 970000)
+                                                {
+                                                    MsgOverflowSecondsCount++;
+                                                }
+
+                                                if (MaxHudMsgPerSecond < CurrentMsgHudCount)
+                                                {
+                                                    MaxHudMsgPerSecond = CurrentMsgHudCount;
+                                                }
+
+                                                if (MaxDHudMsgPerSecond < CurrentMsgDHudCount)
+                                                {
+                                                    MaxDHudMsgPerSecond = CurrentMsgDHudCount;
+                                                }
+
+
+                                                if (MaxStuffCmdMsgPerSecond < CurrentMsgStuffCmdCount)
+                                                {
+                                                    MaxStuffCmdMsgPerSecond = CurrentMsgStuffCmdCount;
+                                                }
+
+                                                if (MaxPrintCmdMsgPerSecond < CurrentMsgPrintCount)
+                                                {
+                                                    MaxPrintCmdMsgPerSecond = CurrentMsgPrintCount;
                                                 }
                                             }
-                                        }
-                                    }
-                                }
 
-                                checkFov = cdframeFov;
-                                CDFrameYAngleHistory[0] = CDFrameYAngleHistory[1];
-                                CDFrameYAngleHistory[1] = CDFrameYAngleHistory[2];
-                                if (CDFrameYAngleHistory[2] > 360.0f && cdframe.Viewangles.Y < 10.0f)
-                                {
-                                    if (LASTFRAMEISCLIENTDATA)
-                                    {
-                                        BadAnglesFoundCount++;
-                                    }
-                                }
-
-                                CDFrameYAngleHistory[2] = cdframe.Viewangles.Y;
-                                LASTFRAMEISCLIENTDATA = true;
-                                //if (GetDistance(curoriginpos, oldoriginpos) > 100)
-                                //{
-                                //    PlayerTeleportus++;
-                                //    ReloadWarns = 0;
-                                //    if (DEBUG_ENABLED)
-                                //    {
-                                //        Console.WriteLine("Teleportus " + LastKnowRealTime + ":" + LastKnowTimeString);
-                                //    }
-
-                                //    if (abs(LastGameMaximizeTime) > EPSILON && abs(LastTeleportusTime) > EPSILON &&
-                                //        abs(LastGameMaximizeTime - CurrentTime) < EPSILON && abs(GameEndTime) < EPSILON)
-                                //    {
-                                //        if (ReturnToGameDetects > 1)
-                                //        {
-                                //            DemoScanner_AddWarn("['RETURN TO GAME' FEATURE] ", true, true, true);
-                                //        }
-
-                                //        ReturnToGameDetects++;
-                                //    }
-
-                                //    LastTeleportusTime = CurrentTime;
-                                //}
-                                //else
-                                //{
-                                //    for (var n = frameindex + 2;
-                                //         n < CurrentDemoFile.DirectoryEntries[index].Frames.Count;
-                                //         n++)
-                                //    {
-                                //        var tmpframe = CurrentDemoFile.DirectoryEntries[index].Frames[n];
-                                //        if (tmpframe.Key.Type == GoldSource.DemoFrameType.ClientData)
-                                //        {
-                                //            var cdframe2 = (GoldSource.ClientDataFrame)tmpframe.Value;
-                                //            if (GetDistance(new FPoint(cdframe2.Origin.X, cdframe2.Origin.Y),
-                                //                    curoriginpos) > 250)
-                                //            {
-                                //                LastTeleportusTime = CurrentTime;
-                                //            }
-
-                                //            break;
-                                //        }
-                                //    }
-                                //}
-
-                                if (abs(CurrentTime) > EPSILON)
-                                {
-                                    if (LastFpsCheckTime < 0.0)
-                                    {
-                                        LastFpsCheckTime = CurrentTime;
-                                    }
-
-                                    if (abs(CurrentTime - LastFpsCheckTime) >= 1.0f)
-                                    {
-                                        LastFpsCheckTime = CurrentTime;
-                                        if (DUMP_ALL_FRAMES)
-                                        {
-                                            subnode.Text += "CurrentFps:" + CurrentFps + "\n";
-                                        }
-
-                                        if (CurrentFps > RealFpsMax)
-                                        {
-                                            RealFpsMax = CurrentFps;
-                                        }
-
-                                        if (CurrentFps < RealFpsMin && CurrentFps > 0)
-                                        {
-                                            RealFpsMin = CurrentFps;
-                                        }
-
-                                        if (abs(CurrentTime) <= EPSILON || abs(CurrentTime2) <= EPSILON)
-                                        {
-                                            CurrentMsgBytes = CurrentMsgHudCount =
-                                                CurrentMsgStuffCmdCount = CurrentMsgPrintCount = CurrentMsgDHudCount = 0;
+                                            CurrentMsgBytes = CurrentMsgHudCount = CurrentMsgStuffCmdCount = CurrentMsgPrintCount = CurrentMsgDHudCount = 0;
+                                            SecondFound = true;
+                                            if (abs(CurrentTime - PreviousTime) < 0.2 && TimeShiftStreak1 > 0)
+                                                TimeShiftStreak1--;
+                                            averagefps.Add(CurrentFps);
+                                            CurrentFpsSecond = CurrentFps;
+                                            CurrentFps = 0;
+                                            CurrentGameSecond++;
                                         }
                                         else
                                         {
+                                            CurrentFps++;
+                                        }
+                                    }
 
-                                            if (MaxBytesPerSecond < CurrentMsgBytes)
-                                            {
-                                                MaxBytesPerSecond = CurrentMsgBytes;
-                                            }
-
-                                            BytesPerSecond.Add(CurrentMsgBytes);
-
-                                            if (CurrentMsgBytes >= 970000)
-                                            {
-                                                MsgOverflowSecondsCount++;
-                                            }
-
-                                            if (MaxHudMsgPerSecond < CurrentMsgHudCount)
-                                            {
-                                                MaxHudMsgPerSecond = CurrentMsgHudCount;
-                                            }
-
-                                            if (MaxDHudMsgPerSecond < CurrentMsgDHudCount)
-                                            {
-                                                MaxDHudMsgPerSecond = CurrentMsgDHudCount;
-                                            }
-
-
-                                            if (MaxStuffCmdMsgPerSecond < CurrentMsgStuffCmdCount)
-                                            {
-                                                MaxStuffCmdMsgPerSecond = CurrentMsgStuffCmdCount;
-                                            }
-
-                                            if (MaxPrintCmdMsgPerSecond < CurrentMsgPrintCount)
-                                            {
-                                                MaxPrintCmdMsgPerSecond = CurrentMsgPrintCount;
-                                            }
+                                    var tmpAngleDirY = GetAngleDirection(fullnormalizeangle(PREV_CDFRAME_ViewAngles.Y),
+                                        fullnormalizeangle(CDFRAME_ViewAngles.Y));
+                                    if (tmpAngleDirY == AngleDirection.AngleDirectionLeft)
+                                    {
+                                        if (AngleStrikeDirection > 0)
+                                        {
+                                            AngleStrikeDirection = -1;
+                                        }
+                                        else
+                                        {
+                                            AngleStrikeDirection--;
                                         }
 
-                                        CurrentMsgBytes = CurrentMsgHudCount = CurrentMsgStuffCmdCount = CurrentMsgPrintCount = CurrentMsgDHudCount = 0;
-                                        SecondFound = true;
-                                        if (abs(CurrentTime - PreviousTime) < 0.2 && TimeShiftStreak1 > 0)
-                                            TimeShiftStreak1--;
-                                        averagefps.Add(CurrentFps);
-                                        CurrentFpsSecond = CurrentFps;
-                                        CurrentFps = 0;
-                                        CurrentGameSecond++;
-                                    }
-                                    else
-                                    {
-                                        CurrentFps++;
-                                    }
-                                }
-
-                                var tmpAngleDirY = GetAngleDirection(fullnormalizeangle(PREV_CDFRAME_ViewAngles.Y),
-                                    fullnormalizeangle(CDFRAME_ViewAngles.Y));
-                                if (tmpAngleDirY == AngleDirection.AngleDirectionLeft)
-                                {
-                                    if (AngleStrikeDirection > 0)
-                                    {
-                                        AngleStrikeDirection = -1;
-                                    }
-                                    else
-                                    {
-                                        AngleStrikeDirection--;
-                                    }
-
-                                    if (LastAngleDirection != tmpAngleDirY)
-                                    {
-                                        AngleDirectionChanges++;
-                                        StrafeAngleDirectionChanges++;
-                                        AngleDirectionChangeTime = CurrentTime;
-                                        if (DetectStrafeOptimizerStrikes > 1 && NeedCheckAngleDiffForStrafeOptimizer &&
-                                            abs(CurrentTime - LastStrafeOptimizerWarnTime) > 0.02f)
+                                        if (LastAngleDirection != tmpAngleDirY)
                                         {
-                                            StrafeOptimizerFalse = true;
-                                        }
-
-                                        NeedCheckAngleDiffForStrafeOptimizer = false;
-                                    }
-
-                                    LastAngleDirection = tmpAngleDirY;
-                                }
-                                else if (tmpAngleDirY == AngleDirection.AngleDirectionRight)
-                                {
-                                    if (AngleStrikeDirection < 0)
-                                    {
-                                        AngleStrikeDirection = 1;
-                                    }
-                                    else
-                                    {
-                                        AngleStrikeDirection++;
-                                    }
-
-                                    if (LastAngleDirection != tmpAngleDirY)
-                                    {
-                                        AngleDirectionChanges++;
-                                        StrafeAngleDirectionChanges++;
-                                        AngleDirectionChangeTime = CurrentTime;
-                                        if (DetectStrafeOptimizerStrikes > 1 && NeedCheckAngleDiffForStrafeOptimizer &&
-                                            abs(CurrentTime - LastStrafeOptimizerWarnTime) > 0.02f)
-                                        {
-                                            StrafeOptimizerFalse = true;
-                                        }
-
-                                        NeedCheckAngleDiffForStrafeOptimizer = false;
-                                    }
-
-                                    LastAngleDirection = tmpAngleDirY;
-                                }
-
-                                if (!PreviousFrameAlive || !CurrentFrameAlive)
-                                {
-                                    PREV_CDFRAME_ViewAngles.X = CDFRAME_ViewAngles.X;
-                                    PREV_CDFRAME_ViewAngles.Y = CDFRAME_ViewAngles.Y;
-                                }
-
-                                var skip_sens_check = false;
-                                if ((normalizeangle(abs(PREV_CDFRAME_ViewAngles.X)) > 88.95 &&
-                                     normalizeangle(abs(PREV_CDFRAME_ViewAngles.X)) < 89.1) ||
-                                    (normalizeangle(abs(CDFRAME_ViewAngles.X)) > 88.95 &&
-                                     normalizeangle(abs(CDFRAME_ViewAngles.X)) < 89.1))
-                                {
-                                    skip_sens_check = true;
-                                    HorAngleTime = CurrentTime;
-                                }
-
-                                if (RealAlive)
-                                {
-                                    var tmpXangle = AngleBetween(PREV_CDFRAME_ViewAngles.X, CDFRAME_ViewAngles.X);
-                                    var tmpYangle = AngleBetween(PREV_CDFRAME_ViewAngles.Y, CDFRAME_ViewAngles.Y);
-                                    if (AngleLength < 0.0)
-                                    {
-                                        AngleLengthStartTime = CurrentTime;
-                                        AngleLength = 0.0f;
-                                    }
-
-                                    AngleLength += tmpXangle;
-                                    AngleLength += tmpYangle;
-                                    var flAngleRealDetect = MIN_SENS_DETECTED;
-                                    var flAngleWarnDetect = MIN_SENS_WARNING;
-                                    if (PlayerSensitivityHistory.Count > SENS_COUNT_FOR_AIM)
-                                    {
-                                        var flMinSensAngle = 9999.0f;
-                                        var maxcheckangels = SENS_COUNT_FOR_AIM;
-                                        for (var i = PlayerSensitivityHistory.Count - maxcheckangels;
-                                             i < PlayerSensitivityHistory.Count;
-                                             i++)
-                                        {
-                                            var cursens = PlayerSensitivityHistory[i];
-                                            if (cursens < flMinSensAngle)
+                                            AngleDirectionChanges++;
+                                            StrafeAngleDirectionChanges++;
+                                            AngleDirectionChangeTime = CurrentTime;
+                                            if (DetectStrafeOptimizerStrikes > 1 && NeedCheckAngleDiffForStrafeOptimizer &&
+                                                abs(CurrentTime - LastStrafeOptimizerWarnTime) > 0.02f)
                                             {
-                                                flMinSensAngle = cursens;
+                                                StrafeOptimizerFalse = true;
                                             }
+
+                                            NeedCheckAngleDiffForStrafeOptimizer = false;
                                         }
 
-                                        if (flMinSensAngle < MIN_PLAYABLE_SENS)
+                                        LastAngleDirection = tmpAngleDirY;
+                                    }
+                                    else if (tmpAngleDirY == AngleDirection.AngleDirectionRight)
+                                    {
+                                        if (AngleStrikeDirection < 0)
                                         {
-                                            flMinSensAngle = MIN_PLAYABLE_SENS;
+                                            AngleStrikeDirection = 1;
+                                        }
+                                        else
+                                        {
+                                            AngleStrikeDirection++;
                                         }
 
-                                        flAngleRealDetect = flMinSensAngle / 2.1f;
-                                        flAngleWarnDetect = flMinSensAngle / 1.001f;
-                                        CheckedSensCount++;
-                                        if (CheckedSensCount >= SENS_COUNT_FOR_AIM)
+                                        if (LastAngleDirection != tmpAngleDirY)
                                         {
-                                            var foundUsageSens = false;
-                                            for (var i = 0; i < PlayerSensUsageList.Count; i++)
+                                            AngleDirectionChanges++;
+                                            StrafeAngleDirectionChanges++;
+                                            AngleDirectionChangeTime = CurrentTime;
+                                            if (DetectStrafeOptimizerStrikes > 1 && NeedCheckAngleDiffForStrafeOptimizer &&
+                                                abs(CurrentTime - LastStrafeOptimizerWarnTime) > 0.02f)
                                             {
-                                                var tmpSensUsageStruct = PlayerSensUsageList[i];
-                                                if (abs(tmpSensUsageStruct.sens - flMinSensAngle) < 0.001)
+                                                StrafeOptimizerFalse = true;
+                                            }
+
+                                            NeedCheckAngleDiffForStrafeOptimizer = false;
+                                        }
+
+                                        LastAngleDirection = tmpAngleDirY;
+                                    }
+
+                                    if (!PreviousFrameAlive || !CurrentFrameAlive)
+                                    {
+                                        PREV_CDFRAME_ViewAngles.X = CDFRAME_ViewAngles.X;
+                                        PREV_CDFRAME_ViewAngles.Y = CDFRAME_ViewAngles.Y;
+                                    }
+
+                                    var skip_sens_check = false;
+                                    if ((normalizeangle(abs(PREV_CDFRAME_ViewAngles.X)) > 88.95 &&
+                                         normalizeangle(abs(PREV_CDFRAME_ViewAngles.X)) < 89.1) ||
+                                        (normalizeangle(abs(CDFRAME_ViewAngles.X)) > 88.95 &&
+                                         normalizeangle(abs(CDFRAME_ViewAngles.X)) < 89.1))
+                                    {
+                                        skip_sens_check = true;
+                                        HorAngleTime = CurrentTime;
+                                    }
+
+                                    if (RealAlive)
+                                    {
+                                        var tmpXangle = AngleBetween(PREV_CDFRAME_ViewAngles.X, CDFRAME_ViewAngles.X);
+                                        var tmpYangle = AngleBetween(PREV_CDFRAME_ViewAngles.Y, CDFRAME_ViewAngles.Y);
+                                        if (AngleLength < 0.0)
+                                        {
+                                            AngleLengthStartTime = CurrentTime;
+                                            AngleLength = 0.0f;
+                                        }
+
+                                        AngleLength += tmpXangle;
+                                        AngleLength += tmpYangle;
+                                        var flAngleRealDetect = MIN_SENS_DETECTED;
+                                        var flAngleWarnDetect = MIN_SENS_WARNING;
+                                        if (PlayerSensitivityHistory.Count > SENS_COUNT_FOR_AIM)
+                                        {
+                                            var flMinSensAngle = 9999.0f;
+                                            var maxcheckangels = SENS_COUNT_FOR_AIM;
+                                            for (var i = PlayerSensitivityHistory.Count - maxcheckangels;
+                                                 i < PlayerSensitivityHistory.Count;
+                                                 i++)
+                                            {
+                                                var cursens = PlayerSensitivityHistory[i];
+                                                if (cursens < flMinSensAngle)
                                                 {
-                                                    foundUsageSens = true;
-                                                    tmpSensUsageStruct.usagecount++;
-                                                    PlayerSensUsageList[i] = tmpSensUsageStruct;
+                                                    flMinSensAngle = cursens;
                                                 }
                                             }
 
-                                            if (!foundUsageSens)
+                                            if (flMinSensAngle < MIN_PLAYABLE_SENS)
                                             {
-                                                var tmpSensUsageStruct = new PLAYER_USED_SENS();
-                                                tmpSensUsageStruct.sens = flMinSensAngle;
-                                                tmpSensUsageStruct.usagecount = 1;
-                                                PlayerSensUsageList.Add(tmpSensUsageStruct);
+                                                flMinSensAngle = MIN_PLAYABLE_SENS;
+                                            }
+
+                                            flAngleRealDetect = flMinSensAngle / 2.1f;
+                                            flAngleWarnDetect = flMinSensAngle / 1.001f;
+                                            CheckedSensCount++;
+                                            if (CheckedSensCount >= SENS_COUNT_FOR_AIM)
+                                            {
+                                                var foundUsageSens = false;
+                                                for (var i = 0; i < PlayerSensUsageList.Count; i++)
+                                                {
+                                                    var tmpSensUsageStruct = PlayerSensUsageList[i];
+                                                    if (abs(tmpSensUsageStruct.sens - flMinSensAngle) < 0.001)
+                                                    {
+                                                        foundUsageSens = true;
+                                                        tmpSensUsageStruct.usagecount++;
+                                                        PlayerSensUsageList[i] = tmpSensUsageStruct;
+                                                    }
+                                                }
+
+                                                if (!foundUsageSens)
+                                                {
+                                                    var tmpSensUsageStruct = new PLAYER_USED_SENS();
+                                                    tmpSensUsageStruct.sens = flMinSensAngle;
+                                                    tmpSensUsageStruct.usagecount = 1;
+                                                    PlayerSensUsageList.Add(tmpSensUsageStruct);
+                                                }
                                             }
                                         }
-                                    }
 
-                                    if (skip_sens_check)
-                                    {
-                                        flAngleRealDetect = MIN_SENS_DETECTED;
-                                        flAngleWarnDetect = MIN_SENS_WARNING;
-                                    }
-
-                                    if (CurrentWeapon == WeaponIdType.WEAPON_AWP ||
-                                        CurrentWeapon == WeaponIdType.WEAPON_SCOUT ||
-                                        CurrentWeapon == WeaponIdType.WEAPON_G3SG1 ||
-                                        CurrentWeapon == WeaponIdType.WEAPON_SG550)
-                                    {
-                                        flAngleRealDetect /= 60.0f;
-                                        flAngleWarnDetect /= 30.0f;
-                                    }
-                                    else if (CurrentWeapon == WeaponIdType.WEAPON_SG552 ||
-                                             CurrentWeapon == WeaponIdType.WEAPON_AUG)
-                                    {
-                                        flAngleRealDetect /= 30.0f;
-                                        flAngleWarnDetect /= 15.0f;
-                                    }
-
-                                    if (IsNewAttack() || IsNewSecondKnifeAttack())
-                                    {
-                                        if ((NewAttack || NewAttack2) && PlayerSensitivityWarning == 0 &&
-                                            abs(LastAim5Detected) > EPSILON &&
-                                            abs(CurrentTime - LastAim5Detected) < 0.5f)
+                                        if (skip_sens_check)
                                         {
-                                            if (DemoScanner_AddWarn(
-                                                "[AIM TYPE 5.1 " + CurrentWeapon + "] at (" + LastAim5Detected + "):" +
-                                                GetTimeString(LastAim5Detected),
-                                                !IsTakeDamage() && !IsPlayerLossConnection() && !IsAngleEditByEngine() &&
-                                                !IsCmdChangeWeapon() && !IsRealChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck()))
+                                            flAngleRealDetect = MIN_SENS_DETECTED;
+                                            flAngleWarnDetect = MIN_SENS_WARNING;
+                                        }
+
+                                        if (CurrentWeapon == WeaponIdType.WEAPON_AWP ||
+                                            CurrentWeapon == WeaponIdType.WEAPON_SCOUT ||
+                                            CurrentWeapon == WeaponIdType.WEAPON_G3SG1 ||
+                                            CurrentWeapon == WeaponIdType.WEAPON_SG550)
+                                        {
+                                            flAngleRealDetect /= 60.0f;
+                                            flAngleWarnDetect /= 30.0f;
+                                        }
+                                        else if (CurrentWeapon == WeaponIdType.WEAPON_SG552 ||
+                                                 CurrentWeapon == WeaponIdType.WEAPON_AUG)
+                                        {
+                                            flAngleRealDetect /= 30.0f;
+                                            flAngleWarnDetect /= 15.0f;
+                                        }
+
+                                        if (IsNewAttack() || IsNewSecondKnifeAttack())
+                                        {
+                                            if ((NewAttack || NewAttack2) && PlayerSensitivityWarning == 0 &&
+                                                abs(LastAim5Detected) > EPSILON &&
+                                                abs(CurrentTime - LastAim5Detected) < 0.5f)
                                             {
-                                                if (!IsTakeDamage() && !IsPlayerLossConnection() && !IsAngleEditByEngine() &&
-                                                    !IsCmdChangeWeapon() && !IsRealChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck())
+                                                if (DemoScanner_AddWarn(
+                                                    "[AIM TYPE 5.1 " + CurrentWeapon + "] at (" + LastAim5Detected + "):" +
+                                                    GetTimeString(LastAim5Detected),
+                                                    !IsTakeDamage() && !IsPlayerLossConnection() && !IsAngleEditByEngine() &&
+                                                    !IsCmdChangeWeapon() && !IsRealChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck()))
                                                 {
-                                                    TotalAimBotDetected++;
+                                                    if (!IsTakeDamage() && !IsPlayerLossConnection() && !IsAngleEditByEngine() &&
+                                                        !IsCmdChangeWeapon() && !IsRealChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck())
+                                                    {
+                                                        TotalAimBotDetected++;
+                                                    }
+                                                    LastAim5Detected = 0.0f;
+                                                    LastAim5Warning = 0.0f;
+                                                }
+                                            }
+                                            else if (PlayerSensitivityWarning == 0 && abs(LastAim5Detected) > EPSILON &&
+                                                     abs(CurrentTime - LastAim5Detected) < 0.5f)
+                                            {
+                                                if (DemoScanner_AddWarn(
+                                                    "[AIM TYPE 5.9 " + CurrentWeapon + "] at (" + LastAim5Detected + "):" +
+                                                    GetTimeString(LastAim5Detected),
+                                                    !IsTakeDamage() && !IsPlayerLossConnection() && !IsAngleEditByEngine() &&
+                                                    !IsCmdChangeWeapon() && !IsRealChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck()))
+                                                {
+                                                    if (!IsTakeDamage() && !IsPlayerLossConnection() && !IsAngleEditByEngine() &&
+                                                        !IsCmdChangeWeapon() && !IsRealChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck())
+                                                    {
+                                                        TotalAimBotDetected++;
+                                                    }
                                                 }
                                                 LastAim5Detected = 0.0f;
                                                 LastAim5Warning = 0.0f;
                                             }
-                                        }
-                                        else if (PlayerSensitivityWarning == 0 && abs(LastAim5Detected) > EPSILON &&
-                                                 abs(CurrentTime - LastAim5Detected) < 0.5f)
-                                        {
-                                            if (DemoScanner_AddWarn(
-                                                "[AIM TYPE 5.9 " + CurrentWeapon + "] at (" + LastAim5Detected + "):" +
-                                                GetTimeString(LastAim5Detected),
-                                                !IsTakeDamage() && !IsPlayerLossConnection() && !IsAngleEditByEngine() &&
-                                                !IsCmdChangeWeapon() && !IsRealChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck()))
+                                            else if (PlayerSensitivityWarning == 0 && abs(LastAim5Warning) > EPSILON &&
+                                                     abs(CurrentTime - LastAim5Warning) < 0.5f)
                                             {
-                                                if (!IsTakeDamage() && !IsPlayerLossConnection() && !IsAngleEditByEngine() &&
-                                                    !IsCmdChangeWeapon() && !IsRealChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck())
+                                                if (!IsAngleEditByEngine() && !IsTakeDamage() && !IsCmdChangeWeapon() && !IsRealChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck())
                                                 {
-                                                    TotalAimBotDetected++;
-                                                }
-                                            }
-                                            LastAim5Detected = 0.0f;
-                                            LastAim5Warning = 0.0f;
-                                        }
-                                        else if (PlayerSensitivityWarning == 0 && abs(LastAim5Warning) > EPSILON &&
-                                                 abs(CurrentTime - LastAim5Warning) < 0.5f)
-                                        {
-                                            if (!IsAngleEditByEngine() && !IsTakeDamage() && !IsCmdChangeWeapon() && !IsRealChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck())
-                                            {
-                                                if (DemoScanner_AddWarn(
-                                                    "[AIM TYPE 5.2 " + CurrentWeapon + "] at (" + LastAim5Warning + "):" +
-                                                    GetTimeString(LastAim5Warning), !IsPlayerLossConnection()))
-                                                {
-                                                    TotalAimBotDetected++;
-                                                }
-                                            }
-                                            else
-                                            {
-                                                DemoScanner_AddWarn(
-                                                    "[AIM TYPE 5.3 " + CurrentWeapon + "] at (" + LastAim5Warning + "):" +
-                                                    GetTimeString(LastAim5Warning), false);
-                                            }
-
-                                            LastAim5Detected = 0.0f;
-                                            LastAim5Warning = 0.0f;
-                                        }
-                                        else if (PlayerSensitivityWarning == 1)
-                                        {
-                                            if (abs(LastAim5Detected) > EPSILON &&
-                                                abs(CurrentTime - LastAim5Detected) < 0.75f)
-                                            {
-                                                if (!IsAngleEditByEngine() && !IsPlayerInDuck() && !IsPlayerUnDuck())
-                                                {
-                                                    DemoScanner_AddWarn(
-                                                        "[AIM TYPE 5.4 " + CurrentWeapon + "] at (" + LastAim5Detected +
-                                                        "):" + GetTimeString(LastAim5Detected), false);
-                                                    LastAim5Detected = 0.0f;
+                                                    if (DemoScanner_AddWarn(
+                                                        "[AIM TYPE 5.2 " + CurrentWeapon + "] at (" + LastAim5Warning + "):" +
+                                                        GetTimeString(LastAim5Warning), !IsPlayerLossConnection()))
+                                                    {
+                                                        TotalAimBotDetected++;
+                                                    }
                                                 }
                                                 else
                                                 {
                                                     DemoScanner_AddWarn(
-                                                        "[AIM TYPE 5.6 " + CurrentWeapon + "] at (" + LastAim5Detected +
-                                                        "):" + GetTimeString(LastAim5Detected), false);
-                                                    LastAim5Detected = 0.0f;
+                                                        "[AIM TYPE 5.3 " + CurrentWeapon + "] at (" + LastAim5Warning + "):" +
+                                                        GetTimeString(LastAim5Warning), false);
                                                 }
-                                            }
 
-                                            if (abs(LastAim5Warning) > EPSILON &&
-                                                abs(CurrentTime - LastAim5Warning) < 0.75f)
-                                            {
-                                                if (!IsAngleEditByEngine() && !IsPlayerInDuck() && !IsPlayerUnDuck())
-                                                {
-                                                    DemoScanner_AddWarn(
-                                                        "[AIM TYPE 5.4 " + CurrentWeapon + "] at (" + LastAim5Warning +
-                                                        "):" + GetTimeString(LastAim5Warning), false);
-                                                    LastAim5Warning = 0.0f;
-                                                }
-                                                else
-                                                {
-                                                    DemoScanner_AddWarn(
-                                                        "[AIM TYPE 5.7 " + CurrentWeapon + "] at (" + LastAim5Warning +
-                                                        "):" + GetTimeString(LastAim5Warning), false);
-                                                    LastAim5Warning = 0.0f;
-                                                }
-                                            }
-
-                                            PlayerSensitivityWarning = 0;
-                                        }
-                                        else if (PlayerSensitivityWarning == 2)
-                                        {
-                                            if (abs(LastAim5Warning) > EPSILON &&
-                                                abs(CurrentTime - LastAim5Warning) < 0.75f)
-                                            {
-                                                DemoScanner_AddWarn(
-                                                    "[AIM TYPE 5.10 " + CurrentWeapon + "] at (" + LastAim5Warning + "):" +
-                                                    GetTimeString(LastAim5Warning), false);
+                                                LastAim5Detected = 0.0f;
                                                 LastAim5Warning = 0.0f;
                                             }
-
-                                            PlayerSensitivityWarning = 0;
-                                        }
-                                        else
-                                        {
-                                            if (abs(LastAim5Detected) > EPSILON &&
-                                                abs(CurrentTime - LastAim5Detected) > 0.75f)
+                                            else if (PlayerSensitivityWarning == 1)
                                             {
-                                                if (!IsAngleEditByEngine() && !IsPlayerInDuck() && !IsPlayerUnDuck())
+                                                if (abs(LastAim5Detected) > EPSILON &&
+                                                    abs(CurrentTime - LastAim5Detected) < 0.75f)
+                                                {
+                                                    if (!IsAngleEditByEngine() && !IsPlayerInDuck() && !IsPlayerUnDuck())
+                                                    {
+                                                        DemoScanner_AddWarn(
+                                                            "[AIM TYPE 5.4 " + CurrentWeapon + "] at (" + LastAim5Detected +
+                                                            "):" + GetTimeString(LastAim5Detected), false);
+                                                        LastAim5Detected = 0.0f;
+                                                    }
+                                                    else
+                                                    {
+                                                        DemoScanner_AddWarn(
+                                                            "[AIM TYPE 5.6 " + CurrentWeapon + "] at (" + LastAim5Detected +
+                                                            "):" + GetTimeString(LastAim5Detected), false);
+                                                        LastAim5Detected = 0.0f;
+                                                    }
+                                                }
+
+                                                if (abs(LastAim5Warning) > EPSILON &&
+                                                    abs(CurrentTime - LastAim5Warning) < 0.75f)
+                                                {
+                                                    if (!IsAngleEditByEngine() && !IsPlayerInDuck() && !IsPlayerUnDuck())
+                                                    {
+                                                        DemoScanner_AddWarn(
+                                                            "[AIM TYPE 5.4 " + CurrentWeapon + "] at (" + LastAim5Warning +
+                                                            "):" + GetTimeString(LastAim5Warning), false);
+                                                        LastAim5Warning = 0.0f;
+                                                    }
+                                                    else
+                                                    {
+                                                        DemoScanner_AddWarn(
+                                                            "[AIM TYPE 5.7 " + CurrentWeapon + "] at (" + LastAim5Warning +
+                                                            "):" + GetTimeString(LastAim5Warning), false);
+                                                        LastAim5Warning = 0.0f;
+                                                    }
+                                                }
+
+                                                PlayerSensitivityWarning = 0;
+                                            }
+                                            else if (PlayerSensitivityWarning == 2)
+                                            {
+                                                if (abs(LastAim5Warning) > EPSILON &&
+                                                    abs(CurrentTime - LastAim5Warning) < 0.75f)
                                                 {
                                                     DemoScanner_AddWarn(
-                                                        "[AIM TYPE 5.5 " + CurrentWeapon + "] at (" + LastAim5Detected +
-                                                        "):" + GetTimeString(LastAim5Detected), false);
-                                                    LastAim5Detected = 0.0f;
-                                                    PlayerSensitivityWarning = 0;
+                                                        "[AIM TYPE 5.10 " + CurrentWeapon + "] at (" + LastAim5Warning + "):" +
+                                                        GetTimeString(LastAim5Warning), false);
+                                                    LastAim5Warning = 0.0f;
+                                                }
+
+                                                PlayerSensitivityWarning = 0;
+                                            }
+                                            else
+                                            {
+                                                if (abs(LastAim5Detected) > EPSILON &&
+                                                    abs(CurrentTime - LastAim5Detected) > 0.75f)
+                                                {
+                                                    if (!IsAngleEditByEngine() && !IsPlayerInDuck() && !IsPlayerUnDuck())
+                                                    {
+                                                        DemoScanner_AddWarn(
+                                                            "[AIM TYPE 5.5 " + CurrentWeapon + "] at (" + LastAim5Detected +
+                                                            "):" + GetTimeString(LastAim5Detected), false);
+                                                        LastAim5Detected = 0.0f;
+                                                        PlayerSensitivityWarning = 0;
+                                                    }
+                                                    else
+                                                    {
+                                                        DemoScanner_AddWarn(
+                                                            "[AIM TYPE 5.8 " + CurrentWeapon + "] at (" + LastAim5Detected +
+                                                            "):" + GetTimeString(LastAim5Detected), false);
+                                                        LastAim5Detected = 0.0f;
+                                                        PlayerSensitivityWarning = 0;
+                                                    }
+                                                }
+
+                                                if (abs(LastAim5Warning) > EPSILON &&
+                                                    abs(CurrentTime - LastAim5Warning) > 0.75f)
+                                                {
+                                                    if (!IsAngleEditByEngine() && !IsPlayerInDuck() && !IsPlayerUnDuck())
+                                                    {
+                                                        DemoScanner_AddWarn(
+                                                            "[AIM TYPE 5.5 " + CurrentWeapon + "] at (" + LastAim5Warning +
+                                                            "):" + GetTimeString(LastAim5Warning), false);
+                                                        LastAim5Warning = 0.0f;
+                                                        PlayerSensitivityWarning = 0;
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        if (abs(tmpXangle) > EPSILON && tmpXangle < flAngleRealDetect)
+                                        {
+                                            if (CurrentWeapon == WeaponIdType.WEAPON_C4 ||
+                                                CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE ||
+                                                CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE ||
+                                                CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG ||
+                                                CurrentWeapon == WeaponIdType.WEAPON_NONE ||
+                                                CurrentWeapon == WeaponIdType.WEAPON_BAD ||
+                                                CurrentWeapon == WeaponIdType.WEAPON_BAD2)
+                                            {
+                                            }
+                                            else
+                                            {
+                                                if (CurrentFrameAttacked || PreviousFrameAttacked || BadPunchAngle ||
+                                                    IsTakeDamage() || IsPlayerLossConnection() || IsAngleEditByEngine() ||
+                                                    IsCmdChangeWeapon() || IsRealChangeWeapon() || IsPlayerInDuck() || IsPlayerUnDuck() || skip_sens_check)
+                                                {
+                                                    LastAim5Warning = CurrentTime;
+                                                    PlayerSensitivityWarning = 1;
                                                 }
                                                 else
                                                 {
-                                                    DemoScanner_AddWarn(
-                                                        "[AIM TYPE 5.8 " + CurrentWeapon + "] at (" + LastAim5Detected +
-                                                        "):" + GetTimeString(LastAim5Detected), false);
-                                                    LastAim5Detected = 0.0f;
                                                     PlayerSensitivityWarning = 0;
-                                                }
-                                            }
-
-                                            if (abs(LastAim5Warning) > EPSILON &&
-                                                abs(CurrentTime - LastAim5Warning) > 0.75f)
-                                            {
-                                                if (!IsAngleEditByEngine() && !IsPlayerInDuck() && !IsPlayerUnDuck())
-                                                {
-                                                    DemoScanner_AddWarn(
-                                                        "[AIM TYPE 5.5 " + CurrentWeapon + "] at (" + LastAim5Warning +
-                                                        "):" + GetTimeString(LastAim5Warning), false);
-                                                    LastAim5Warning = 0.0f;
-                                                    PlayerSensitivityWarning = 0;
+                                                    LastAim5Detected = CurrentTime;
                                                 }
                                             }
                                         }
-                                    }
-
-                                    if (abs(tmpXangle) > EPSILON && tmpXangle < flAngleRealDetect)
-                                    {
-                                        if (CurrentWeapon == WeaponIdType.WEAPON_C4 ||
-                                            CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE ||
-                                            CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE ||
-                                            CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG ||
-                                            CurrentWeapon == WeaponIdType.WEAPON_NONE ||
-                                            CurrentWeapon == WeaponIdType.WEAPON_BAD ||
-                                            CurrentWeapon == WeaponIdType.WEAPON_BAD2)
+                                        else if (abs(tmpXangle) > EPSILON && tmpXangle < flAngleWarnDetect &&
+                                                 (LastAim5Detected < EPSILON ||
+                                                  abs(CurrentTime - LastAim5Detected) > 0.5f))
                                         {
-                                        }
-                                        else
-                                        {
-                                            if (CurrentFrameAttacked || PreviousFrameAttacked || BadPunchAngle ||
-                                                IsTakeDamage() || IsPlayerLossConnection() || IsAngleEditByEngine() ||
-                                                IsCmdChangeWeapon() || IsRealChangeWeapon() || IsPlayerInDuck() || IsPlayerUnDuck() || skip_sens_check)
+                                            if (CurrentWeapon == WeaponIdType.WEAPON_C4 ||
+                                                CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE ||
+                                                CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE ||
+                                                CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG ||
+                                                CurrentWeapon == WeaponIdType.WEAPON_NONE ||
+                                                CurrentWeapon == WeaponIdType.WEAPON_BAD ||
+                                                CurrentWeapon == WeaponIdType.WEAPON_BAD2)
                                             {
-                                                LastAim5Warning = CurrentTime;
+                                            }
+                                            else
+                                            {
                                                 PlayerSensitivityWarning = 1;
-                                            }
-                                            else
-                                            {
-                                                PlayerSensitivityWarning = 0;
-                                                LastAim5Detected = CurrentTime;
+                                                LastAim5Warning = CurrentTime;
                                             }
                                         }
-                                    }
-                                    else if (abs(tmpXangle) > EPSILON && tmpXangle < flAngleWarnDetect &&
-                                             (LastAim5Detected < EPSILON ||
-                                              abs(CurrentTime - LastAim5Detected) > 0.5f))
-                                    {
-                                        if (CurrentWeapon == WeaponIdType.WEAPON_C4 ||
-                                            CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE ||
-                                            CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE ||
-                                            CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG ||
-                                            CurrentWeapon == WeaponIdType.WEAPON_NONE ||
+                                        else if (abs(tmpYangle) > EPSILON && tmpYangle < flAngleRealDetect)
+                                        {
+                                            if (CurrentWeapon == WeaponIdType.WEAPON_C4 ||
+                                                CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE ||
+                                                CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE ||
+                                                CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG ||
+                                                CurrentWeapon == WeaponIdType.WEAPON_NONE ||
+                                                CurrentWeapon == WeaponIdType.WEAPON_BAD ||
+                                                CurrentWeapon == WeaponIdType.WEAPON_BAD2)
+                                            {
+                                            }
+                                            //if (!CurrentFrameAttacked
+                                            //        && !PreviousFrameAttacked && CurrentFrameOnGround && PreviousFrameOnGround && !BadPunchAngle && !IsTakeDamage() && !IsAngleEditByEngine())
+                                            //{
+                                            //    Console.WriteLine("PREV_CDFRAME_ViewAngles.Y=" + PREV_CDFRAME_ViewAngles.Y + " CDFRAME_ViewAngles.Y=",)
+                                            //    LastAim5Detected = CurrentTime;
+                                            //    PlayerSensitivityWarning = 2;
+                                            //}
+                                        }
+
+                                        if (CurrentSensitivity < 0.0 ||
+                                            (abs(tmpXangle) > EPSILON && tmpXangle < CurrentSensitivity))
+                                        {
+                                            CurrentSensitivity = tmpXangle;
+                                        }
+
+                                        if (CurrentWeapon == WeaponIdType.WEAPON_NONE ||
                                             CurrentWeapon == WeaponIdType.WEAPON_BAD ||
                                             CurrentWeapon == WeaponIdType.WEAPON_BAD2)
                                         {
+                                            //fixyou
                                         }
                                         else
                                         {
-                                            PlayerSensitivityWarning = 1;
-                                            LastAim5Warning = CurrentTime;
+                                            LastSensWeapon = CurrentWeapon.ToString();
                                         }
-                                    }
-                                    else if (abs(tmpYangle) > EPSILON && tmpYangle < flAngleRealDetect)
-                                    {
-                                        if (CurrentWeapon == WeaponIdType.WEAPON_C4 ||
-                                            CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE ||
-                                            CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE ||
-                                            CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG ||
-                                            CurrentWeapon == WeaponIdType.WEAPON_NONE ||
-                                            CurrentWeapon == WeaponIdType.WEAPON_BAD ||
-                                            CurrentWeapon == WeaponIdType.WEAPON_BAD2)
+
+                                        if (SecondFound && LastSecondString != LastKnowTimeString)
                                         {
-                                        }
-                                        //if (!CurrentFrameAttacked
-                                        //        && !PreviousFrameAttacked && CurrentFrameOnGround && PreviousFrameOnGround && !BadPunchAngle && !IsTakeDamage() && !IsAngleEditByEngine())
-                                        //{
-                                        //    Console.WriteLine("PREV_CDFRAME_ViewAngles.Y=" + PREV_CDFRAME_ViewAngles.Y + " CDFRAME_ViewAngles.Y=",)
-                                        //    LastAim5Detected = CurrentTime;
-                                        //    PlayerSensitivityWarning = 2;
-                                        //}
-                                    }
-
-                                    if (CurrentSensitivity < 0.0 ||
-                                        (abs(tmpXangle) > EPSILON && tmpXangle < CurrentSensitivity))
-                                    {
-                                        CurrentSensitivity = tmpXangle;
-                                    }
-
-                                    if (CurrentWeapon == WeaponIdType.WEAPON_NONE ||
-                                        CurrentWeapon == WeaponIdType.WEAPON_BAD ||
-                                        CurrentWeapon == WeaponIdType.WEAPON_BAD2)
-                                    {
-                                        //fixyou
-                                    }
-                                    else
-                                    {
-                                        LastSensWeapon = CurrentWeapon.ToString();
-                                    }
-
-                                    if (SecondFound && LastSecondString != LastKnowTimeString)
-                                    {
-                                        if (abs(CurrentSensitivity) > EPSILON)
-                                        {
-                                            LastSecondString = LastKnowTimeString;
-                                            if (AngleLength > EPSILON && abs(CurrentTime - AngleLengthStartTime) > 0.5)
+                                            if (abs(CurrentSensitivity) > EPSILON)
                                             {
-                                                PlayerAngleLenHistory.Add(AngleLength /
-                                                                          abs(CurrentTime - AngleLengthStartTime));
-                                                AngleLength = -1.0f;
-                                            }
-                                            else
-                                            {
-                                                PlayerAngleLenHistory.Add(0.0f);
-                                            }
-
-                                            PlayerSensitivityHistory.Add(CurrentSensitivity);
-                                            PlayerSensitivityHistoryStrTime.Add("(" + LastFpsCheckTime + "): " +
-                                                                                LastKnowTimeString);
-                                            PlayerSensitivityHistoryStrWeapon.Add(LastSensWeapon);
-                                            PlayerSensitivityHistoryStrFOV.Add((int)checkFov + "/" + (int)checkFov2);
-                                        }
-
-                                        CurrentSensitivity = -1.0f;
-                                    }
-
-
-                                    if (IsAngleEditByEngine() || !CurrentFrameOnGround || IsRealChangeWeapon() || IsCmdChangeWeapon())
-                                    {
-                                        AimType7Frames = -2;
-                                        AimType7Event = 0;
-                                        OldAimType7Time = 0.0f;
-                                    }
-
-                                    if (AimType7Event == 2 || AimType7Event == 3 || AimType7Event == 4 ||
-                                        AimType7Event == 5)
-                                    {
-                                        if (abs(tmpXangle) < EPSILON && abs(tmpYangle) < EPSILON && AimType7Frames < 20)
-                                        {
-                                            AimType7Frames++;
-                                        }
-                                        else
-                                        {
-                                            // Console.WriteLine("11");
-                                            if (AimType7Frames > 2)
-                                            {
-                                                if (AimType7Event == 4)
+                                                LastSecondString = LastKnowTimeString;
+                                                if (AngleLength > EPSILON && abs(CurrentTime - AngleLengthStartTime) > 0.5)
                                                 {
-                                                    Aim73FalseSkip--;
+                                                    PlayerAngleLenHistory.Add(AngleLength /
+                                                                              abs(CurrentTime - AngleLengthStartTime));
+                                                    AngleLength = -1.0f;
+                                                }
+                                                else
+                                                {
+                                                    PlayerAngleLenHistory.Add(0.0f);
                                                 }
 
-                                                if (AngleBetween(Aim8CurrentFrameViewanglesY, CDFRAME_ViewAngles.Y) >
-                                                    EPSILON &&
-                                                    AngleBetween(Aim8CurrentFrameViewanglesX, CDFRAME_ViewAngles.X) >
-                                                    EPSILON && !IsAngleEditByEngine() &&
-                                                    CurrentFrameOnGround)
+                                                PlayerSensitivityHistory.Add(CurrentSensitivity);
+                                                PlayerSensitivityHistoryStrTime.Add("(" + LastFpsCheckTime + "): " +
+                                                                                    LastKnowTimeString);
+                                                PlayerSensitivityHistoryStrWeapon.Add(LastSensWeapon);
+                                                PlayerSensitivityHistoryStrFOV.Add((int)checkFov + "/" + (int)checkFov2);
+                                            }
+
+                                            CurrentSensitivity = -1.0f;
+                                        }
+
+
+                                        if (IsAngleEditByEngine() || !CurrentFrameOnGround || IsRealChangeWeapon() || IsCmdChangeWeapon())
+                                        {
+                                            AimType7Frames = -2;
+                                            AimType7Event = 0;
+                                            OldAimType7Time = 0.0f;
+                                        }
+
+                                        if (AimType7Event == 2 || AimType7Event == 3 || AimType7Event == 4 ||
+                                            AimType7Event == 5)
+                                        {
+                                            if (abs(tmpXangle) < EPSILON && abs(tmpYangle) < EPSILON && AimType7Frames < 20)
+                                            {
+                                                AimType7Frames++;
+                                            }
+                                            else
+                                            {
+                                                // Console.WriteLine("11");
+                                                if (AimType7Frames > 2)
                                                 {
-                                                    if (AimType7Event == 4 && Aim73FalseSkip < 0)
+                                                    if (AimType7Event == 4)
                                                     {
-                                                        var tmpangle2 = AngleBetween(Aim8CurrentFrameViewanglesX,
-                                                            CDFRAME_ViewAngles.X);
-                                                        tmpangle2 += AngleBetween(Aim8CurrentFrameViewanglesY,
-                                                            CDFRAME_ViewAngles.Y);
-                                                        var Aim7var1 = OldAimType7Frames;
-                                                        var Aim7var2 = AimType7Frames;
-                                                        var Aim7var3 = 0;
-                                                        var Aim7detected = true;
-                                                        var Aim7str = GetAim7String(ref Aim7var1, ref Aim7var2,
-                                                            ref Aim7var3, AimType7Event, tmpangle2, ref Aim7detected);
-                                                        if (Aim7detected && abs(OldAimType7Time) > EPSILON)
+                                                        Aim73FalseSkip--;
+                                                    }
+
+                                                    if (AngleBetween(Aim8CurrentFrameViewanglesY, CDFRAME_ViewAngles.Y) >
+                                                        EPSILON &&
+                                                        AngleBetween(Aim8CurrentFrameViewanglesX, CDFRAME_ViewAngles.X) >
+                                                        EPSILON && !IsAngleEditByEngine() &&
+                                                        CurrentFrameOnGround)
+                                                    {
+                                                        if (AimType7Event == 4 && Aim73FalseSkip < 0)
                                                         {
-                                                            if (DemoScanner_AddWarn(
-                                                                Aim7str + " at (" + OldAimType7Time + "):" +
-                                                                GetTimeString(OldAimType7Time),
-                                                                Aim7detected && Aim7var3 > 50 && Aim7var1 >= 20 &&
-                                                                Aim7var2 >= 20 && !IsCmdChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck() && !IsPlayerLossConnection()))
+                                                            var tmpangle2 = AngleBetween(Aim8CurrentFrameViewanglesX,
+                                                                CDFRAME_ViewAngles.X);
+                                                            tmpangle2 += AngleBetween(Aim8CurrentFrameViewanglesY,
+                                                                CDFRAME_ViewAngles.Y);
+                                                            var Aim7var1 = OldAimType7Frames;
+                                                            var Aim7var2 = AimType7Frames;
+                                                            var Aim7var3 = 0;
+                                                            var Aim7detected = true;
+                                                            var Aim7str = GetAim7String(ref Aim7var1, ref Aim7var2,
+                                                                ref Aim7var3, AimType7Event, tmpangle2, ref Aim7detected);
+                                                            if (Aim7detected && abs(OldAimType7Time) > EPSILON)
                                                             {
-                                                                if (Aim7var3 > 50)
+                                                                if (DemoScanner_AddWarn(
+                                                                    Aim7str + " at (" + OldAimType7Time + "):" +
+                                                                    GetTimeString(OldAimType7Time),
+                                                                    Aim7detected && Aim7var3 > 50 && Aim7var1 >= 20 &&
+                                                                    Aim7var2 >= 20 && !IsCmdChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck() && !IsPlayerLossConnection()))
                                                                 {
-                                                                    TotalAimBotDetected++;
+                                                                    if (Aim7var3 > 50)
+                                                                    {
+                                                                        TotalAimBotDetected++;
+                                                                    }
                                                                 }
                                                             }
                                                         }
-                                                    }
-                                                    else if (AimType7Event != 4)
-                                                    {
-                                                        var tmpangle2 = AngleBetween(Aim8CurrentFrameViewanglesX,
-                                                            CDFRAME_ViewAngles.X);
-                                                        tmpangle2 += AngleBetween(Aim8CurrentFrameViewanglesY,
-                                                            CDFRAME_ViewAngles.Y);
-                                                        var Aim7var1 = OldAimType7Frames;
-                                                        var Aim7var2 = AimType7Frames;
-                                                        var Aim7var3 = 0;
-                                                        var Aim7detected = true;
-                                                        var Aim7str = GetAim7String(ref Aim7var1, ref Aim7var2,
-                                                            ref Aim7var3, AimType7Event, tmpangle2, ref Aim7detected);
-                                                        if (Aim7detected && abs(OldAimType7Time) > EPSILON)
+                                                        else if (AimType7Event != 4)
                                                         {
-                                                            DemoScanner_AddWarn(
-                                                                Aim7str + " at (" + OldAimType7Time + "):" +
-                                                                GetTimeString(OldAimType7Time),
-                                                                Aim7detected && Aim7var3 > 50 && Aim7var1 >= 30 &&
-                                                                Aim7var2 >= 30 && !IsCmdChangeWeapon() && !IsPlayerLossConnection());
+                                                            var tmpangle2 = AngleBetween(Aim8CurrentFrameViewanglesX,
+                                                                CDFRAME_ViewAngles.X);
+                                                            tmpangle2 += AngleBetween(Aim8CurrentFrameViewanglesY,
+                                                                CDFRAME_ViewAngles.Y);
+                                                            var Aim7var1 = OldAimType7Frames;
+                                                            var Aim7var2 = AimType7Frames;
+                                                            var Aim7var3 = 0;
+                                                            var Aim7detected = true;
+                                                            var Aim7str = GetAim7String(ref Aim7var1, ref Aim7var2,
+                                                                ref Aim7var3, AimType7Event, tmpangle2, ref Aim7detected);
+                                                            if (Aim7detected && abs(OldAimType7Time) > EPSILON)
+                                                            {
+                                                                DemoScanner_AddWarn(
+                                                                    Aim7str + " at (" + OldAimType7Time + "):" +
+                                                                    GetTimeString(OldAimType7Time),
+                                                                    Aim7detected && Aim7var3 > 50 && Aim7var1 >= 30 &&
+                                                                    Aim7var2 >= 30 && !IsCmdChangeWeapon() && !IsPlayerLossConnection());
+                                                            }
                                                         }
                                                     }
                                                 }
-                                            }
 
-                                            if (AngleBetween(Aim8CurrentFrameViewanglesY, CDFRAME_ViewAngles.Y) < EPSILON &&
-                                                !IsAngleEditByEngine() && CurrentFrameOnGround /* &&
+                                                if (AngleBetween(Aim8CurrentFrameViewanglesY, CDFRAME_ViewAngles.Y) < EPSILON &&
+                                                    !IsAngleEditByEngine() && CurrentFrameOnGround /* &&
                                                     Aim8CurrentFrameViewanglesX !=
                                                     CurrentFrameViewanglesX*/)
+                                                {
+                                                    AimType7Event += 10;
+                                                    var tmpangle2 = AngleBetween(Aim8CurrentFrameViewanglesX,
+                                                        CDFRAME_ViewAngles.X);
+                                                    tmpangle2 += AngleBetween(Aim8CurrentFrameViewanglesY,
+                                                        CDFRAME_ViewAngles.Y);
+                                                    var Aim7var1 = OldAimType7Frames;
+                                                    var Aim7var2 = AimType7Frames;
+                                                    var Aim7var3 = 0;
+                                                    var Aim7detected = true;
+                                                    var Aim7str = GetAim7String(ref Aim7var1, ref Aim7var2, ref Aim7var3,
+                                                        AimType7Event, tmpangle2, ref Aim7detected);
+                                                    if (Aim7detected && abs(OldAimType7Time) > EPSILON)
+                                                    {
+                                                        DemoScanner_AddWarn(
+                                                            Aim7str + " at (" + OldAimType7Time + "):" +
+                                                            GetTimeString(OldAimType7Time),
+                                                            Aim7detected && !IsPlayerLossConnection() && Aim7var3 > 50 &&
+                                                            Aim7var1 >= 20 && Aim7var2 >= 20 && !IsCmdChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck());
+                                                    }
+                                                }
+
+                                                AimType7Frames = 0;
+                                                AimType7Event = 0;
+                                            }
+                                        }
+
+                                        if (AimType7Event == 1)
+                                        {
+                                            AimType7Event = abs(tmpXangle) > EPSILON && abs(tmpYangle) > EPSILON ? 52 : 53;
+                                        }
+                                        else if (AimType7Event == 11)
+                                        {
+                                            AimType7Event = abs(tmpXangle) > EPSILON && abs(tmpYangle) > EPSILON ? 4 : 0;
+                                        }
+
+                                        // Если AimType7Event равен 0 то искать паттерн
+                                        /*
+                                                  5 кадров нет движения
+                                                  в момент выстрела прицел изменяет свое положение
+                                                  следующий кадр изменение и 5 кадров нет движения
+                                            */
+                                        if (AimType7Event == 0)
+                                        {
+                                            // Если угол не изменился
+                                            if (abs(tmpXangle) < EPSILON && abs(tmpYangle) < EPSILON /* &&
+                                        !CurrentFrameAttacked*/)
                                             {
-                                                AimType7Event += 10;
-                                                var tmpangle2 = AngleBetween(Aim8CurrentFrameViewanglesX,
-                                                    CDFRAME_ViewAngles.X);
-                                                tmpangle2 += AngleBetween(Aim8CurrentFrameViewanglesY,
-                                                    CDFRAME_ViewAngles.Y);
-                                                var Aim7var1 = OldAimType7Frames;
-                                                var Aim7var2 = AimType7Frames;
-                                                var Aim7var3 = 0;
-                                                var Aim7detected = true;
-                                                var Aim7str = GetAim7String(ref Aim7var1, ref Aim7var2, ref Aim7var3,
-                                                    AimType7Event, tmpangle2, ref Aim7detected);
-                                                if (Aim7detected && abs(OldAimType7Time) > EPSILON)
+                                                // Console.WriteLine("3");
+                                                Aim8CurrentFrameViewanglesY = CDFRAME_ViewAngles.Y;
+                                                Aim8CurrentFrameViewanglesX = CDFRAME_ViewAngles.X;
+                                                // if (!CurrentFrameDuplicated)
+                                                AimType7Frames++;
+                                            }
+                                            // Иначе Если угол изменился и набралось больше 1 таких кадров то вкл поиск аим
+                                            else
+                                            {
+                                                if (AimType7Frames > 1 && abs(tmpXangle) > EPSILON && abs(tmpYangle) > EPSILON)
+                                                {
+                                                    OldAimType7Time = CurrentTime;
+                                                    //Console.WriteLine("4");
+                                                    OldAimType7Frames = AimType7Frames;
+                                                    AimType7Event = 1;
+                                                    if (CurrentFrameAttacked)
+                                                    {
+                                                        AimType7Event = 11;
+                                                    }
+                                                }
+
+                                                AimType7Frames = 0;
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        LastAim5Detected = 0.0f;
+                                        LastAim5Warning = 0.0f;
+                                        AimType7Event = 0;
+                                        AimType7Frames = 0;
+                                        OldAimType7Time = 0.0f;
+                                    }
+
+                                    //Console.Write(RealAlive);
+                                    //Console.Write(" ");
+                                    //Console.Write(CurrentSensitivity);
+                                    //Console.Write(" ");
+                                    //Console.Write(tmpXangle);
+                                    //Console.Write(" ");
+                                    //Console.Write(SecondFound);
+                                    //Console.Write("\n");
+                                    break;
+                                }
+
+                            case GoldSource.DemoFrameType.NextSection:
+                                {
+                                    NewDirectory = true;
+                                    break;
+                                }
+
+                            case GoldSource.DemoFrameType.Event:
+                                {
+                                    CurrentEvents++;
+                                    LASTFRAMEISCLIENTDATA = false;
+
+                                    LastEventDetectTime = CurrentTime;
+
+                                    if (DUMP_ALL_FRAMES)
+                                    {
+                                        subnode.Text += "{\n";
+                                    }
+
+                                    var eframe = (GoldSource.EventFrame)frame.Value;
+
+                                    //bool found = false;
+
+                                    //foreach (var res in DownloadedResources)
+                                    //{
+                                    //    if (res.res_index == eframe.Index && res.res_type == 5)
+                                    //    {
+                                    //        found = true;
+                                    //        Console.WriteLine("Event:" + res.res_path + " at " + CurrentTimeString);
+                                    //    }
+                                    //}
+
+                                    //if (!found)
+                                    //    Console.WriteLine("Event:" + "[UNKNOWN]" + " at " + CurrentTimeString);
+
+                                    LastEventId = eframe.Index;
+
+                                    if (abs(LastEventDetectTime) > EPSILON && abs(LastAttackPressed - LastEventDetectTime) > 0.25 && !IsInAttack())
+                                    {
+
+                                    }
+                                    else
+                                    {
+                                        LastEventDetectTime = 0.0f;
+                                    }
+
+                                    if (DUMP_ALL_FRAMES)
+                                    {
+                                        subnode.Text += "Flags = " + eframe.Flags + "\n";
+                                        subnode.Text += "Index = " + eframe.Index + "\n";
+                                        subnode.Text += "Delay = " + eframe.Delay + "\n";
+                                        subnode.Text += "EventArgumentsFlags = " + eframe.EventArguments.Flags + "\n";
+                                        subnode.Text += "EntityIndex = " + eframe.EventArguments.EntityIndex + "\n";
+                                        subnode.Text += "Origin.X = " + eframe.EventArguments.Origin.X + "\n";
+                                        subnode.Text += "Origin.Y = " + eframe.EventArguments.Origin.Y + "\n";
+                                        subnode.Text += "Origin.Z = " + eframe.EventArguments.Origin.Z + "\n";
+                                        subnode.Text += "Angles.X = " + eframe.EventArguments.Angles.X + "\n";
+                                        subnode.Text += "Angles.Y = " + eframe.EventArguments.Angles.Y + "\n";
+                                        subnode.Text += "Angles.Z = " + eframe.EventArguments.Angles.Z + "\n";
+                                        subnode.Text += "Velocity.X = " + eframe.EventArguments.Velocity.X + "\n";
+                                        subnode.Text += "Velocity.Y = " + eframe.EventArguments.Velocity.Y + "\n";
+                                        subnode.Text += "Velocity.Z = " + eframe.EventArguments.Velocity.Z + "\n";
+                                        subnode.Text += "Ducking = " + eframe.EventArguments.Ducking + "\n";
+                                        subnode.Text += "Fparam1 = " + eframe.EventArguments.Fparam1 + "\n";
+                                        subnode.Text += "Fparam2 = " + eframe.EventArguments.Fparam2 + "\n";
+                                        subnode.Text += "Iparam1 = " + eframe.EventArguments.Iparam1 + "\n";
+                                        subnode.Text += "Iparam2 = " + eframe.EventArguments.Iparam2 + "\n";
+                                        subnode.Text += "Bparam1 = " + eframe.EventArguments.Bparam1 + "\n";
+                                        subnode.Text += "Bparam2 = " + eframe.EventArguments.Bparam2 + "\n";
+                                        subnode.Text += "}\n";
+                                    }
+
+                                    if (abs(CurrentTime - LastClientDataTime) < EPSILON &&
+                                        abs(CurrentTime - LastAttackStartStopCmdTime) < EPSILON)
+                                    {
+                                        if (eframe.EventArguments.Iparam1 == 0 && eframe.EventArguments.Iparam2 == 0 &&
+                                            abs(CurrentNetMsgFrame.RParms.Punchangle.Y) < EPSILON)
+                                        {
+                                            if (abs(eframe.EventArguments.Origin.X) > EPSILON ||
+                                                abs(eframe.EventArguments.Origin.Y) > EPSILON ||
+                                                abs(eframe.EventArguments.Origin.Z) > EPSILON)
+                                            {
+                                                if (AngleBetween(CDFRAME_ViewAngles.Y, eframe.EventArguments.Angles.Y) >
+                                                    EPSILON && AngleBetween(PREV_CDFRAME_ViewAngles.Y,
+                                                        eframe.EventArguments.Angles.Y) > EPSILON)
                                                 {
                                                     DemoScanner_AddWarn(
-                                                        Aim7str + " at (" + OldAimType7Time + "):" +
-                                                        GetTimeString(OldAimType7Time),
-                                                        Aim7detected && !IsPlayerLossConnection() && Aim7var3 > 50 &&
-                                                        Aim7var1 >= 20 && Aim7var2 >= 20 && !IsCmdChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck());
+                                                        "[BETA] [AIM TYPE 10 " + CurrentWeapon + "] at (" + IsAttackLastTime +
+                                                        "):" + LastKnowTimeString, false);
                                                 }
                                             }
-
-                                            AimType7Frames = 0;
-                                            AimType7Event = 0;
                                         }
                                     }
 
-                                    if (AimType7Event == 1)
+                                    break;
+                                }
+
+                            case GoldSource.DemoFrameType.WeaponAnim:
+                                {
+                                    LASTFRAMEISCLIENTDATA = false;
+                                    if (DUMP_ALL_FRAMES)
                                     {
-                                        AimType7Event = abs(tmpXangle) > EPSILON && abs(tmpYangle) > EPSILON ? 52 : 53;
-                                    }
-                                    else if (AimType7Event == 11)
-                                    {
-                                        AimType7Event = abs(tmpXangle) > EPSILON && abs(tmpYangle) > EPSILON ? 4 : 0;
+                                        subnode.Text += "{\n";
                                     }
 
-                                    // Если AimType7Event равен 0 то искать паттерн
-                                    /*
-                                              5 кадров нет движения
-                                              в момент выстрела прицел изменяет свое положение
-                                              следующий кадр изменение и 5 кадров нет движения
-                                        */
-                                    if (AimType7Event == 0)
+                                    var waframe = (GoldSource.WeaponAnimFrame)frame.Value;
+                                    if (DUMP_ALL_FRAMES)
                                     {
-                                        // Если угол не изменился
-                                        if (abs(tmpXangle) < EPSILON && abs(tmpYangle) < EPSILON /* &&
-                                        !CurrentFrameAttacked*/)
+                                        subnode.Text += "Anim = " + waframe.Anim + "\n";
+                                        subnode.Text += "Body = " + waframe.Body + "\n";
+                                        subnode.Text += "}\n";
+                                    }
+
+                                    if (RealAlive && !IsRoundEnd() && IsRealWeapon() &&
+                                        CurrentWeapon != WeaponIdType.WEAPON_KNIFE &&
+                                        CurrentWeapon != WeaponIdType.WEAPON_XM1014 &&
+                                        CurrentWeapon != WeaponIdType.WEAPON_M3 &&
+                                        CurrentWeapon != WeaponIdType.WEAPON_HEGRENADE &&
+                                        CurrentWeapon != WeaponIdType.WEAPON_FLASHBANG &&
+                                        CurrentWeapon != WeaponIdType.WEAPON_SMOKEGRENADE &&
+                                        CurrentWeapon != WeaponIdType.WEAPON_C4)
+                                    {
+                                        if (!IsAngleEditByEngine())
                                         {
-                                            // Console.WriteLine("3");
-                                            Aim8CurrentFrameViewanglesY = CDFRAME_ViewAngles.Y;
-                                            Aim8CurrentFrameViewanglesX = CDFRAME_ViewAngles.X;
-                                            // if (!CurrentFrameDuplicated)
-                                            AimType7Frames++;
-                                        }
-                                        // Иначе Если угол изменился и набралось больше 1 таких кадров то вкл поиск аим
-                                        else
-                                        {
-                                            if (AimType7Frames > 1 && abs(tmpXangle) > EPSILON && abs(tmpYangle) > EPSILON)
+                                            if (LastWeaponAnim != WeaponIdType.WEAPON_NONE && LastWeaponAnim != CurrentWeapon)
                                             {
-                                                OldAimType7Time = CurrentTime;
-                                                //Console.WriteLine("4");
-                                                OldAimType7Frames = AimType7Frames;
-                                                AimType7Event = 1;
-                                                if (CurrentFrameAttacked)
-                                                {
-                                                    AimType7Event = 11;
-                                                }
-                                            }
-
-                                            AimType7Frames = 0;
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    LastAim5Detected = 0.0f;
-                                    LastAim5Warning = 0.0f;
-                                    AimType7Event = 0;
-                                    AimType7Frames = 0;
-                                    OldAimType7Time = 0.0f;
-                                }
-
-                                //Console.Write(RealAlive);
-                                //Console.Write(" ");
-                                //Console.Write(CurrentSensitivity);
-                                //Console.Write(" ");
-                                //Console.Write(tmpXangle);
-                                //Console.Write(" ");
-                                //Console.Write(SecondFound);
-                                //Console.Write("\n");
-                                break;
-                            }
-
-                        case GoldSource.DemoFrameType.NextSection:
-                            {
-                                NewDirectory = true;
-                                break;
-                            }
-
-                        case GoldSource.DemoFrameType.Event:
-                            {
-                                CurrentEvents++;
-                                LASTFRAMEISCLIENTDATA = false;
-
-                                LastEventDetectTime = CurrentTime;
-
-                                if (DUMP_ALL_FRAMES)
-                                {
-                                    subnode.Text += "{\n";
-                                }
-
-                                var eframe = (GoldSource.EventFrame)frame.Value;
-
-                                //bool found = false;
-
-                                //foreach (var res in DownloadedResources)
-                                //{
-                                //    if (res.res_index == eframe.Index && res.res_type == 5)
-                                //    {
-                                //        found = true;
-                                //        Console.WriteLine("Event:" + res.res_path + " at " + CurrentTimeString);
-                                //    }
-                                //}
-
-                                //if (!found)
-                                //    Console.WriteLine("Event:" + "[UNKNOWN]" + " at " + CurrentTimeString);
-
-                                LastEventId = eframe.Index;
-
-                                if (abs(LastEventDetectTime) > EPSILON && abs(LastAttackPressed - LastEventDetectTime) > 0.25 && !IsInAttack())
-                                {
-
-                                }
-                                else
-                                {
-                                    LastEventDetectTime = 0.0f;
-                                }
-
-                                if (DUMP_ALL_FRAMES)
-                                {
-                                    subnode.Text += "Flags = " + eframe.Flags + "\n";
-                                    subnode.Text += "Index = " + eframe.Index + "\n";
-                                    subnode.Text += "Delay = " + eframe.Delay + "\n";
-                                    subnode.Text += "EventArgumentsFlags = " + eframe.EventArguments.Flags + "\n";
-                                    subnode.Text += "EntityIndex = " + eframe.EventArguments.EntityIndex + "\n";
-                                    subnode.Text += "Origin.X = " + eframe.EventArguments.Origin.X + "\n";
-                                    subnode.Text += "Origin.Y = " + eframe.EventArguments.Origin.Y + "\n";
-                                    subnode.Text += "Origin.Z = " + eframe.EventArguments.Origin.Z + "\n";
-                                    subnode.Text += "Angles.X = " + eframe.EventArguments.Angles.X + "\n";
-                                    subnode.Text += "Angles.Y = " + eframe.EventArguments.Angles.Y + "\n";
-                                    subnode.Text += "Angles.Z = " + eframe.EventArguments.Angles.Z + "\n";
-                                    subnode.Text += "Velocity.X = " + eframe.EventArguments.Velocity.X + "\n";
-                                    subnode.Text += "Velocity.Y = " + eframe.EventArguments.Velocity.Y + "\n";
-                                    subnode.Text += "Velocity.Z = " + eframe.EventArguments.Velocity.Z + "\n";
-                                    subnode.Text += "Ducking = " + eframe.EventArguments.Ducking + "\n";
-                                    subnode.Text += "Fparam1 = " + eframe.EventArguments.Fparam1 + "\n";
-                                    subnode.Text += "Fparam2 = " + eframe.EventArguments.Fparam2 + "\n";
-                                    subnode.Text += "Iparam1 = " + eframe.EventArguments.Iparam1 + "\n";
-                                    subnode.Text += "Iparam2 = " + eframe.EventArguments.Iparam2 + "\n";
-                                    subnode.Text += "Bparam1 = " + eframe.EventArguments.Bparam1 + "\n";
-                                    subnode.Text += "Bparam2 = " + eframe.EventArguments.Bparam2 + "\n";
-                                    subnode.Text += "}\n";
-                                }
-
-                                if (abs(CurrentTime - LastClientDataTime) < EPSILON &&
-                                    abs(CurrentTime - LastAttackStartStopCmdTime) < EPSILON)
-                                {
-                                    if (eframe.EventArguments.Iparam1 == 0 && eframe.EventArguments.Iparam2 == 0 &&
-                                        abs(CurrentNetMsgFrame.RParms.Punchangle.Y) < EPSILON)
-                                    {
-                                        if (abs(eframe.EventArguments.Origin.X) > EPSILON ||
-                                            abs(eframe.EventArguments.Origin.Y) > EPSILON ||
-                                            abs(eframe.EventArguments.Origin.Z) > EPSILON)
-                                        {
-                                            if (AngleBetween(CDFRAME_ViewAngles.Y, eframe.EventArguments.Angles.Y) >
-                                                EPSILON && AngleBetween(PREV_CDFRAME_ViewAngles.Y,
-                                                    eframe.EventArguments.Angles.Y) > EPSILON)
-                                            {
-                                                DemoScanner_AddWarn(
-                                                    "[BETA] [AIM TYPE 10 " + CurrentWeapon + "] at (" + IsAttackLastTime +
-                                                    "):" + LastKnowTimeString, false);
-                                            }
-                                        }
-                                    }
-                                }
-
-                                break;
-                            }
-
-                        case GoldSource.DemoFrameType.WeaponAnim:
-                            {
-                                LASTFRAMEISCLIENTDATA = false;
-                                if (DUMP_ALL_FRAMES)
-                                {
-                                    subnode.Text += "{\n";
-                                }
-
-                                var waframe = (GoldSource.WeaponAnimFrame)frame.Value;
-                                if (DUMP_ALL_FRAMES)
-                                {
-                                    subnode.Text += "Anim = " + waframe.Anim + "\n";
-                                    subnode.Text += "Body = " + waframe.Body + "\n";
-                                    subnode.Text += "}\n";
-                                }
-
-                                if (RealAlive && !IsRoundEnd() && IsRealWeapon() &&
-                                    CurrentWeapon != WeaponIdType.WEAPON_KNIFE &&
-                                    CurrentWeapon != WeaponIdType.WEAPON_XM1014 &&
-                                    CurrentWeapon != WeaponIdType.WEAPON_M3 &&
-                                    CurrentWeapon != WeaponIdType.WEAPON_HEGRENADE &&
-                                    CurrentWeapon != WeaponIdType.WEAPON_FLASHBANG &&
-                                    CurrentWeapon != WeaponIdType.WEAPON_SMOKEGRENADE &&
-                                    CurrentWeapon != WeaponIdType.WEAPON_C4)
-                                {
-                                    if (!IsAngleEditByEngine())
-                                    {
-                                        if (LastWeaponAnim != WeaponIdType.WEAPON_NONE && LastWeaponAnim != CurrentWeapon)
-                                        {
-                                            WeaponAnimWarn = 0;
-                                        }
-
-                                        if (waframe.Anim == 0 && waframe.Body == 0)
-                                        {
-                                            WeaponAnimWarn++;
-                                            LastWeaponAnim = CurrentWeapon;
-                                            if (WeaponAnimWarn > 50 && abs(CurrentTime - NoWeaponAnimTime) > 1.0f)
-                                            {
-                                                DemoScanner_AddWarn(
-                                                    "[NO WEAPON ANIM " + CurrentWeapon + "] at (" + LastKnowRealTime + ") " +
-                                                    LastKnowTimeString, !IsPlayerLossConnection());
                                                 WeaponAnimWarn = 0;
-                                                NoWeaponAnimTime = CurrentTime;
+                                            }
+
+                                            if (waframe.Anim == 0 && waframe.Body == 0)
+                                            {
+                                                WeaponAnimWarn++;
+                                                LastWeaponAnim = CurrentWeapon;
+                                                if (WeaponAnimWarn > 50 && abs(CurrentTime - NoWeaponAnimTime) > 1.0f)
+                                                {
+                                                    DemoScanner_AddWarn(
+                                                        "[NO WEAPON ANIM " + CurrentWeapon + "] at (" + LastKnowRealTime + ") " +
+                                                        LastKnowTimeString, !IsPlayerLossConnection());
+                                                    WeaponAnimWarn = 0;
+                                                    NoWeaponAnimTime = CurrentTime;
+                                                }
+                                            }
+                                            else
+                                            {
+                                                if (WeaponAnimWarn > 0)
+                                                {
+                                                    WeaponAnimWarn--;
+                                                }
                                             }
                                         }
                                         else
@@ -4691,427 +4763,297 @@ namespace DemoScanner.DG
                                     }
                                     else
                                     {
-                                        if (WeaponAnimWarn > 0)
-                                        {
-                                            WeaponAnimWarn--;
-                                        }
+                                        WeaponAnimWarn = 0;
                                     }
-                                }
-                                else
-                                {
-                                    WeaponAnimWarn = 0;
+
+                                    break;
                                 }
 
-                                break;
-                            }
-
-                        case GoldSource.DemoFrameType.Sound:
-                            {
-                                LASTFRAMEISCLIENTDATA = false;
-                                if (DUMP_ALL_FRAMES)
+                            case GoldSource.DemoFrameType.Sound:
                                 {
-                                    subnode.Text += "{\n";
-                                }
-
-                                var sframe = (GoldSource.SoundFrame)frame.Value;
-                                if (DUMP_ALL_FRAMES)
-                                {
-                                    subnode.Text += "Channel = " + sframe.Channel + "\n";
-                                    subnode.Text += "Sample = " + sframe.Sample + "\n";
-                                    subnode.Text += "Attenuation = " + sframe.Attenuation + "\n";
-                                    subnode.Text += "Volume = " + sframe.Volume + "\n";
-                                    subnode.Text += "Flags = " + sframe.Flags + "\n";
-                                    subnode.Text += "Pitch = " + sframe.Pitch + "\n";
-                                    subnode.Text += "}\n";
-                                }
-
-                                if (sframe.Sample.ToLower().IndexOf("ladder") > -1)
-                                {
-                                    FlyDirection = 0;
-                                }
-                                //Console.WriteLine("FlyDirection 0:" + FlyDirection);
-                                //Console.WriteLine("Sound:" + CurrentTimeString);
-                                break;
-                            }
-
-                        case GoldSource.DemoFrameType.DemoBuffer:
-                            {
-                                var bframe = (GoldSource.DemoBufferFrame)frame.Value;
-                                if (bframe.Buffer.Count > 0)
-                                {
+                                    LASTFRAMEISCLIENTDATA = false;
                                     if (DUMP_ALL_FRAMES)
                                     {
-                                        subnode.Text += "{ DEMOBUFFER HAS DATA\n";
-                                        subnode.Text += BitConverter.ToString(bframe.Buffer.ToArray()).Replace("-", "");
+                                        subnode.Text += "{\n";
+                                    }
+
+                                    var sframe = (GoldSource.SoundFrame)frame.Value;
+                                    if (DUMP_ALL_FRAMES)
+                                    {
+                                        subnode.Text += "Channel = " + sframe.Channel + "\n";
+                                        subnode.Text += "Sample = " + sframe.Sample + "\n";
+                                        subnode.Text += "Attenuation = " + sframe.Attenuation + "\n";
+                                        subnode.Text += "Volume = " + sframe.Volume + "\n";
+                                        subnode.Text += "Flags = " + sframe.Flags + "\n";
+                                        subnode.Text += "Pitch = " + sframe.Pitch + "\n";
                                         subnode.Text += "}\n";
                                     }
 
-                                    if (bframe.Buffer.Count >= 8)
+                                    if (sframe.Sample.ToLower().IndexOf("ladder") > -1)
                                     {
-                                        if (bframe.Buffer[0] == 1)
+                                        FlyDirection = 0;
+                                    }
+                                    //Console.WriteLine("FlyDirection 0:" + FlyDirection);
+                                    //Console.WriteLine("Sound:" + CurrentTimeString);
+                                    break;
+                                }
+
+                            case GoldSource.DemoFrameType.DemoBuffer:
+                                {
+                                    var bframe = (GoldSource.DemoBufferFrame)frame.Value;
+                                    if (bframe.Buffer.Count > 0)
+                                    {
+                                        if (DUMP_ALL_FRAMES)
                                         {
-                                            var floatfov = BitConverter.ToSingle(bframe.Buffer.ToArray(), 4);
-                                            if (RealAlive && (CurrentFrameAttacked || CurrentFrameJumped) &&
-                                                abs(CurrentTime - LastDeathTime) > 5.0f &&
-                                                abs(CurrentTime - LastAliveTime) > 2.0f)
+                                            subnode.Text += "{ DEMOBUFFER HAS DATA\n";
+                                            subnode.Text += BitConverter.ToString(bframe.Buffer.ToArray()).Replace("-", "");
+                                            subnode.Text += "}\n";
+                                        }
+
+                                        if (bframe.Buffer.Count >= 8)
+                                        {
+                                            if (bframe.Buffer[0] == 1)
                                             {
-                                                if (abs(CurrentTime - FovHackTime) > 30.0f)
+                                                var floatfov = BitConverter.ToSingle(bframe.Buffer.ToArray(), 4);
+                                                if (RealAlive && (CurrentFrameAttacked || CurrentFrameJumped) &&
+                                                    abs(CurrentTime - LastDeathTime) > 5.0f &&
+                                                    abs(CurrentTime - LastAliveTime) > 2.0f)
                                                 {
-                                                    if (FovHackDetected <= 10 && !FoundNextClient)
+                                                    if (abs(CurrentTime - FovHackTime) > 30.0f)
                                                     {
-                                                        /* AWP, SCOUT, ETC ... for next update weapon check */
-                                                        var fov2_clean1 = CalcFov(10.0f, LastResolutionX, LastResolutionY);
-                                                        var fov2_clean2 = CalcFov(15.0f, LastResolutionX, LastResolutionY);
-                                                        var fov2_clean3 = CalcFov(40.0f, LastResolutionX, LastResolutionY);
-                                                        var fov2_clean4 = CalcFov(55.0f, LastResolutionX, LastResolutionY);
-                                                        var fov_clean1 = 10.0f;
-                                                        var fov_clean2 = 15.0f;
-                                                        var fov_clean3 = 40.0f;
-                                                        var fov_clean4 = 55.0f;
-                                                        // NORMAL FOV FOR CUSTOM GAME CLIENT
-                                                        var fov2_clean5 = CalcFov(90.0f, LastResolutionX, LastResolutionY);
-                                                        var fov_clean5 = 90.0f;
-                                                        // IF fov found, and fov not clean:
-                                                        if (checkFov2 > 0.01 && abs(checkFov2 - fov_clean1) > 0.01 &&
-                                                            abs(checkFov2 - fov_clean2) > 0.01 &&
-                                                            abs(checkFov2 - fov_clean3) > 0.01 &&
-                                                            abs(checkFov2 - fov_clean4) > 0.01 &&
-                                                            abs(checkFov2 - fov_clean5) > 0.01 &&
-                                                            abs(checkFov2 - fov2_clean1) > 0.01 &&
-                                                            abs(checkFov2 - fov2_clean2) > 0.01 &&
-                                                            abs(checkFov2 - fov2_clean3) > 0.01 &&
-                                                            abs(checkFov2 - fov2_clean4) > 0.01 &&
-                                                            abs(checkFov2 - fov2_clean5) > 0.01)
+                                                        if (FovHackDetected <= 10 && !FoundNextClient)
                                                         {
-                                                            var fov1 = CalcFov(ClientFov, LastResolutionX, LastResolutionY);
-                                                            var fov2 = CalcFov(ClientFov2, LastResolutionX,
-                                                                LastResolutionY);
-                                                            var fov3 = CalcFov(FovByFunc, LastResolutionX, LastResolutionY);
-                                                            var fov4 = CalcFov(FovByFunc2, LastResolutionX,
-                                                                LastResolutionY);
-                                                            // If fov not by server
-                                                            if (abs(checkFov2 - fov1) > 0.01 &&
-                                                                abs(checkFov2 - fov2) > 0.01 &&
-                                                                abs(checkFov2 - fov3) > 0.01 &&
-                                                                abs(checkFov2 - fov4) > 0.01)
+                                                            /* AWP, SCOUT, ETC ... for next update weapon check */
+                                                            var fov2_clean1 = CalcFov(10.0f, LastResolutionX, LastResolutionY);
+                                                            var fov2_clean2 = CalcFov(15.0f, LastResolutionX, LastResolutionY);
+                                                            var fov2_clean3 = CalcFov(40.0f, LastResolutionX, LastResolutionY);
+                                                            var fov2_clean4 = CalcFov(55.0f, LastResolutionX, LastResolutionY);
+                                                            var fov_clean1 = 10.0f;
+                                                            var fov_clean2 = 15.0f;
+                                                            var fov_clean3 = 40.0f;
+                                                            var fov_clean4 = 55.0f;
+                                                            // NORMAL FOV FOR CUSTOM GAME CLIENT
+                                                            var fov2_clean5 = CalcFov(90.0f, LastResolutionX, LastResolutionY);
+                                                            var fov_clean5 = 90.0f;
+                                                            // IF fov found, and fov not clean:
+                                                            if (checkFov2 > 0.01 && abs(checkFov2 - fov_clean1) > 0.01 &&
+                                                                abs(checkFov2 - fov_clean2) > 0.01 &&
+                                                                abs(checkFov2 - fov_clean3) > 0.01 &&
+                                                                abs(checkFov2 - fov_clean4) > 0.01 &&
+                                                                abs(checkFov2 - fov_clean5) > 0.01 &&
+                                                                abs(checkFov2 - fov2_clean1) > 0.01 &&
+                                                                abs(checkFov2 - fov2_clean2) > 0.01 &&
+                                                                abs(checkFov2 - fov2_clean3) > 0.01 &&
+                                                                abs(checkFov2 - fov2_clean4) > 0.01 &&
+                                                                abs(checkFov2 - fov2_clean5) > 0.01)
                                                             {
-                                                                DemoScanner_AddWarn(
-                                                                    "[FOV HACK TYPE 2] [" + checkFov2 + " FOV] at (" +
-                                                                    LastKnowRealTime + "):" + LastKnowTimeString,
-                                                                    abs(checkFov2 - ClientFov) > 0.01 &&
-                                                                    abs(checkFov2 - ClientFov2) > 0.01 &&
-                                                                    abs(checkFov2 - FovByFunc) > 0.01 &&
-                                                                    abs(checkFov2 - FovByFunc2) > 0.01 &&
-                                                                    !IsAngleEditByEngine() && !IsPlayerLossConnection());
-                                                                FovHackTime = CurrentTime;
-                                                                FovHackDetected += 1;
+                                                                var fov1 = CalcFov(ClientFov, LastResolutionX, LastResolutionY);
+                                                                var fov2 = CalcFov(ClientFov2, LastResolutionX,
+                                                                    LastResolutionY);
+                                                                var fov3 = CalcFov(FovByFunc, LastResolutionX, LastResolutionY);
+                                                                var fov4 = CalcFov(FovByFunc2, LastResolutionX,
+                                                                    LastResolutionY);
+                                                                // If fov not by server
+                                                                if (abs(checkFov2 - fov1) > 0.01 &&
+                                                                    abs(checkFov2 - fov2) > 0.01 &&
+                                                                    abs(checkFov2 - fov3) > 0.01 &&
+                                                                    abs(checkFov2 - fov4) > 0.01)
+                                                                {
+                                                                    DemoScanner_AddWarn(
+                                                                        "[FOV HACK TYPE 2] [" + checkFov2 + " FOV] at (" +
+                                                                        LastKnowRealTime + "):" + LastKnowTimeString,
+                                                                        abs(checkFov2 - ClientFov) > 0.01 &&
+                                                                        abs(checkFov2 - ClientFov2) > 0.01 &&
+                                                                        abs(checkFov2 - FovByFunc) > 0.01 &&
+                                                                        abs(checkFov2 - FovByFunc2) > 0.01 &&
+                                                                        !IsAngleEditByEngine() && !IsPlayerLossConnection());
+                                                                    FovHackTime = CurrentTime;
+                                                                    FovHackDetected += 1;
+                                                                }
                                                             }
                                                         }
                                                     }
                                                 }
-                                            }
 
-                                            checkFov2 = floatfov;
-                                            // Console.WriteLine(CurrentTimeString + "[DEMOBUFFER: " + CurrentWeapon + "] = " + fov + " framefov = " + cdframeFov);
+                                                checkFov2 = floatfov;
+                                                // Console.WriteLine(CurrentTimeString + "[DEMOBUFFER: " + CurrentWeapon + "] = " + fov + " framefov = " + cdframeFov);
+                                            }
                                         }
                                     }
+
+                                    // LASTFRAMEISCLIENTDATA = false;
+                                    /**/
+                                    break;
                                 }
 
-                                // LASTFRAMEISCLIENTDATA = false;
-                                /**/
-                                break;
-                            }
-
-                        case GoldSource.DemoFrameType.NetMsg:
-                        default:
-                            {
-                                if (NewDirectory)
+                            case GoldSource.DemoFrameType.NetMsg:
+                            default:
                                 {
-                                    FrameErrors = LastOutgoingSequence = LastIncomingAcknowledged = LastIncomingSequence = 0;
+                                    if (NewDirectory)
+                                    {
+                                        FrameErrors = LastOutgoingSequence = LastIncomingAcknowledged = LastIncomingSequence = 0;
+                                        LASTFRAMEISCLIENTDATA = false;
+                                        if (DUMP_ALL_FRAMES)
+                                        {
+                                            subnode.Text += "End of the DirectoryEntry!";
+                                        }
+
+                                        if (UserAlive)
+                                        {
+                                            FirstUserAlive = false;
+                                        }
+
+                                        UserAlive = false;
+                                        RealAlive = false;
+                                        //FirstBypassKill = true;
+                                        BypassCount = 0;
+                                        FirstDuck = false;
+                                        FirstJump = false;
+                                        FirstAttack = false;
+                                        SearchJumpBug = false;
+                                        SearchDuck = false;
+                                        TmpPlayerEnt = -1;
+                                        TmpPlayerNum = -1;
+                                        LocalPlayerId = -1;
+                                        fullPlayerList.AddRange(playerList);
+                                        playerList.Clear();
+                                    }
+
                                     LASTFRAMEISCLIENTDATA = false;
-                                    if (DUMP_ALL_FRAMES)
+                                    MessageId = 0;
+                                    NewViewAngleSearcherAngle = 0.0f;
+
+                                    //if (frame.Key.Type != GoldSource.DemoFrameType.NetMsg)
+                                    //{
+                                    //    Console.WriteLine("Invalid");
+                                    //}
+
+                                    CurrentNetMsgFrameId++;
+                                    NeedCheckAttack = true;
+                                    NeedCheckAttack2 = true;
+
+                                    //IsAttackSkipTimes--;
+
+                                    CurrentFrameIdWeapon += 10;
+                                    row = index + "/" + frame.Key.FrameIndex + " " + "[" + frame.Key.Time + "s]: " +
+                                          "NETMESSAGE";
+                                    var nf = (GoldSource.NetMsgFrame)frame.Value;
+                                    CurrentNetMsgFrame = nf;
+
+                                    //NextNetMsgFrame = nf;
+
+                                    //for (var n = frameindex + 1;
+                                    //            n < CurrentDemoFile.DirectoryEntries[index].Frames.Count;
+                                    //            n++)
+                                    //{
+                                    //    var tmpframe = CurrentDemoFile.DirectoryEntries[index].Frames[n];
+                                    //    switch (tmpframe.Key.Type)
+                                    //    {
+                                    //        case GoldSource.DemoFrameType.NetMsg:
+                                    //            NextNetMsgFrame = (GoldSource.NetMsgFrame)tmpframe.Value;
+                                    //            break;
+                                    //        default:
+                                    //            break;
+                                    //    }
+                                    //}
+
+                                    //var AngleYBigChanged = false;
+                                    //if (AngleBetween(CurrentNetMsgFrame.RParms.Viewangles.Y,
+                                    //        PreviousNetMsgFrame.RParms.Viewangles.Y) > 2.0) AngleYBigChanged = true;
+
+                                    PreviousTime3 = CurrentTime3;
+                                    CurrentTime3 = frame.Key.Time;
+                                    PreviousTime = CurrentTime;
+
+                                    if (AlternativeTimeCounter == 1)
                                     {
-                                        subnode.Text += "End of the DirectoryEntry!";
-                                    }
-
-                                    if (UserAlive)
-                                    {
-                                        FirstUserAlive = false;
-                                    }
-
-                                    UserAlive = false;
-                                    RealAlive = false;
-                                    //FirstBypassKill = true;
-                                    BypassCount = 0;
-                                    FirstDuck = false;
-                                    FirstJump = false;
-                                    FirstAttack = false;
-                                    SearchJumpBug = false;
-                                    SearchDuck = false;
-                                    TmpPlayerEnt = -1;
-                                    TmpPlayerNum = -1;
-                                    LocalPlayerId = -1;
-                                    fullPlayerList.AddRange(playerList);
-                                    playerList.Clear();
-                                }
-
-                                LASTFRAMEISCLIENTDATA = false;
-                                MessageId = 0;
-                                NewViewAngleSearcherAngle = 0.0f;
-
-                                //if (frame.Key.Type != GoldSource.DemoFrameType.NetMsg)
-                                //{
-                                //    Console.WriteLine("Invalid");
-                                //}
-
-                                CurrentNetMsgFrameId++;
-                                NeedCheckAttack = true;
-                                NeedCheckAttack2 = true;
-
-                                //IsAttackSkipTimes--;
-
-                                CurrentFrameIdWeapon += 10;
-                                row = index + "/" + frame.Key.FrameIndex + " " + "[" + frame.Key.Time + "s]: " +
-                                      "NETMESSAGE";
-                                var nf = (GoldSource.NetMsgFrame)frame.Value;
-                                CurrentNetMsgFrame = nf;
-
-                                //NextNetMsgFrame = nf;
-
-                                //for (var n = frameindex + 1;
-                                //            n < CurrentDemoFile.DirectoryEntries[index].Frames.Count;
-                                //            n++)
-                                //{
-                                //    var tmpframe = CurrentDemoFile.DirectoryEntries[index].Frames[n];
-                                //    switch (tmpframe.Key.Type)
-                                //    {
-                                //        case GoldSource.DemoFrameType.NetMsg:
-                                //            NextNetMsgFrame = (GoldSource.NetMsgFrame)tmpframe.Value;
-                                //            break;
-                                //        default:
-                                //            break;
-                                //    }
-                                //}
-
-                                //var AngleYBigChanged = false;
-                                //if (AngleBetween(CurrentNetMsgFrame.RParms.Viewangles.Y,
-                                //        PreviousNetMsgFrame.RParms.Viewangles.Y) > 2.0) AngleYBigChanged = true;
-
-                                PreviousTime3 = CurrentTime3;
-                                CurrentTime3 = frame.Key.Time;
-                                PreviousTime = CurrentTime;
-
-                                if (AlternativeTimeCounter == 1)
-                                {
-                                    bool normaltime = false;
-                                    if (abs(CurrentTime) > 1.0)
-                                    {
-                                        if (abs(CurrentTimeSvc) < 0.0001f)
+                                        bool normaltime = false;
+                                        if (abs(CurrentTime) > 1.0)
                                         {
-                                            if (BadTimeSkip)
+                                            if (abs(CurrentTimeSvc) < 0.0001f)
                                             {
-                                                BadTimeFoundReal += 1;
-                                            }
-                                            else
-                                            {
-                                                BadTimeFound += 1;
-                                                BadTimeFoundReal /= 2;
-                                                BadTimeSkip = true;
-                                            }
-                                        }
-                                        else
-                                        {
-                                            BadTimeSkip = false;
-                                            normaltime = true;
-                                        }
-                                    }
-                                    PreviousCurrentTime = CurrentTime;
-                                    CurrentTime = CurrentTimeSvc;
-                                    if (normaltime)
-                                        LastKnowRealTime = CurrentTime;
-                                }
-                                else if (AlternativeTimeCounter == 0)
-                                {
-                                    bool normaltime = false;
-                                    if (abs(CurrentTime) > 1.0)
-                                    {
-                                        if (abs(nf.RParms.Time) < 0.0001f)
-                                        {
-                                            if (BadTimeSkip)
-                                            {
-                                                BadTimeFoundReal += 1;
-                                            }
-                                            else
-                                            {
-                                                BadTimeFound += 1;
-                                                BadTimeFoundReal /= 2;
-                                                BadTimeSkip = true;
-                                            }
-
-                                            if (DUMP_ALL_FRAMES)
-                                            {
-                                                subnode.Text += "[FOUND BADTIME]\n";
-                                            }
-
-                                            if (DEBUG_ENABLED)
-                                            {
-                                                Console.WriteLine("Found badtime at frme " + CurrentFrameId + " at time " + CurrentTime);
-                                                //Console.Beep(2000, 1000);
-                                            }
-                                        }
-                                        else
-                                        {
-                                            BadTimeSkip = false;
-                                            normaltime = true;
-                                        }
-                                    }
-
-                                    PreviousCurrentTime = CurrentTime;
-                                    CurrentTime = nf.RParms.Time;
-                                    if (normaltime)
-                                        LastKnowRealTime = CurrentTime;
-                                }
-                                else
-                                {
-                                    var newtime = abs(CurrentTime3 - PreviousTime3);
-                                    if (newtime > 1.0f)
-                                    {
-                                        newtime = 1.0f;
-                                    }
-
-                                    PreviousCurrentTime = CurrentTime;
-                                    LastKnowRealTime = CurrentTime;
-                                    CurrentTime += newtime;
-                                }
-
-                                ParseGameData(halfLifeDemoParser, nf.MsgBytes);
-
-                                if (BadTimeFoundReal > 500 && AlternativeTimeCounter <= 2)
-                                {
-                                    for (int s = 0; s < 7; s++)
-                                        Console.WriteLine();
-
-                                    if (IsRussia)
-                                    {
-                                        DemoScanner_AddWarn(
-                                            "[ОШИБКА ДОСТУПА К ВРЕМЕНИ:" + AlternativeTimeCounter + " ] на (" +
-                                            LastKnowRealTime + "):" + LastKnowTimeString, true, true, true);
-                                    }
-                                    else
-                                    {
-                                        DemoScanner_AddWarn(
-                                            "[TIME ACCESS ERROR:" + AlternativeTimeCounter + " ] at (" +
-                                            LastKnowRealTime + "):" + LastKnowTimeString, true, true, true);
-                                    }
-
-                                    DemoScanner.ForceFlushScanResults();
-
-                                    for (int s = 0; s < 2; s++)
-                                        Console.WriteLine();
-
-                                    if (IsRussia)
-                                    {
-                                        var tmpOldColor = Console.ForegroundColor;
-                                        Console.ForegroundColor = ConsoleColor.DarkRed;
-                                        Console.Write("[ВНИМАНИЕ]");
-                                        Console.ForegroundColor = ConsoleColor.Red;
-                                        Console.WriteLine(" ТРЕБУЕТСЯ ДЕЙСТВИЕ ПОЛЬЗОВАТЕЛЯ");
-                                        Console.ForegroundColor = tmpOldColor;
-                                    }
-                                    else
-                                    {
-                                        var tmpOldColor = Console.ForegroundColor;
-                                        Console.ForegroundColor = ConsoleColor.DarkRed;
-                                        Console.Write("[WARNING]");
-                                        Console.ForegroundColor = ConsoleColor.Red;
-                                        Console.WriteLine(" FOUND ISSUE. NEED USER ACTION.");
-                                        Console.ForegroundColor = ConsoleColor.DarkGray;
-                                    }
-
-                                    for (int s = 0; s < 2; s++)
-                                        Console.WriteLine();
-                                    if (IsRussia)
-                                    {
-                                        var tmpOldColor = Console.ForegroundColor;
-                                        Console.ForegroundColor = ConsoleColor.DarkRed;
-                                        Console.Write("[ВНИМАНИЕ]");
-                                        Console.ForegroundColor = ConsoleColor.White;
-                                        Console.WriteLine(" Что-то повлияло на работу сканера, введите команду:");
-                                        Console.WriteLine();
-                                        Console.ForegroundColor = ConsoleColor.DarkGray;
-                                        Console.Write("0/Enter");
-                                        Console.ForegroundColor = ConsoleColor.White;
-                                        Console.WriteLine("\t\tчто бы продолжить далее не смотря на ошибку.");
-                                        Console.ForegroundColor = ConsoleColor.DarkGreen;
-                                        Console.Write("1");
-                                        Console.ForegroundColor = ConsoleColor.White;
-                                        Console.WriteLine("\t\tчто бы переключиться в безопасный режим.");
-                                        Console.ForegroundColor = tmpOldColor;
-                                    }
-                                    else
-                                    {
-                                        var tmpOldColor = Console.ForegroundColor;
-                                        Console.ForegroundColor = ConsoleColor.DarkRed;
-                                        Console.Write("[ALERT]");
-                                        Console.ForegroundColor = ConsoleColor.White;
-                                        Console.WriteLine("\t\tSomething affected DemoScanner. Enter an action:");
-                                        Console.WriteLine();
-                                        Console.ForegroundColor = ConsoleColor.DarkGray;
-                                        Console.Write("0/Enter");
-                                        Console.ForegroundColor = ConsoleColor.White;
-                                        Console.WriteLine("\t\tto continue with error bypass.");
-                                        Console.ForegroundColor = ConsoleColor.DarkGreen;
-                                        Console.Write("1");
-                                        Console.ForegroundColor = ConsoleColor.White;
-                                        Console.WriteLine(" to switch in safe mode.");
-                                        Console.ForegroundColor = tmpOldColor;
-                                    }
-
-                                    for (int s = 0; s < 10; s++)
-                                        Console.WriteLine();
-
-                                    var command = Console.ReadLine();
-                                    if (command.Length == 0 || command == "0")
-                                    {
-                                        BadTimeFoundReal = -999999;
-                                        for (int s = 0; s < 5; s++)
-                                            Console.WriteLine();
-                                    }
-                                    else
-                                    {
-
-                                        BadTimeFoundReal = 0;
-                                        AlternativeTimeCounter++;
-                                        var newAltTimer = AlternativeTimeCounter;
-                                        var isDump = DUMP_ALL_FRAMES;
-
-                                        PrintNodesRecursive(entrynode);
-
-                                        try
-                                        {
-                                            if (isDump)
-                                            {
-                                                var textdatapath = CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 4) +
-                                              "_FirstTimeFrames.txt";
-                                                if (File.Exists(textdatapath))
+                                                if (BadTimeSkip)
                                                 {
-                                                    File.Delete(textdatapath);
+                                                    BadTimeFoundReal += 1;
+                                                }
+                                                else
+                                                {
+                                                    BadTimeFound += 1;
+                                                    BadTimeFoundReal /= 2;
+                                                    BadTimeSkip = true;
+                                                }
+                                            }
+                                            else
+                                            {
+                                                BadTimeSkip = false;
+                                                normaltime = true;
+                                            }
+                                        }
+                                        PreviousCurrentTime = CurrentTime;
+                                        CurrentTime = CurrentTimeSvc;
+                                        if (normaltime)
+                                            LastKnowRealTime = CurrentTime;
+                                    }
+                                    else if (AlternativeTimeCounter == 0)
+                                    {
+                                        bool normaltime = false;
+                                        if (abs(CurrentTime) > 1.0)
+                                        {
+                                            if (abs(nf.RParms.Time) < 0.0001f)
+                                            {
+                                                if (BadTimeSkip)
+                                                {
+                                                    BadTimeFoundReal += 1;
+                                                }
+                                                else
+                                                {
+                                                    BadTimeFound += 1;
+                                                    BadTimeFoundReal /= 2;
+                                                    BadTimeSkip = true;
                                                 }
 
-                                                File.WriteAllLines(textdatapath,
-                                                    outFrames.ToArray());
+                                                if (DUMP_ALL_FRAMES)
+                                                {
+                                                    subnode.Text += "[FOUND BADTIME]\n";
+                                                }
 
+                                                if (DEBUG_ENABLED)
+                                                {
+                                                    Console.WriteLine("Found badtime at frme " + CurrentFrameId + " at time " + CurrentTime);
+                                                    //Console.Beep(2000, 1000);
+                                                }
+                                            }
+                                            else
+                                            {
+                                                BadTimeSkip = false;
+                                                normaltime = true;
                                             }
                                         }
-                                        catch
+
+                                        PreviousCurrentTime = CurrentTime;
+                                        CurrentTime = nf.RParms.Time;
+                                        if (normaltime)
+                                            LastKnowRealTime = CurrentTime;
+                                    }
+                                    else
+                                    {
+                                        var newtime = abs(CurrentTime3 - PreviousTime3);
+                                        if (newtime > 1.0f)
                                         {
-                                            Console.WriteLine("Error access write frame log!");
+                                            newtime = 1.0f;
                                         }
 
-                                        outFrames.Clear();
-                                        DUMP_ALL_FRAMES = false;
+                                        PreviousCurrentTime = CurrentTime;
+                                        LastKnowRealTime = CurrentTime;
+                                        CurrentTime += newtime;
+                                    }
 
-                                        Console.Clear();
+                                    ParseGameData(halfLifeDemoParser, nf.MsgBytes);
+
+                                    if (BadTimeFoundReal > 500 && AlternativeTimeCounter <= 2)
+                                    {
+                                        for (int s = 0; s < 7; s++)
+                                            Console.WriteLine();
 
                                         if (IsRussia)
                                         {
@@ -5128,991 +5070,1185 @@ namespace DemoScanner.DG
 
                                         DemoScanner.ForceFlushScanResults();
 
-                                        Thread.Sleep(1000);
-
-                                        Console.Clear();
+                                        for (int s = 0; s < 2; s++)
+                                            Console.WriteLine();
 
                                         if (IsRussia)
                                         {
-                                            DemoScanner_AddInfo("ПОПЫТКА СМЕНЫ РЕЖИМА ПОДСЧЕТА ВРЕМЕНИ. РЕЖИМ №:" + (AlternativeTimeCounter + 1));
+                                            var tmpOldColor = Console.ForegroundColor;
+                                            Console.ForegroundColor = ConsoleColor.DarkRed;
+                                            Console.Write("[ВНИМАНИЕ]");
+                                            Console.ForegroundColor = ConsoleColor.Red;
+                                            Console.WriteLine(" ТРЕБУЕТСЯ ДЕЙСТВИЕ ПОЛЬЗОВАТЕЛЯ");
+                                            Console.ForegroundColor = tmpOldColor;
                                         }
                                         else
                                         {
-                                            DemoScanner_AddInfo("TRY TO CHANGE TIME METHOD. METHOD №:" + (AlternativeTimeCounter + 1));
+                                            var tmpOldColor = Console.ForegroundColor;
+                                            Console.ForegroundColor = ConsoleColor.DarkRed;
+                                            Console.Write("[WARNING]");
+                                            Console.ForegroundColor = ConsoleColor.Red;
+                                            Console.WriteLine(" FOUND ISSUE. NEED USER ACTION.");
+                                            Console.ForegroundColor = ConsoleColor.DarkGray;
                                         }
 
-                                        if (AlternativeTimeCounter >= 2)
+                                        for (int s = 0; s < 2; s++)
+                                            Console.WriteLine();
+                                        if (IsRussia)
                                         {
-                                            if (IsRussia)
-                                            {
-                                                DemoScanner_AddInfo("В этом режиме время не будет совпадать с игровым!!");
-                                            }
-                                            else
-                                            {
-                                                DemoScanner_AddInfo("In this method demo time can not be synced with game time!");
-                                            }
+                                            var tmpOldColor = Console.ForegroundColor;
+                                            Console.ForegroundColor = ConsoleColor.DarkRed;
+                                            Console.Write("[ВНИМАНИЕ]");
+                                            Console.ForegroundColor = ConsoleColor.White;
+                                            Console.WriteLine(" Что-то повлияло на работу сканера, введите команду:");
+                                            Console.WriteLine();
+                                            Console.ForegroundColor = ConsoleColor.DarkGray;
+                                            Console.Write("0/Enter");
+                                            Console.ForegroundColor = ConsoleColor.White;
+                                            Console.WriteLine("\t\tчто бы продолжить далее не смотря на ошибку.");
+                                            Console.ForegroundColor = ConsoleColor.DarkGreen;
+                                            Console.Write("1");
+                                            Console.ForegroundColor = ConsoleColor.White;
+                                            Console.WriteLine("\t\tчто бы переключиться в безопасный режим.");
+                                            Console.ForegroundColor = tmpOldColor;
+                                        }
+                                        else
+                                        {
+                                            var tmpOldColor = Console.ForegroundColor;
+                                            Console.ForegroundColor = ConsoleColor.DarkRed;
+                                            Console.Write("[ALERT]");
+                                            Console.ForegroundColor = ConsoleColor.White;
+                                            Console.WriteLine("\t\tSomething affected DemoScanner. Enter an action:");
+                                            Console.WriteLine();
+                                            Console.ForegroundColor = ConsoleColor.DarkGray;
+                                            Console.Write("0/Enter");
+                                            Console.ForegroundColor = ConsoleColor.White;
+                                            Console.WriteLine("\t\tto continue with error bypass.");
+                                            Console.ForegroundColor = ConsoleColor.DarkGreen;
+                                            Console.Write("1");
+                                            Console.ForegroundColor = ConsoleColor.White;
+                                            Console.WriteLine(" to switch in safe mode.");
+                                            Console.ForegroundColor = tmpOldColor;
                                         }
 
+                                        for (int s = 0; s < 10; s++)
+                                            Console.WriteLine();
 
-
-                                        Thread.Sleep(3000);
-
-
-                                        Console.WriteLine();
-
-                                        /* START: SOME BLACK MAGIC OUTSIDE HOGWARTS */
-                                        FieldInfo[] fields = typeof(DemoScanner).GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
-
-                                        foreach (var field in fields)
+                                        var command = Console.ReadLine();
+                                        if (command.Length == 0 || command == "0")
                                         {
+                                            BadTimeFoundReal = -999999;
+                                            for (int s = 0; s < 5; s++)
+                                                Console.WriteLine();
+                                        }
+                                        else
+                                        {
+
+                                            BadTimeFoundReal = 0;
+                                            AlternativeTimeCounter++;
+                                            var newAltTimer = AlternativeTimeCounter;
+                                            var isDump = DUMP_ALL_FRAMES;
+
+                                            PrintNodesRecursive(entrynode);
+
                                             try
                                             {
-                                                Type fieldType = field.FieldType;
-                                                object defaultValue = fieldType.IsValueType ? Activator.CreateInstance(fieldType) : null;
-                                                field.SetValue(null, defaultValue);
+                                                if (isDump)
+                                                {
+                                                    var textdatapath = CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 4) +
+                                                  "_FirstTimeFrames.txt";
+                                                    if (File.Exists(textdatapath))
+                                                    {
+                                                        File.Delete(textdatapath);
+                                                    }
+
+                                                    File.WriteAllLines(textdatapath,
+                                                        outFrames.ToArray());
+
+                                                }
                                             }
                                             catch
                                             {
+                                                Console.WriteLine("Error access write frame log!");
                                             }
+
+                                            outFrames.Clear();
+                                            DUMP_ALL_FRAMES = false;
+
+                                            Console.Clear();
+
+                                            if (IsRussia)
+                                            {
+                                                DemoScanner_AddWarn(
+                                                    "[ОШИБКА ДОСТУПА К ВРЕМЕНИ:" + AlternativeTimeCounter + " ] на (" +
+                                                    LastKnowRealTime + "):" + LastKnowTimeString, true, true, true);
+                                            }
+                                            else
+                                            {
+                                                DemoScanner_AddWarn(
+                                                    "[TIME ACCESS ERROR:" + AlternativeTimeCounter + " ] at (" +
+                                                    LastKnowRealTime + "):" + LastKnowTimeString, true, true, true);
+                                            }
+
+                                            DemoScanner.ForceFlushScanResults();
+
+                                            Thread.Sleep(1000);
+
+                                            Console.Clear();
+
+                                            if (IsRussia)
+                                            {
+                                                DemoScanner_AddInfo("ПОПЫТКА СМЕНЫ РЕЖИМА ПОДСЧЕТА ВРЕМЕНИ. РЕЖИМ №:" + (AlternativeTimeCounter + 1));
+                                            }
+                                            else
+                                            {
+                                                DemoScanner_AddInfo("TRY TO CHANGE TIME METHOD. METHOD №:" + (AlternativeTimeCounter + 1));
+                                            }
+
+                                            if (AlternativeTimeCounter >= 2)
+                                            {
+                                                if (IsRussia)
+                                                {
+                                                    DemoScanner_AddInfo("В этом режиме время не будет совпадать с игровым!!");
+                                                }
+                                                else
+                                                {
+                                                    DemoScanner_AddInfo("In this method demo time can not be synced with game time!");
+                                                }
+                                            }
+
+
+
+                                            Thread.Sleep(3000);
+
+
+                                            Console.WriteLine();
+
+#if !NET6_0_OR_GREATER
+                                             /* START: SOME BLACK MAGIC OUTSIDE HOGWARTS */
+                                            FieldInfo[] fields = typeof(DemoScanner).GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+
+                                            foreach (var field in fields)
+                                            {
+                                                try
+                                                {
+                                                    Type fieldType = field.FieldType;
+                                                    object defaultValue = fieldType.IsValueType ? Activator.CreateInstance(fieldType) : null;
+                                                    field.SetValue(null, defaultValue);
+                                                }
+                                                catch
+                                                {
+                                                }
+                                            }
+                                            typeof(DemoScanner)
+                                                .GetConstructor(BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public, null,
+                                                    new Type[0], null).Invoke(null, null);
+                                            /* END: VERY DARK BLACK MAGIC!!!!!! */
+#else
+                                            // NET 6 NOT SUPPORT HOGWARTS MAGIC, NEED USE ANOTHER
+                                            /* START: ULTRA BLACK MAGIC */
+                                            var asmPath = Assembly.GetAssembly(typeof(DemoScanner))!.Location;
+                                            var alc = new AssemblyLoadContext("reset", isCollectible: true);
+                                            var freshAsm = alc.LoadFromAssemblyPath(asmPath);
+                                            var freshType = freshAsm.GetType(typeof(DemoScanner).FullName!)!;
+
+                                            foreach (var freshField in freshType.GetFields(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic))
+                                            {
+                                                var liveField = typeof(DemoScanner).GetField(freshField.Name,
+                                                    BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+
+                                                if (liveField == null) continue;
+
+                                                try
+                                                {
+                                                    if (liveField != null)
+                                                    {
+                                                        liveField.SetValue(null, freshField.GetValue(null));
+                                                    }
+                                                    else
+                                                    {
+                                                        liveField.SetValue(null, Activator.CreateInstance(liveField.FieldType));
+                                                    }
+                                                }
+                                                catch
+                                                {
+
+                                                }
+                                            }
+
+                                            alc.Unload();
+                                            /* END: ULTRA BLACK MAGIC */
+#endif
+
+                                            DUMP_ALL_FRAMES = isDump;
+                                            AlternativeTimeCounter = newAltTimer;
+                                            DemoRescanned = true;
+                                            goto DEMO_FULLRESET;
                                         }
-                                        typeof(DemoScanner)
-                                            .GetConstructor(BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public, null,
-                                                new Type[0], null).Invoke(null, null);
-                                        SourceCode = "https://github.com/UnrealKaraulov/UnrealDemoScanner";
-                                        /* END: VERY DARK BLACK MAGIC!!!!!! */
-
-                                        DUMP_ALL_FRAMES = isDump;
-                                        AlternativeTimeCounter = newAltTimer;
-                                        DemoRescanned = true;
-                                        goto DEMO_FULLRESET;
                                     }
-                                }
 
-                                if (PREVIEW_FRAMES && IsUserAlive())
-                                {
-                                    PreviewFramesWriter.Write(CurrentTime);
-                                    PreviewFramesWriter.Write(Convert.ToUInt16(PreviousNetMsgFrame.UCmd.Buttons));
-                                    PreviewFramesWriter.Write(PreviousNetMsgFrame.RParms.Viewangles.X);
-                                    PreviewFramesWriter.Write(PreviousNetMsgFrame.RParms.Viewangles.Y);
-                                    PreviewFramesWriter.Write(PreviousNetMsgFrame.RParms.Viewangles.Z);
-                                    PreviewFramesWriter.Write(PreviousNetMsgFrame.RParms.ClViewangles.X);
-                                    PreviewFramesWriter.Write(PreviousNetMsgFrame.RParms.ClViewangles.Y);
-                                    PreviewFramesWriter.Write(PreviousNetMsgFrame.RParms.ClViewangles.Z);
-                                    PreviewFramesWriter.Write(PreviousNetMsgFrame.UCmd.Viewangles.X);
-                                    PreviewFramesWriter.Write(PreviousNetMsgFrame.UCmd.Viewangles.Y);
-                                    PreviewFramesWriter.Write(PreviousNetMsgFrame.UCmd.Viewangles.Z);
-                                    PreviewFramesWriter.Write(CDFRAME_ViewAngles.X);
-                                    PreviewFramesWriter.Write(CDFRAME_ViewAngles.Y);
-                                    PreviewFramesWriter.Write(CDFRAME_ViewAngles.Z);
-                                }
-
-
-                                if (abs(nf.RParms.Punchangle.Y) > EPSILON)
-                                {
-                                    addAngleInViewListYDelta(give_bad_float(-15000.0f));
-                                }
-                                else
-                                {
-                                    addAngleInViewListYDelta(give_bad_float(nf.RParms.ClViewangles.Y));
-                                }
-
-                                if (abs(CurrentTime - PreviousTime) > 0.25f)
-                                {
-                                    if (LossBigJumps < 5)
+                                    if (PREVIEW_FRAMES && IsUserAlive())
                                     {
-                                        LastLossTime = PreviousTime;
-                                        LastLossTimeEnd = CurrentTime;
+                                        PreviewFramesWriter.Write(CurrentTime);
+                                        PreviewFramesWriter.Write(Convert.ToUInt16(PreviousNetMsgFrame.UCmd.Buttons));
+                                        PreviewFramesWriter.Write(PreviousNetMsgFrame.RParms.Viewangles.X);
+                                        PreviewFramesWriter.Write(PreviousNetMsgFrame.RParms.Viewangles.Y);
+                                        PreviewFramesWriter.Write(PreviousNetMsgFrame.RParms.Viewangles.Z);
+                                        PreviewFramesWriter.Write(PreviousNetMsgFrame.RParms.ClViewangles.X);
+                                        PreviewFramesWriter.Write(PreviousNetMsgFrame.RParms.ClViewangles.Y);
+                                        PreviewFramesWriter.Write(PreviousNetMsgFrame.RParms.ClViewangles.Z);
+                                        PreviewFramesWriter.Write(PreviousNetMsgFrame.UCmd.Viewangles.X);
+                                        PreviewFramesWriter.Write(PreviousNetMsgFrame.UCmd.Viewangles.Y);
+                                        PreviewFramesWriter.Write(PreviousNetMsgFrame.UCmd.Viewangles.Z);
+                                        PreviewFramesWriter.Write(CDFRAME_ViewAngles.X);
+                                        PreviewFramesWriter.Write(CDFRAME_ViewAngles.Y);
+                                        PreviewFramesWriter.Write(CDFRAME_ViewAngles.Z);
                                     }
-                                    if (abs(CurrentTime - PreviousTime) > 100.0f)
-                                    {
-                                        LossBigJumps++;
-                                    }
-                                    LossPackets2++;
-                                }
 
-                                /*
-                                   if (abs(CurrentTime) > EPSILON && abs(CurrentTime - PreviousTime) > 0.01 && CurrentFrameTimeBetween > abs(CurrentTime - PreviousTime) + 0.2)
-                                    {
-                                        ServerLagCount++;
-                                    }
-                                */
 
-                                CurrentFrameTimeBetween = 0.0f;
-                                try
-                                {
-                                    LastKnowTimeString = "MODIFIED";
-                                    var t = TimeSpan.FromSeconds(LastKnowRealTime);
-                                    LastKnowTimeString = string.Format("{0:D2}h:{1:D2}m:{2:D2}s:{3:D3}ms", t.Hours,
-                                        t.Minutes, t.Seconds, t.Milliseconds);
-                                    lastnormalanswer = LastKnowTimeString;
-                                    Console.Title = "[ANTICHEAT/ANTIHACK] " + PROGRAMNAME + " " + PROGRAMVERSION +
-                                                    ". Demo:" + DemoName + ". DEMO TIME: " + LastKnowTimeString;
-                                }
-                                catch
-                                {
-                                    ModifiedDemoFrames += 1;
+                                    if (abs(nf.RParms.Punchangle.Y) > EPSILON)
+                                    {
+                                        addAngleInViewListYDelta(give_bad_float(-15000.0f));
+                                    }
+                                    else
+                                    {
+                                        addAngleInViewListYDelta(give_bad_float(nf.RParms.ClViewangles.Y));
+                                    }
+
+                                    if (abs(CurrentTime - PreviousTime) > 0.25f)
+                                    {
+                                        if (LossBigJumps < 5)
+                                        {
+                                            LastLossTime = PreviousTime;
+                                            LastLossTimeEnd = CurrentTime;
+                                        }
+                                        if (abs(CurrentTime - PreviousTime) > 100.0f)
+                                        {
+                                            LossBigJumps++;
+                                        }
+                                        LossPackets2++;
+                                    }
+
+                                    /*
+                                       if (abs(CurrentTime) > EPSILON && abs(CurrentTime - PreviousTime) > 0.01 && CurrentFrameTimeBetween > abs(CurrentTime - PreviousTime) + 0.2)
+                                        {
+                                            ServerLagCount++;
+                                        }
+                                    */
+
+                                    CurrentFrameTimeBetween = 0.0f;
                                     try
                                     {
+                                        LastKnowTimeString = "MODIFIED";
+                                        var t = TimeSpan.FromSeconds(LastKnowRealTime);
+                                        LastKnowTimeString = string.Format("{0:D2}h:{1:D2}m:{2:D2}s:{3:D3}ms", t.Hours,
+                                            t.Minutes, t.Seconds, t.Milliseconds);
+                                        lastnormalanswer = LastKnowTimeString;
                                         Console.Title = "[ANTICHEAT/ANTIHACK] " + PROGRAMNAME + " " + PROGRAMVERSION +
-                                                        ". Demo:" + DemoName + ". DEMO TIME: " + lastnormalanswer;
+                                                        ". Demo:" + DemoName + ". DEMO TIME: " + LastKnowTimeString;
                                     }
                                     catch
                                     {
+                                        ModifiedDemoFrames += 1;
                                         try
                                         {
                                             Console.Title = "[ANTICHEAT/ANTIHACK] " + PROGRAMNAME + " " + PROGRAMVERSION +
-                                                            ". Demo:" + "BAD NAME" + ". DEMO TIME: " + lastnormalanswer;
+                                                            ". Demo:" + DemoName + ". DEMO TIME: " + lastnormalanswer;
                                         }
                                         catch
                                         {
-                                            Console.WriteLine("Error access to frametime.");
+                                            try
+                                            {
+                                                Console.Title = "[ANTICHEAT/ANTIHACK] " + PROGRAMNAME + " " + PROGRAMVERSION +
+                                                                ". Demo:" + "BAD NAME" + ". DEMO TIME: " + lastnormalanswer;
+                                            }
+                                            catch
+                                            {
+                                                Console.WriteLine("Error access to frametime.");
+                                            }
                                         }
                                     }
-                                }
 
-                                if (abs(CurrentTime) > EPSILON && StartGameSecond > CurrentTime)
-                                {
-                                    StartGameSecond = CurrentTime;
-                                }
-
-                                if (abs(CurrentTime) > EPSILON && EndGameSecond < CurrentTime)
-                                {
-                                    EndGameSecond = CurrentTime;
-                                }
-
-                                if (abs(CurrentTime) > EPSILON)
-                                {
-                                    CurrentMsgBytes += nf.MsgBytes.Length;
-                                }
-
-                                if (SkipNextErrors)
-                                {
-                                    SkipNextErrors = false;
-                                    if (IsRussia)
+                                    if (abs(CurrentTime) > EPSILON && StartGameSecond > CurrentTime)
                                     {
-                                        Console.WriteLine(
-                                            "Критическая ошибка сканирования[2]. \nРезультаты сканирования могут быть не однозначными...");
-                                    }
-                                    else
-                                    {
-                                        Console.WriteLine(
-                                            "Critical error in message parser.[2] \nThe scan result may not be unambiguous...");
-                                    }
-                                }
-
-                                if (SkipNextErrors)
-                                {
-                                    SkipNextErrors = false;
-                                    if (IsRussia)
-                                    {
-                                        Console.WriteLine(
-                                            "Критическая ошибка сканирования[3]. \nРезультаты сканирования могут быть не однозначными...");
-                                    }
-                                    else
-                                    {
-                                        Console.WriteLine(
-                                            "Critical error in message parser.[3] \nThe scan result may not be unambiguous...");
-                                    }
-                                }
-
-                                if (nf.MsgBytes.Length < 8 && abs(CurrentTime) > EPSILON)
-                                {
-                                    EmptyFrames++;
-                                    if (EmptyFrames > 5 && EmptyFrames < 7)
-                                    {
-                                        // DemoScanner_AddWarn("MORE THAN ONE EMPTY FRAMES:" + CurrentTimeString, false);
-                                    }
-                                }
-
-                                if (abs(CurrentTime) > EPSILON && !FoundFirstTime)
-                                {
-                                    DemoStartTime = CurrentTime;
-                                    FoundFirstTime = true;
-                                }
-
-                                if (abs(CurrentTime2) > EPSILON && !FoundFirstTime2)
-                                {
-                                    DemoStartTime2 = CurrentTime2;
-                                    FoundFirstTime2 = true;
-                                }
-
-                                if (CurrentFrameDuplicated > 0)
-                                {
-                                    CurrentFrameDuplicated -= 1;
-                                }
-
-                                PreviousFrameTime = CurrentFrameTime;
-                                CurrentFrameTime = nf.RParms.Frametime;
-                                CurrentFrameLerp = nf.UCmd.LerpMsec;
-                                CurrentFramePunchangleZ = nf.RParms.Punchangle.Z;
-
-                                if (abs(CurrentTime) > EPSILON)
-                                {
-                                    if (FrametimeMin > CurrentFrameTime && CurrentFrameTime > 0.0f)
-                                    {
-                                        FrametimeMin = CurrentFrameTime;
+                                        StartGameSecond = CurrentTime;
                                     }
 
-                                    if (FrametimeMax < CurrentFrameTime)
+                                    if (abs(CurrentTime) > EPSILON && EndGameSecond < CurrentTime)
                                     {
-                                        FrametimeMax = CurrentFrameTime;
+                                        EndGameSecond = CurrentTime;
                                     }
 
-                                    if (MsecMin > nf.UCmd.Msec && nf.UCmd.Msec > 0.0f)
+                                    if (abs(CurrentTime) > EPSILON)
                                     {
-                                        MsecMin = nf.UCmd.Msec;
+                                        CurrentMsgBytes += nf.MsgBytes.Length;
                                     }
 
-                                    if (MsecMax < nf.UCmd.Msec)
+                                    if (SkipNextErrors)
                                     {
-                                        MsecMax = nf.UCmd.Msec;
-                                    }
-                                }
-
-                                if (PreviousNetMsgFrame.RParms.Time == nf.RParms.Time)
-                                {
-                                    if (DUMP_ALL_FRAMES)
-                                    {
-                                        subnode.Text += "[D U P L I C A D E R]";
-                                    }
-
-                                    CurrentFrameDuplicated = 2;
-                                    FrameDuplicates++;
-                                }
-
-
-                                TmpPlayerNum = nf.RParms.Playernum;
-                                TmpPlayerEnt = nf.RParms.Viewentity;
-
-                                if (abs(CurrentTime) > EPSILON && CurrentFrameDuplicated <= 1)
-                                {
-                                    if (LocalPlayerId < 0)
-                                    {
-                                        LocalPlayerId = TmpPlayerNum;
-                                        //if (DUMP_ALL_FRAMES) subnode.Text += "[HERE PLAYER FOUND]";
-                                        //Console.WriteLine(LocalPlayerId.ToString());
-                                    }
-                                }
-
-                                var voice_time = abs(CurrentTime - PreviousTime);
-                                if (voice_time > 1.0f)
-                                {
-                                    voice_time = 1.0f;
-                                }
-
-                                PlayersVoiceTimer += voice_time;
-
-                                CurrentFrameAlive = UserAlive;
-                                RealAlive = CurrentFrameAlive && PreviousFrameAlive;
-
-                                //Console.WriteLine((RealAlive ? "ALIVE!" : "DEAD!") + "at " + CurrentTimeString);
-
-                                if (SkipNextAttack == 2)
-                                {
-                                    SkipNextAttack = 1;
-                                }
-
-                                CurrentFrameButtons = nf.UCmd.Buttons;
-                                if (CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_ATTACK2))
-                                {
-                                    CurrentFrameAttacked2 = true;
-                                    LastAttackPressed = CurrentTime;
-                                }
-                                else
-                                {
-                                    CurrentFrameAttacked2 = false;
-                                }
-
-                                if (CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_SCORE))
-                                {
-                                    LastScoreTime = CurrentTime;
-                                }
-
-                                if (abs(IsDuckHackTime) > 0.0001f && abs(CurrentTime - IsDuckHackTime) > 0.5f)
-                                {
-                                    if (DemoScanner_AddWarn(
-                                                    "[DUCK HACK TYPE 5.1] at (" + LastKnowRealTime + ") " + LastKnowTimeString,
-                                                    !IsPlayerLossConnection()))
-                                    {
-                                        KreedzHacksCount++;
-                                        LastKreedzHackTime = CurrentTime;
-                                    }
-                                    IsDuckHackTime = 0.0f;
-                                }
-
-                                if (CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_ATTACK))
-                                {
-                                    NewAttackForTrigger += 1;
-                                    FrameAttackStrike++;
-                                    FrameUnattackStrike = 0;
-                                    CurrentFrameAttacked = true;
-                                    LastAttackPressed = CurrentTime;
-                                    if (!IsInAttack() && NeedIgnoreAttackFlag > 0)
-                                    {
-                                        if (CurrentFrameDuplicated <= 0)
+                                        SkipNextErrors = false;
+                                        if (IsRussia)
                                         {
-                                            NeedIgnoreAttackFlag += 2;
+                                            Console.WriteLine(
+                                                "Критическая ошибка сканирования[2]. \nРезультаты сканирования могут быть не однозначными...");
                                         }
                                         else
                                         {
-                                            NeedIgnoreAttackFlag += 1;
+                                            Console.WriteLine(
+                                                "Critical error in message parser.[2] \nThe scan result may not be unambiguous...");
                                         }
                                     }
-                                    if (IsCmdChangeWeapon() || IsRealChangeWeapon() || !IsUserAlive())
+
+                                    if (SkipNextErrors)
                                     {
-                                        LastEventDetectTime = 0.0f;
-                                    }
-                                    if (abs(LastEventDetectTime) > EPSILON && abs(LastAttackPressed - LastEventDetectTime) > 0.25)
-                                    {
-                                        if (DemoScanner_AddWarn("[BETA] [TRIGGER TYPE 3." + (LastEventId < 0 ? 2 : 1) + " " + CurrentWeapon + "] at (" + LastKnowRealTime + ") " +
-                                                LastKnowTimeString, false))
+                                        SkipNextErrors = false;
+                                        if (IsRussia)
                                         {
-                                            TriggerAimAttackCount++;
-                                            LastTriggerAttack = LastKnowRealTime;
+                                            Console.WriteLine(
+                                                "Критическая ошибка сканирования[3]. \nРезультаты сканирования могут быть не однозначными...");
+                                        }
+                                        else
+                                        {
+                                            Console.WriteLine(
+                                                "Critical error in message parser.[3] \nThe scan result may not be unambiguous...");
+                                        }
+                                    }
+
+                                    if (nf.MsgBytes.Length < 8 && abs(CurrentTime) > EPSILON)
+                                    {
+                                        EmptyFrames++;
+                                        if (EmptyFrames > 5 && EmptyFrames < 7)
+                                        {
+                                            // DemoScanner_AddWarn("MORE THAN ONE EMPTY FRAMES:" + CurrentTimeString, false);
+                                        }
+                                    }
+
+                                    if (abs(CurrentTime) > EPSILON && !FoundFirstTime)
+                                    {
+                                        DemoStartTime = CurrentTime;
+                                        FoundFirstTime = true;
+                                    }
+
+                                    if (abs(CurrentTime2) > EPSILON && !FoundFirstTime2)
+                                    {
+                                        DemoStartTime2 = CurrentTime2;
+                                        FoundFirstTime2 = true;
+                                    }
+
+                                    if (CurrentFrameDuplicated > 0)
+                                    {
+                                        CurrentFrameDuplicated -= 1;
+                                    }
+
+                                    PreviousFrameTime = CurrentFrameTime;
+                                    CurrentFrameTime = nf.RParms.Frametime;
+                                    CurrentFrameLerp = nf.UCmd.LerpMsec;
+                                    CurrentFramePunchangleZ = nf.RParms.Punchangle.Z;
+
+                                    if (abs(CurrentTime) > EPSILON)
+                                    {
+                                        if (FrametimeMin > CurrentFrameTime && CurrentFrameTime > 0.0f)
+                                        {
+                                            FrametimeMin = CurrentFrameTime;
                                         }
 
-                                        /*foreach (var res in DownloadedResources)
+                                        if (FrametimeMax < CurrentFrameTime)
                                         {
-                                            if (res.res_index == Math.Abs(LastEventId) && res.res_type == 5)
-                                            {
-                                                Console.WriteLine("[Debug] event:" + res.res_path + " at " + CurrentTimeString);
-                                            }
-                                        }*/
-                                        LastEventDetectTime = 0.0f;
+                                            FrametimeMax = CurrentFrameTime;
+                                        }
+
+                                        if (MsecMin > nf.UCmd.Msec && nf.UCmd.Msec > 0.0f)
+                                        {
+                                            MsecMin = nf.UCmd.Msec;
+                                        }
+
+                                        if (MsecMax < nf.UCmd.Msec)
+                                        {
+                                            MsecMax = nf.UCmd.Msec;
+                                        }
+                                    }
+
+                                    if (PreviousNetMsgFrame.RParms.Time == nf.RParms.Time)
+                                    {
+                                        if (DUMP_ALL_FRAMES)
+                                        {
+                                            subnode.Text += "[D U P L I C A D E R]";
+                                        }
+
+                                        CurrentFrameDuplicated = 2;
+                                        FrameDuplicates++;
+                                    }
+
+
+                                    TmpPlayerNum = nf.RParms.Playernum;
+                                    TmpPlayerEnt = nf.RParms.Viewentity;
+
+                                    if (abs(CurrentTime) > EPSILON && CurrentFrameDuplicated <= 1)
+                                    {
+                                        if (LocalPlayerId < 0)
+                                        {
+                                            LocalPlayerId = TmpPlayerNum;
+                                            //if (DUMP_ALL_FRAMES) subnode.Text += "[HERE PLAYER FOUND]";
+                                            //Console.WriteLine(LocalPlayerId.ToString());
+                                        }
+                                    }
+
+                                    var voice_time = abs(CurrentTime - PreviousTime);
+                                    if (voice_time > 1.0f)
+                                    {
+                                        voice_time = 1.0f;
+                                    }
+
+                                    PlayersVoiceTimer += voice_time;
+
+                                    CurrentFrameAlive = UserAlive;
+                                    RealAlive = CurrentFrameAlive && PreviousFrameAlive;
+
+                                    //Console.WriteLine((RealAlive ? "ALIVE!" : "DEAD!") + "at " + CurrentTimeString);
+
+                                    if (SkipNextAttack == 2)
+                                    {
+                                        SkipNextAttack = 1;
+                                    }
+
+                                    CurrentFrameButtons = nf.UCmd.Buttons;
+                                    if (CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_ATTACK2))
+                                    {
+                                        CurrentFrameAttacked2 = true;
+                                        LastAttackPressed = CurrentTime;
                                     }
                                     else
                                     {
-                                        LastEventDetectTime = 0.0f;
+                                        CurrentFrameAttacked2 = false;
                                     }
-                                }
-                                else
-                                {
-                                    IsAttack--;
-                                    FrameUnattackStrike++;
-                                    FrameAttackStrike = 0;
-                                    if (!NeedSearchAim3 && PreviousFrameAttacked && RealAlive &&
-                                        abs(CurrentTime) > EPSILON && abs(CurrentTime - IsAttackLastTime) > 0.075f &&
-                                        abs(CurrentTime - IsNoAttackLastTime) > 0.075f)
+
+                                    if (CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_SCORE))
                                     {
-                                        if (StopAttackBtnFrameId != CurrentNetMsgFrameId)
+                                        LastScoreTime = CurrentTime;
+                                    }
+
+                                    if (abs(IsDuckHackTime) > 0.0001f && abs(CurrentTime - IsDuckHackTime) > 0.5f)
+                                    {
+                                        if (DemoScanner_AddWarn(
+                                                        "[DUCK HACK TYPE 5.1] at (" + LastKnowRealTime + ") " + LastKnowTimeString,
+                                                        !IsPlayerLossConnection()))
                                         {
-                                            NeedSearchAim3 = true;
-                                            StopAttackBtnFrameId = CurrentNetMsgFrameId;
+                                            KreedzHacksCount++;
+                                            LastKreedzHackTime = CurrentTime;
                                         }
-                                    }
-                                    else if (!RealAlive)
-                                    {
-                                        NeedSearchAim3 = false;
+                                        IsDuckHackTime = 0.0f;
                                     }
 
-                                    if (!IsInAttack())
+                                    if (CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_ATTACK))
                                     {
-                                        NeedIgnoreAttackFlag = 0;
-                                    }
-
-                                    CurrentFrameAttacked = false;
-                                }
-
-                                if (NeedIgnoreAttackFlag == 6)
-                                {
-                                    NeedIgnoreAttackFlagCount++;
-                                }
-
-                                CurrentFrameForward = CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_FORWARD);
-                                if (RealAlive && !InStrafe && !InForward && !InBack && !PreviousFrameForward &&
-                                    CurrentFrameForward && abs(CurrentTime - LastMoveForward) > 1.0f &&
-                                    abs(CurrentTime - LastMoveBack) > 1.0f && abs(CurrentTime - LastUnMoveForward) > 1.5f)
-                                {
-                                    if (abs(CurrentTime - LastMovementHackTime) > 1.5)
-                                    {
-                                        DemoScanner_AddWarn("[FORWARD HACK TYPE 1] at (" + LastKnowRealTime + ") " +
-                                                            LastKnowTimeString);
-                                        LastMovementHackTime = CurrentTime;
-                                    }
-                                }
-
-                                NewAttack = false;
-                                NewAttack2 = false;
-
-                                if (abs(SilentReloadTime) > EPSILON)
-                                {
-                                    if ((abs(IsNoAttackLastTime - CurrentTime) > 0.25 &&
-                                               abs(IsAttackLastTime - CurrentTime) > 0.25) ||
-                                               abs(ReloadKeyPressTime - CurrentTime) > 0.25)
-                                    {
-                                        if (CurrentTime > SilentReloadTime)
+                                        NewAttackForTrigger += 1;
+                                        FrameAttackStrike++;
+                                        FrameUnattackStrike = 0;
+                                        CurrentFrameAttacked = true;
+                                        LastAttackPressed = CurrentTime;
+                                        if (!IsInAttack() && NeedIgnoreAttackFlag > 0)
                                         {
-                                            if (Reloads3 > 0)
+                                            if (CurrentFrameDuplicated <= 0)
                                             {
-                                                DemoScanner_AddWarn("[BETA] [SILENT RELOAD " + CurrentWeapon + "] at (" +
-                                                                    LastKnowRealTime + ") " + LastKnowTimeString);
+                                                NeedIgnoreAttackFlag += 2;
                                             }
+                                            else
+                                            {
+                                                NeedIgnoreAttackFlag += 1;
+                                            }
+                                        }
+                                        if (IsCmdChangeWeapon() || IsRealChangeWeapon() || !IsUserAlive())
+                                        {
+                                            LastEventDetectTime = 0.0f;
+                                        }
+                                        if (abs(LastEventDetectTime) > EPSILON && abs(LastAttackPressed - LastEventDetectTime) > 0.25)
+                                        {
+                                            if (DemoScanner_AddWarn("[BETA] [TRIGGER TYPE 3." + (LastEventId < 0 ? 2 : 1) + " " + CurrentWeapon + "] at (" + LastKnowRealTime + ") " +
+                                                    LastKnowTimeString, false))
+                                            {
+                                                TriggerAimAttackCount++;
+                                                LastTriggerAttack = LastKnowRealTime;
+                                            }
+
+                                            /*foreach (var res in DownloadedResources)
+                                            {
+                                                if (res.res_index == Math.Abs(LastEventId) && res.res_type == 5)
+                                                {
+                                                    Console.WriteLine("[Debug] event:" + res.res_path + " at " + CurrentTimeString);
+                                                }
+                                            }*/
+                                            LastEventDetectTime = 0.0f;
+                                        }
+                                        else
+                                        {
+                                            LastEventDetectTime = 0.0f;
                                         }
                                     }
                                     else
                                     {
-                                        SilentReloadTime = 0.0f;
-                                    }
-                                }
-
-                                if (CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_RELOAD) &&
-                                    !PreviousFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_RELOAD))
-                                {
-                                    Reloads3++;
-                                    CheckConsoleCommand("Reload key set", true);
-                                    if (IsUserAlive())
-                                    {
-                                        if (abs(CurrentTime - ReloadKeyPressTime) > 0.5)
+                                        IsAttack--;
+                                        FrameUnattackStrike++;
+                                        FrameAttackStrike = 0;
+                                        if (!NeedSearchAim3 && PreviousFrameAttacked && RealAlive &&
+                                            abs(CurrentTime) > EPSILON && abs(CurrentTime - IsAttackLastTime) > 0.075f &&
+                                            abs(CurrentTime - IsNoAttackLastTime) > 0.075f)
                                         {
-                                            ReloadHackTime = CurrentTime;
-                                        }
-                                        else if (PreviousFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_ATTACK) &&
-                                                 !CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_ATTACK))
-                                        {
-                                            if ((abs(IsNoAttackLastTime - CurrentTime) > 0.25 &&
-                                                abs(IsAttackLastTime - CurrentTime) > 0.25) ||
-                                                abs(ReloadKeyPressTime - CurrentTime) > 0.25)
+                                            if (StopAttackBtnFrameId != CurrentNetMsgFrameId)
                                             {
-                                                SilentReloadTime = CurrentTime + 0.25f;
+                                                NeedSearchAim3 = true;
+                                                StopAttackBtnFrameId = CurrentNetMsgFrameId;
+                                            }
+                                        }
+                                        else if (!RealAlive)
+                                        {
+                                            NeedSearchAim3 = false;
+                                        }
+
+                                        if (!IsInAttack())
+                                        {
+                                            NeedIgnoreAttackFlag = 0;
+                                        }
+
+                                        CurrentFrameAttacked = false;
+                                    }
+
+                                    if (NeedIgnoreAttackFlag == 6)
+                                    {
+                                        NeedIgnoreAttackFlagCount++;
+                                    }
+
+                                    CurrentFrameForward = CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_FORWARD);
+                                    if (RealAlive && !InStrafe && !InForward && !InBack && !PreviousFrameForward &&
+                                        CurrentFrameForward && abs(CurrentTime - LastMoveForward) > 1.0f &&
+                                        abs(CurrentTime - LastMoveBack) > 1.0f && abs(CurrentTime - LastUnMoveForward) > 1.5f)
+                                    {
+                                        if (abs(CurrentTime - LastMovementHackTime) > 1.5)
+                                        {
+                                            DemoScanner_AddWarn("[FORWARD HACK TYPE 1] at (" + LastKnowRealTime + ") " +
+                                                                LastKnowTimeString);
+                                            LastMovementHackTime = CurrentTime;
+                                        }
+                                    }
+
+                                    NewAttack = false;
+                                    NewAttack2 = false;
+
+                                    if (abs(SilentReloadTime) > EPSILON)
+                                    {
+                                        if ((abs(IsNoAttackLastTime - CurrentTime) > 0.25 &&
+                                                   abs(IsAttackLastTime - CurrentTime) > 0.25) ||
+                                                   abs(ReloadKeyPressTime - CurrentTime) > 0.25)
+                                        {
+                                            if (CurrentTime > SilentReloadTime)
+                                            {
+                                                if (Reloads3 > 0)
+                                                {
+                                                    DemoScanner_AddWarn("[BETA] [SILENT RELOAD " + CurrentWeapon + "] at (" +
+                                                                        LastKnowRealTime + ") " + LastKnowTimeString);
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            SilentReloadTime = 0.0f;
+                                        }
+                                    }
+
+                                    if (CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_RELOAD) &&
+                                        !PreviousFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_RELOAD))
+                                    {
+                                        Reloads3++;
+                                        CheckConsoleCommand("Reload key set", true);
+                                        if (IsUserAlive())
+                                        {
+                                            if (abs(CurrentTime - ReloadKeyPressTime) > 0.5)
+                                            {
+                                                ReloadHackTime = CurrentTime;
+                                            }
+                                            else if (PreviousFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_ATTACK) &&
+                                                     !CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_ATTACK))
+                                            {
+                                                if ((abs(IsNoAttackLastTime - CurrentTime) > 0.25 &&
+                                                    abs(IsAttackLastTime - CurrentTime) > 0.25) ||
+                                                    abs(ReloadKeyPressTime - CurrentTime) > 0.25)
+                                                {
+                                                    SilentReloadTime = CurrentTime + 0.25f;
+                                                }
                                             }
                                         }
                                     }
-                                }
 
-                                /*if (LastAttackBtnTime > 0.1f)
-                                {
-                                    LastAttackBtnTime = 0.0f;
-
-                                    Console.WriteLine("after IN_ATTACK + " + LastKnowTimeString + " cur angles [" + CDFRAME_ViewAngles.X + "/" + CDFRAME_ViewAngles.Y + "]");
-                                }
-
-                                if (CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_ATTACK) &&
-                                    !PreviousFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_ATTACK))
-                                {
-                                    // Console.WriteLine("+IN_ATTACK + " + CurrentTimeString + "[" + PREV_CDFRAME_ViewAngles.Y +"/" + CDFRAME_ViewAngles.Y + "]");
-                                    LastAttackBtnTime = CurrentTime;
-                                    //Console.WriteLine("ATTACK");
-
-                                    //PrimaryCheckTimer--;
-                                    //if (abs(PrimaryCheckTimer) > 2)
-                                    //{
-                                    //    //Console.WriteLine("ClearFuckPrimary2");
-                                    //    PrimaryCheckTimer = 0;
-                                    //    PrimaryAttackHistory.Clear();
-                                    //}
-
-                                }
-                                */
-
-                                //    if (IsUserAlive() && !IsCmdChangeWeapon() && abs(LastPrimaryAttackTime) > EPSILON &&
-                                //        abs(LastPrevPrimaryAttackTime) > EPSILON &&
-                                //        abs(CurrentTime - LastPrevPrimaryAttackTime) <= abs(PrimaryAttackHistory[3]))
-                                //    {
-                                //        if (abs(IsAttackLastTime - LastAttackCmdTime) < EPSILON &&
-                                //            abs(IsAttackLastTime - IsNoAttackLastTime) > EPSILON &&
-                                //            PrimaryAttackHistory[3] > PrimaryAttackHistory[2] &&
-                                //            PrimaryAttackHistory[1] > PrimaryAttackHistory[2] &&
-                                //            abs(abs(CurrentTime - LastPrevPrimaryAttackTime) -
-                                //                abs(PrimaryAttackHistory[2])) < 0.06f)
-                                //        {
-                                //            //Console.WriteLine(CurrentTime + "/" + LastPrevPrimaryAttackTime + "/" + LastAttackCmdTime
-                                //            //    + "/" + IsAttackLastTime + "/" + IsNoAttackLastTime + "/" + (PrimaryAttackHistory[3] > PrimaryAttackHistory[2] && PrimaryAttackHistory[1] > PrimaryAttackHistory[2]).ToString()
-                                //            //    + "/" + ((abs(abs(CurrentTime - LastPrevPrimaryAttackTime) - abs(PrimaryAttackHistory[2]))) < 0.06f).ToString());
-                                //            if (abs(IsAttackLastTime - LastPrevPrimaryAttackTime) < EPSILON)
-                                //                AutoPistolStrikes++;
-                                //            if (AutoPistolStrikes == 3)
-                                //            {
-                                //                DemoScanner_AddWarn(
-                                //                    "[AIM TYPE 2.2 " + CurrentWeapon + "] at (" + LastKnowTime + ") " +
-                                //                    CurrentTimeString,
-                                //                    SkipAimType22-- <= 0 && !IsPlayerLossConnection() &&
-                                //                    !IsCmdChangeWeapon() && !IsAngleEditByEngine());
-                                //                AutoPistolStrikes = 0;
-                                //            }
-                                //        }
-                                //        else
-                                //        {
-                                //            AutoPistolStrikes = 0;
-                                //        }
-
-                                //        LastPrimaryAttackTime = 0.0f;
-                                //        LastPrevPrimaryAttackTime = 0.0f;
-                                //    }
-                                //    else
-                                //    {
-                                //        AutoPistolStrikes = 0;
-                                //    }
-                                //}
-
-                                //if (!IsUserAlive())
-                                //{
-                                //    ReloadHackTime = 0.0f;
-                                //    AutoPistolStrikes = 0;
-                                //    LastPrimaryAttackTime = 0.0f;
-                                //    LastPrevPrimaryAttackTime = 0.0f;
-                                //}
-
-                                if (!IsUserAlive())
-                                {
-                                    ReloadHackTime = 0.0f;
-                                }
-
-                                if (abs(ReloadHackTime) > EPSILON && abs(CurrentTime - ReloadHackTime) > 0.5)
-                                {
-                                    DemoScanner_AddWarn(
-                                        "[AUTORELOAD TYPE 1 " + CurrentWeapon + "] at (" + ReloadHackTime + ") " +
-                                        GetTimeString(ReloadHackTime), !IsCmdChangeWeapon() && !IsRealChangeWeapon() && !IsAngleEditByEngine());
-                                    ReloadHackTime = 0.0f;
-                                }
-
-                                if (IsUserAlive())
-                                {
-                                    if (CurrentFrameDuplicated == 0 && InitAimMissingSearch > 1)
+                                    /*if (LastAttackBtnTime > 0.1f)
                                     {
-                                        InitAimMissingSearch--;
+                                        LastAttackBtnTime = 0.0f;
+
+                                        Console.WriteLine("after IN_ATTACK + " + LastKnowTimeString + " cur angles [" + CDFRAME_ViewAngles.X + "/" + CDFRAME_ViewAngles.Y + "]");
                                     }
 
-                                    //if (InitAimMissingSearch == 1)
-                                    //{
-                                    //    if (CurrentTime - IsAttackLastTime > 0.10)
+                                    if (CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_ATTACK) &&
+                                        !PreviousFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_ATTACK))
+                                    {
+                                        // Console.WriteLine("+IN_ATTACK + " + CurrentTimeString + "[" + PREV_CDFRAME_ViewAngles.Y +"/" + CDFRAME_ViewAngles.Y + "]");
+                                        LastAttackBtnTime = CurrentTime;
+                                        //Console.WriteLine("ATTACK");
+
+                                        //PrimaryCheckTimer--;
+                                        //if (abs(PrimaryCheckTimer) > 2)
+                                        //{
+                                        //    //Console.WriteLine("ClearFuckPrimary2");
+                                        //    PrimaryCheckTimer = 0;
+                                        //    PrimaryAttackHistory.Clear();
+                                        //}
+
+                                    }
+                                    */
+
+                                    //    if (IsUserAlive() && !IsCmdChangeWeapon() && abs(LastPrimaryAttackTime) > EPSILON &&
+                                    //        abs(LastPrevPrimaryAttackTime) > EPSILON &&
+                                    //        abs(CurrentTime - LastPrevPrimaryAttackTime) <= abs(PrimaryAttackHistory[3]))
                                     //    {
-                                    //        DemoScanner_AddWarn(
-                                    //                   "[AIM TYPE 1.5 " + CurrentWeapon.ToString() + "] at (" + IsAttackLastTime +
-                                    //                   "):" + CurrentTimeString, false);
-                                    //        SilentAimDetected++;
-                                    //        InitAimMissingSearch = 0;
+                                    //        if (abs(IsAttackLastTime - LastAttackCmdTime) < EPSILON &&
+                                    //            abs(IsAttackLastTime - IsNoAttackLastTime) > EPSILON &&
+                                    //            PrimaryAttackHistory[3] > PrimaryAttackHistory[2] &&
+                                    //            PrimaryAttackHistory[1] > PrimaryAttackHistory[2] &&
+                                    //            abs(abs(CurrentTime - LastPrevPrimaryAttackTime) -
+                                    //                abs(PrimaryAttackHistory[2])) < 0.06f)
+                                    //        {
+                                    //            //Console.WriteLine(CurrentTime + "/" + LastPrevPrimaryAttackTime + "/" + LastAttackCmdTime
+                                    //            //    + "/" + IsAttackLastTime + "/" + IsNoAttackLastTime + "/" + (PrimaryAttackHistory[3] > PrimaryAttackHistory[2] && PrimaryAttackHistory[1] > PrimaryAttackHistory[2]).ToString()
+                                    //            //    + "/" + ((abs(abs(CurrentTime - LastPrevPrimaryAttackTime) - abs(PrimaryAttackHistory[2]))) < 0.06f).ToString());
+                                    //            if (abs(IsAttackLastTime - LastPrevPrimaryAttackTime) < EPSILON)
+                                    //                AutoPistolStrikes++;
+                                    //            if (AutoPistolStrikes == 3)
+                                    //            {
+                                    //                DemoScanner_AddWarn(
+                                    //                    "[AIM TYPE 2.2 " + CurrentWeapon + "] at (" + LastKnowTime + ") " +
+                                    //                    CurrentTimeString,
+                                    //                    SkipAimType22-- <= 0 && !IsPlayerLossConnection() &&
+                                    //                    !IsCmdChangeWeapon() && !IsAngleEditByEngine());
+                                    //                AutoPistolStrikes = 0;
+                                    //            }
+                                    //        }
+                                    //        else
+                                    //        {
+                                    //            AutoPistolStrikes = 0;
+                                    //        }
+
+                                    //        LastPrimaryAttackTime = 0.0f;
+                                    //        LastPrevPrimaryAttackTime = 0.0f;
+                                    //    }
+                                    //    else
+                                    //    {
+                                    //        AutoPistolStrikes = 0;
                                     //    }
                                     //}
 
-                                    if (CurrentFrameAttacked)
+                                    //if (!IsUserAlive())
+                                    //{
+                                    //    ReloadHackTime = 0.0f;
+                                    //    AutoPistolStrikes = 0;
+                                    //    LastPrimaryAttackTime = 0.0f;
+                                    //    LastPrevPrimaryAttackTime = 0.0f;
+                                    //}
+
+                                    if (!IsUserAlive())
                                     {
-                                        if (InitAimMissingSearch > 0)
-                                        {
-                                            InitAimMissingSearch = 0;
-                                        }
+                                        ReloadHackTime = 0.0f;
                                     }
-                                    else
+
+                                    if (abs(ReloadHackTime) > EPSILON && abs(CurrentTime - ReloadHackTime) > 0.5)
                                     {
-                                        if (FirstAttack && IsRealWeapon())
+                                        DemoScanner_AddWarn(
+                                            "[AUTORELOAD TYPE 1 " + CurrentWeapon + "] at (" + ReloadHackTime + ") " +
+                                            GetTimeString(ReloadHackTime), !IsCmdChangeWeapon() && !IsRealChangeWeapon() && !IsAngleEditByEngine());
+                                        ReloadHackTime = 0.0f;
+                                    }
+
+                                    if (IsUserAlive())
+                                    {
+                                        if (CurrentFrameDuplicated == 0 && InitAimMissingSearch > 1)
                                         {
-                                            if (InitAimMissingSearch == 1)
-                                            {
-                                                if (DemoScanner_AddWarn(
-                                                    "[AIM TYPE 4.2 " + CurrentWeapon + "] at (" + IsAttackLastTime + "):" +
-                                                    GetTimeString(IsAttackLastTime),
-                                                    !IsCmdChangeWeapon() && !IsAngleEditByEngine() && !IsReload &&
-                                                    SelectSlot <= 0 && !IsPlayerLossConnection() && !IsForceCenterView() && !IsPlayerInDuck() && !IsPlayerUnDuck()))
-                                                {
-                                                    TotalAimBotDetected++;
-                                                }
-                                                InitAimMissingSearch = 0;
-                                            }
+                                            InitAimMissingSearch--;
                                         }
-                                        else
+
+                                        //if (InitAimMissingSearch == 1)
+                                        //{
+                                        //    if (CurrentTime - IsAttackLastTime > 0.10)
+                                        //    {
+                                        //        DemoScanner_AddWarn(
+                                        //                   "[AIM TYPE 1.5 " + CurrentWeapon.ToString() + "] at (" + IsAttackLastTime +
+                                        //                   "):" + CurrentTimeString, false);
+                                        //        SilentAimDetected++;
+                                        //        InitAimMissingSearch = 0;
+                                        //    }
+                                        //}
+
+                                        if (CurrentFrameAttacked)
                                         {
                                             if (InitAimMissingSearch > 0)
                                             {
                                                 InitAimMissingSearch = 0;
                                             }
                                         }
-                                    }
-                                }
-                                else
-                                {
-                                    if (InitAimMissingSearch > 0)
-                                    {
-                                        InitAimMissingSearch = 0;
-                                    }
-                                }
-
-                                if (!PreviousFrameAttacked2 && CurrentFrameAttacked2)
-                                {
-                                    if (CurrentWeapon == WeaponIdType.WEAPON_KNIFE)
-                                    {
-                                        NewAttack2 = true;
-                                        NewAttack2Frame = CurrentFrameIdAll;
-                                    }
-                                }
-
-                                if (!PreviousFrameAttacked && CurrentFrameAttacked)
-                                {
-                                    if (IsUserAlive())
-                                    {
-                                        attackscounter3++;
-                                    }
-
-                                    //if (abs(CurrentTime - IsNoAttackLastTime) > 240.0)
-                                    //{
-                                    //    UsingAnotherMethodWeaponDetection = !UsingAnotherMethodWeaponDetection;
-                                    //}
-
-                                    if (DEBUG_ENABLED)
-                                    {
-                                        Console.WriteLine("ATTACK:" + CurrentWeapon);
-                                    }
-
-                                    FirstAttack = true;
-                                    NewAttack = true;
-                                    NewAttackFrame = CurrentFrameIdAll;
-
-                                    if (IsForceCenterView())
-                                    {
-                                        if (abs(CurrentTime - LastForceCenterView) > 10.0f)
+                                        else
                                         {
-                                            DemoScanner_AddInfo("[ILLEGAL FORCE_CENTERVIEW] at (" + LastKnowRealTime + "):" +
-                                                                LastKnowTimeString);
-                                            LastForceCenterView = CurrentTime;
+                                            if (FirstAttack && IsRealWeapon())
+                                            {
+                                                if (InitAimMissingSearch == 1)
+                                                {
+                                                    if (DemoScanner_AddWarn(
+                                                        "[AIM TYPE 4.2 " + CurrentWeapon + "] at (" + IsAttackLastTime + "):" +
+                                                        GetTimeString(IsAttackLastTime),
+                                                        !IsCmdChangeWeapon() && !IsAngleEditByEngine() && !IsReload &&
+                                                        SelectSlot <= 0 && !IsPlayerLossConnection() && !IsForceCenterView() && !IsPlayerInDuck() && !IsPlayerUnDuck()))
+                                                    {
+                                                        TotalAimBotDetected++;
+                                                    }
+                                                    InitAimMissingSearch = 0;
+                                                }
+                                            }
+                                            else
+                                            {
+                                                if (InitAimMissingSearch > 0)
+                                                {
+                                                    InitAimMissingSearch = 0;
+                                                }
+                                            }
                                         }
-
-                                        LastAim5Detected = 0.0f;
-                                        LastAim5Warning = 0.0f;
                                     }
-                                }
-
-                                if (CurrentWeapon == WeaponIdType.WEAPON_KNIFE || CurrentWeapon == WeaponIdType.WEAPON_C4 ||
-                                    CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE ||
-                                    CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE ||
-                                    CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG ||
-                                    CurrentWeapon == WeaponIdType.WEAPON_NONE || CurrentWeapon == WeaponIdType.WEAPON_BAD ||
-                                    CurrentWeapon == WeaponIdType.WEAPON_BAD2 //|| IsAngleEditByEngine()
-                                    || !RealAlive)
-                                {
-                                    ReloadWarns = 0;
-                                }
-
-                                if (CurrentWeapon == WeaponIdType.WEAPON_XM1014 || CurrentWeapon == WeaponIdType.WEAPON_M3)
-                                {
-                                    ReloadWarns = 0;
-                                }
-
-                                if (RealAlive)
-                                {
-                                    if (NewAttack && !IsAngleEditByEngine())
+                                    else
                                     {
-                                        NewAttackTime = CurrentTime;
-                                        NewAttackTimeAim9 = CurrentTime;
-                                        if (abs(CurrentTime - Aim8DetectionTimeX) < 0.25)
+                                        if (InitAimMissingSearch > 0)
                                         {
-                                            //Console.WriteLine("Aim8DetectionTimeX warn!");
-                                            Aim8DetectionTimeX = 0.0f;
-                                        }
-                                        else if (abs(CurrentTime - Aim8DetectionTimeY) < 0.25)
-                                        {
-                                            //Console.WriteLine("Aim8DetectionTimeY warn!");
-                                            Aim8DetectionTimeY = 0.0f;
+                                            InitAimMissingSearch = 0;
                                         }
                                     }
 
-                                    if (MoveLeft && !MoveRight)
+                                    if (!PreviousFrameAttacked2 && CurrentFrameAttacked2)
                                     {
-                                        MoveRightStrike = 0;
-                                        MoveLeftStrike++;
+                                        if (CurrentWeapon == WeaponIdType.WEAPON_KNIFE)
+                                        {
+                                            NewAttack2 = true;
+                                            NewAttack2Frame = CurrentFrameIdAll;
+                                        }
                                     }
-                                    else if (MoveRight && !MoveLeft)
+
+                                    if (!PreviousFrameAttacked && CurrentFrameAttacked)
                                     {
-                                        MoveLeftStrike = 0;
-                                        MoveRightStrike++;
+                                        if (IsUserAlive())
+                                        {
+                                            attackscounter3++;
+                                        }
+
+                                        //if (abs(CurrentTime - IsNoAttackLastTime) > 240.0)
+                                        //{
+                                        //    UsingAnotherMethodWeaponDetection = !UsingAnotherMethodWeaponDetection;
+                                        //}
+
+                                        if (DEBUG_ENABLED)
+                                        {
+                                            Console.WriteLine("ATTACK:" + CurrentWeapon);
+                                        }
+
+                                        FirstAttack = true;
+                                        NewAttack = true;
+                                        NewAttackFrame = CurrentFrameIdAll;
+
+                                        if (IsForceCenterView())
+                                        {
+                                            if (abs(CurrentTime - LastForceCenterView) > 10.0f)
+                                            {
+                                                DemoScanner_AddInfo("[ILLEGAL FORCE_CENTERVIEW] at (" + LastKnowRealTime + "):" +
+                                                                    LastKnowTimeString);
+                                                LastForceCenterView = CurrentTime;
+                                            }
+
+                                            LastAim5Detected = 0.0f;
+                                            LastAim5Warning = 0.0f;
+                                        }
+                                    }
+
+                                    if (CurrentWeapon == WeaponIdType.WEAPON_KNIFE || CurrentWeapon == WeaponIdType.WEAPON_C4 ||
+                                        CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE ||
+                                        CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE ||
+                                        CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG ||
+                                        CurrentWeapon == WeaponIdType.WEAPON_NONE || CurrentWeapon == WeaponIdType.WEAPON_BAD ||
+                                        CurrentWeapon == WeaponIdType.WEAPON_BAD2 //|| IsAngleEditByEngine()
+                                        || !RealAlive)
+                                    {
+                                        ReloadWarns = 0;
+                                    }
+
+                                    if (CurrentWeapon == WeaponIdType.WEAPON_XM1014 || CurrentWeapon == WeaponIdType.WEAPON_M3)
+                                    {
+                                        ReloadWarns = 0;
+                                    }
+
+                                    if (RealAlive)
+                                    {
+                                        if (NewAttack && !IsAngleEditByEngine())
+                                        {
+                                            NewAttackTime = CurrentTime;
+                                            NewAttackTimeAim9 = CurrentTime;
+                                            if (abs(CurrentTime - Aim8DetectionTimeX) < 0.25)
+                                            {
+                                                //Console.WriteLine("Aim8DetectionTimeX warn!");
+                                                Aim8DetectionTimeX = 0.0f;
+                                            }
+                                            else if (abs(CurrentTime - Aim8DetectionTimeY) < 0.25)
+                                            {
+                                                //Console.WriteLine("Aim8DetectionTimeY warn!");
+                                                Aim8DetectionTimeY = 0.0f;
+                                            }
+                                        }
+
+                                        if (MoveLeft && !MoveRight)
+                                        {
+                                            MoveRightStrike = 0;
+                                            MoveLeftStrike++;
+                                        }
+                                        else if (MoveRight && !MoveLeft)
+                                        {
+                                            MoveLeftStrike = 0;
+                                            MoveRightStrike++;
+                                        }
+                                        else
+                                        {
+                                            MoveRightStrike = 0;
+                                            MoveLeftStrike = 0;
+                                        }
                                     }
                                     else
                                     {
                                         MoveRightStrike = 0;
                                         MoveLeftStrike = 0;
                                     }
-                                }
-                                else
-                                {
-                                    MoveRightStrike = 0;
-                                    MoveLeftStrike = 0;
-                                }
 
-                                if (abs(nf.UCmd.Sidemove) > EPSILON)
-                                {
-                                    LastSideMoveTime = CurrentTime;
-                                }
-
-                                if (abs(nf.UCmd.Forwardmove) < EPSILON)
-                                {
-
-                                }
-                                else if (nf.UCmd.Forwardmove > 0.1f)
-                                {
-                                    LastForwardMoveTime = CurrentTime;
-                                }
-                                else if (nf.UCmd.Forwardmove < 0.1f)
-                                {
-                                    LastBackMoveTime = CurrentTime;
-                                }
-
-                                if ((nf.UCmd.Sidemove < -40.0f || nf.UCmd.Sidemove > 40.0f) &&
-                                    !InStrafe && !MoveLeft && !MoveRight &&
-                                    abs(CurrentTime - LastMoveLeft) > 0.5f &&
-                                    abs(CurrentTime - LastMoveRight) > 0.5f &&
-                                    abs(CurrentTime - LastUnMoveLeft) > 0.5f &&
-                                    abs(CurrentTime - LastUnMoveRight) > 0.5f &&
-                                    abs(CurrentTime - LastStrafeDisabled) > 0.5f &&
-                                    abs(CurrentTime - LastStrafeEnabled) > 0.5f &&
-                                    abs(CurrentTime - LastMovementHackTime) > 2.5f)
-                                {
-                                    if (DemoScanner_AddWarn(
-                                        "[MOVEMENT HACK TYPE 2] at (" + LastKnowRealTime + ") " + LastKnowTimeString,
-                                        IsValidMovement() && !IsPlayerLossConnection() &&
-                                        (nf.UCmd.Sidemove < -100 || nf.UCmd.Sidemove > 100)))
+                                    if (abs(nf.UCmd.Sidemove) > EPSILON)
                                     {
-                                        KreedzHacksCount++;
-                                        LastMovementHackTime = CurrentTime;
+                                        LastSideMoveTime = CurrentTime;
                                     }
-                                }
 
-                                if (SearchMoveHack1)
-                                {
-                                    if (CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_MOVELEFT) ||
-                                        CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_MOVERIGHT))
+                                    if (abs(nf.UCmd.Forwardmove) < EPSILON)
                                     {
-                                        if (!MoveLeft && !MoveRight && abs(CurrentTime - LastMoveLeft) > 0.5f &&
-                                            abs(CurrentTime - LastMoveRight) > 0.5f &&
-                                            abs(CurrentTime - LastUnMoveLeft) > 0.5f &&
-                                            abs(CurrentTime - LastUnMoveRight) > 0.5f)
+
+                                    }
+                                    else if (nf.UCmd.Forwardmove > 0.1f)
+                                    {
+                                        LastForwardMoveTime = CurrentTime;
+                                    }
+                                    else if (nf.UCmd.Forwardmove < 0.1f)
+                                    {
+                                        LastBackMoveTime = CurrentTime;
+                                    }
+
+                                    if ((nf.UCmd.Sidemove < -40.0f || nf.UCmd.Sidemove > 40.0f) &&
+                                        !InStrafe && !MoveLeft && !MoveRight &&
+                                        abs(CurrentTime - LastMoveLeft) > 0.5f &&
+                                        abs(CurrentTime - LastMoveRight) > 0.5f &&
+                                        abs(CurrentTime - LastUnMoveLeft) > 0.5f &&
+                                        abs(CurrentTime - LastUnMoveRight) > 0.5f &&
+                                        abs(CurrentTime - LastStrafeDisabled) > 0.5f &&
+                                        abs(CurrentTime - LastStrafeEnabled) > 0.5f &&
+                                        abs(CurrentTime - LastMovementHackTime) > 2.5f)
+                                    {
+                                        if (DemoScanner_AddWarn(
+                                            "[MOVEMENT HACK TYPE 2] at (" + LastKnowRealTime + ") " + LastKnowTimeString,
+                                            IsValidMovement() && !IsPlayerLossConnection() &&
+                                            (nf.UCmd.Sidemove < -100 || nf.UCmd.Sidemove > 100)))
                                         {
-                                            DemoScanner_AddWarn(
-                                                "[MOVEMENT HACK TYPE 1] at (" + LastKnowRealTime + ") " + LastKnowTimeString,
-                                                !IsAngleEditByEngine() && !IsPlayerLossConnection());
+                                            KreedzHacksCount++;
+                                            LastMovementHackTime = CurrentTime;
                                         }
-                                        SearchMoveHack1 = false;
                                     }
 
                                     if (SearchMoveHack1)
                                     {
-                                        if (DemoScanner_AddWarn(
-                                            "[MOVEMENT HACK TYPE 1] at (" + LastKnowRealTime + ") " + LastKnowTimeString, false))
+                                        if (CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_MOVELEFT) ||
+                                            CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_MOVERIGHT))
                                         {
-                                            KreedzHacksCount++;
-                                        }
-                                        SearchMoveHack1 = false;
-                                    }
-                                }
-
-                                if (RealAlive)
-                                {
-                                    if (CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_MOVELEFT) ||
-                                        CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_MOVERIGHT))
-                                    {
-                                        if (!MoveLeft && !MoveRight &&
-                                            abs(CurrentTime - LastMoveLeft) > 0.5f &&
-                                            abs(CurrentTime - LastMoveRight) > 0.5f &&
-                                            abs(CurrentTime - LastUnMoveLeft) > 0.5f &&
-                                            abs(CurrentTime - LastUnMoveRight) > 0.5f)
-                                        {
-                                            if (abs(CurrentTime - LastMovementHackTime) > 2.5f)
+                                            if (!MoveLeft && !MoveRight && abs(CurrentTime - LastMoveLeft) > 0.5f &&
+                                                abs(CurrentTime - LastMoveRight) > 0.5f &&
+                                                abs(CurrentTime - LastUnMoveLeft) > 0.5f &&
+                                                abs(CurrentTime - LastUnMoveRight) > 0.5f)
                                             {
-                                                SearchMoveHack1 = true;
-                                                LastMovementHackTime = CurrentTime;
+                                                DemoScanner_AddWarn(
+                                                    "[MOVEMENT HACK TYPE 1] at (" + LastKnowRealTime + ") " + LastKnowTimeString,
+                                                    !IsAngleEditByEngine() && !IsPlayerLossConnection());
                                             }
+                                            SearchMoveHack1 = false;
+                                        }
+
+                                        if (SearchMoveHack1)
+                                        {
+                                            if (DemoScanner_AddWarn(
+                                                "[MOVEMENT HACK TYPE 1] at (" + LastKnowRealTime + ") " + LastKnowTimeString, false))
+                                            {
+                                                KreedzHacksCount++;
+                                            }
+                                            SearchMoveHack1 = false;
                                         }
                                     }
-                                }
 
-                                if (IsInAttack())
-                                {
-                                    if (PreviousFrameAttacked && !CurrentFrameAttacked)
+                                    if (RealAlive)
                                     {
-                                        var tmpframeattacked = 0;
-                                        for (var n = frameindex + 1;
-                                             n < CurrentDemoFile.DirectoryEntries[index].Frames.Count;
-                                             n++)
+                                        if (CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_MOVELEFT) ||
+                                            CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_MOVERIGHT))
                                         {
-                                            if (tmpframeattacked == -1 || tmpframeattacked > 2)
+                                            if (!MoveLeft && !MoveRight &&
+                                                abs(CurrentTime - LastMoveLeft) > 0.5f &&
+                                                abs(CurrentTime - LastMoveRight) > 0.5f &&
+                                                abs(CurrentTime - LastUnMoveLeft) > 0.5f &&
+                                                abs(CurrentTime - LastUnMoveRight) > 0.5f)
                                             {
-                                                if (tmpframeattacked > 2)
+                                                if (abs(CurrentTime - LastMovementHackTime) > 2.5f)
                                                 {
-                                                    CheckConsoleCommand("-attack(PROGRAM)", true);
-                                                    LastLostAttackTime = CurrentTime;
-                                                    LastLostAttackTime2 = CurrentTime;
-                                                    LostStopAttackButton += 1;
+                                                    SearchMoveHack1 = true;
+                                                    LastMovementHackTime = CurrentTime;
                                                 }
-
-                                                break;
                                             }
+                                        }
+                                    }
 
-                                            var tmpframe = CurrentDemoFile.DirectoryEntries[index].Frames[n];
-                                            switch (tmpframe.Key.Type)
+                                    if (IsInAttack())
+                                    {
+                                        if (PreviousFrameAttacked && !CurrentFrameAttacked)
+                                        {
+                                            var tmpframeattacked = 0;
+                                            for (var n = frameindex + 1;
+                                                 n < CurrentDemoFile.DirectoryEntries[index].Frames.Count;
+                                                 n++)
                                             {
-                                                case GoldSource.DemoFrameType.DemoStart:
-                                                    break;
-                                                case GoldSource.DemoFrameType.ConsoleCommand:
-                                                    break;
-                                                case GoldSource.DemoFrameType.ClientData:
-                                                    break;
-                                                case GoldSource.DemoFrameType.NextSection:
-                                                    break;
-                                                case GoldSource.DemoFrameType.Event:
-                                                    break;
-                                                case GoldSource.DemoFrameType.WeaponAnim:
-                                                    break;
-                                                case GoldSource.DemoFrameType.Sound:
-                                                    break;
-                                                case GoldSource.DemoFrameType.DemoBuffer:
-                                                    break;
-                                                case GoldSource.DemoFrameType.NetMsg:
-                                                default:
-                                                    var tmpnetmsgframe1 = (GoldSource.NetMsgFrame)tmpframe.Value;
-                                                    if (tmpnetmsgframe1 != nf)
+                                                if (tmpframeattacked == -1 || tmpframeattacked > 2)
+                                                {
+                                                    if (tmpframeattacked > 2)
                                                     {
-                                                        if (tmpnetmsgframe1.UCmd.Buttons.HasFlag(GoldSource.UCMD_BUTTONS
-                                                                .IN_ATTACK) || IsCmdChangeWeapon() || IsRealChangeWeapon())
-                                                        {
-                                                            tmpframeattacked = -1;
-                                                            if (IsCmdChangeWeapon() || IsRealChangeWeapon())
-                                                            {
-                                                                NeedSearchAim3 = false;
-                                                            }
-
-                                                            break;
-                                                        }
-
-                                                        tmpframeattacked++;
+                                                        CheckConsoleCommand("-attack(PROGRAM)", true);
+                                                        LastLostAttackTime = CurrentTime;
+                                                        LastLostAttackTime2 = CurrentTime;
+                                                        LostStopAttackButton += 1;
                                                     }
 
                                                     break;
+                                                }
+
+                                                var tmpframe = CurrentDemoFile.DirectoryEntries[index].Frames[n];
+                                                switch (tmpframe.Key.Type)
+                                                {
+                                                    case GoldSource.DemoFrameType.DemoStart:
+                                                        break;
+                                                    case GoldSource.DemoFrameType.ConsoleCommand:
+                                                        break;
+                                                    case GoldSource.DemoFrameType.ClientData:
+                                                        break;
+                                                    case GoldSource.DemoFrameType.NextSection:
+                                                        break;
+                                                    case GoldSource.DemoFrameType.Event:
+                                                        break;
+                                                    case GoldSource.DemoFrameType.WeaponAnim:
+                                                        break;
+                                                    case GoldSource.DemoFrameType.Sound:
+                                                        break;
+                                                    case GoldSource.DemoFrameType.DemoBuffer:
+                                                        break;
+                                                    case GoldSource.DemoFrameType.NetMsg:
+                                                    default:
+                                                        var tmpnetmsgframe1 = (GoldSource.NetMsgFrame)tmpframe.Value;
+                                                        if (tmpnetmsgframe1 != nf)
+                                                        {
+                                                            if (tmpnetmsgframe1.UCmd.Buttons.HasFlag(GoldSource.UCMD_BUTTONS
+                                                                    .IN_ATTACK) || IsCmdChangeWeapon() || IsRealChangeWeapon())
+                                                            {
+                                                                tmpframeattacked = -1;
+                                                                if (IsCmdChangeWeapon() || IsRealChangeWeapon())
+                                                                {
+                                                                    NeedSearchAim3 = false;
+                                                                }
+
+                                                                break;
+                                                            }
+
+                                                            tmpframeattacked++;
+                                                        }
+
+                                                        break;
+                                                }
                                             }
                                         }
                                     }
-                                }
 
-                                if (NewAttack)
-                                {
-                                    if (AimType7Event == 53)
+                                    if (NewAttack)
                                     {
-                                        AimType7Event = 3;
-                                    }
-
-                                    if (AimType7Event == 52)
-                                    {
-                                        AimType7Event = 2;
-                                    }
-                                }
-                                else
-                                {
-                                    if (AimType7Event == 53)
-                                    {
-                                        AimType7Event = 0;
-                                    }
-
-                                    if (AimType7Event == 52)
-                                    {
-                                        AimType7Event = 0;
-                                    }
-                                }
-
-                                CurrentFrameJumped = CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_JUMP);
-
-                                if (CurrentFrameJumped)
-                                {
-                                    LastJumpBtnTime = CurrentTime;
-                                }
-
-                                if (SearchJumpHack5 > 1)
-                                {
-                                    if (RealAlive)
-                                    {
-                                        SearchJumpHack5--;
-                                        if (IsPlayerAnyJumpPressed() || !IsUserAlive())
+                                        if (AimType7Event == 53)
                                         {
-                                            SearchJumpHack5 = 0;
+                                            AimType7Event = 3;
+                                        }
+
+                                        if (AimType7Event == 52)
+                                        {
+                                            AimType7Event = 2;
                                         }
                                     }
                                     else
                                     {
-                                        SearchJumpHack5 = 0;
-                                    }
-                                }
-                                else if (SearchJumpHack5 == 1)
-                                {
-
-                                    SearchJumpHack5--;
-                                    if (!IsPlayerAnyJumpPressed() && IsUserAlive() && !DisableJump5AndAim16)
-                                    {
-                                        DemoScanner_AddWarn(
-                                            "[JUMPHACK TYPE 5] at (" + LastKnowRealTime + "):" +
-                                            LastKnowTimeString, false, true, false, true);
-                                    }
-                                }
-
-                                if (PreviousFrameJumped && !CurrentFrameJumped)
-                                {
-                                    if (NeedDetectBHOPHack && RealAlive)
-                                    {
-                                        BHOP_JumpWarn++;
-                                        if (BHOP_JumpWarn > 10)
+                                        if (AimType7Event == 53)
                                         {
-                                            if (abs(CurrentTime - LastBhopTime) > 1.0f)
+                                            AimType7Event = 0;
+                                        }
+
+                                        if (AimType7Event == 52)
+                                        {
+                                            AimType7Event = 0;
+                                        }
+                                    }
+
+                                    CurrentFrameJumped = CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_JUMP);
+
+                                    if (CurrentFrameJumped)
+                                    {
+                                        LastJumpBtnTime = CurrentTime;
+                                    }
+
+                                    if (SearchJumpHack5 > 1)
+                                    {
+                                        if (RealAlive)
+                                        {
+                                            SearchJumpHack5--;
+                                            if (IsPlayerAnyJumpPressed() || !IsUserAlive())
                                             {
-                                                if (DemoScanner_AddWarn("[BHOP HACK TYPE 1.3] at (" + LastKnowRealTime + ") " + LastKnowTimeString + " [" +
-                                                                    (BHOP_JumpWarn - 1) + "]" + " times."))
+                                                SearchJumpHack5 = 0;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            SearchJumpHack5 = 0;
+                                        }
+                                    }
+                                    else if (SearchJumpHack5 == 1)
+                                    {
+
+                                        SearchJumpHack5--;
+                                        if (!IsPlayerAnyJumpPressed() && IsUserAlive() && !DisableJump5AndAim16)
+                                        {
+                                            DemoScanner_AddWarn(
+                                                "[JUMPHACK TYPE 5] at (" + LastKnowRealTime + "):" +
+                                                LastKnowTimeString, false, true, false, true);
+                                        }
+                                    }
+
+                                    if (PreviousFrameJumped && !CurrentFrameJumped)
+                                    {
+                                        if (NeedDetectBHOPHack && RealAlive)
+                                        {
+                                            BHOP_JumpWarn++;
+                                            if (BHOP_JumpWarn > 10)
+                                            {
+                                                if (abs(CurrentTime - LastBhopTime) > 1.0f)
                                                 {
-                                                    BHOPcount += BHOP_JumpWarn - 1;
-                                                    LastBhopTime = CurrentTime;
-                                                    BHOP_JumpWarn = 0;
+                                                    if (DemoScanner_AddWarn("[BHOP HACK TYPE 1.3] at (" + LastKnowRealTime + ") " + LastKnowTimeString + " [" +
+                                                                        (BHOP_JumpWarn - 1) + "]" + " times."))
+                                                    {
+                                                        BHOPcount += BHOP_JumpWarn - 1;
+                                                        LastBhopTime = CurrentTime;
+                                                        BHOP_JumpWarn = 0;
+                                                    }
                                                 }
                                             }
                                         }
                                     }
-                                }
 
-                                if (!PreviousFrameJumped && CurrentFrameJumped)
-                                {
-                                    if (IsUserAlive())
+                                    if (!PreviousFrameJumped && CurrentFrameJumped)
                                     {
-                                        JumpCount2++;
-                                        NeedDetectBHOPHack = true;
+                                        if (IsUserAlive())
+                                        {
+                                            JumpCount2++;
+                                            NeedDetectBHOPHack = true;
+                                        }
                                     }
-                                }
 
-                                CurrentFrameDuck = CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_DUCK);
-                                if (!FirstDuck && CurrentFrameDuck && PreviousFrameDuck)
-                                {
-                                    FirstDuck = true;
-                                    IsDuck = true;
-                                }
-                                else if (!FirstDuck && !CurrentFrameDuck && !PreviousFrameDuck)
-                                {
-                                    FirstDuck = true;
-                                    IsDuck = false;
-                                }
+                                    CurrentFrameDuck = CurrentFrameButtons.HasFlag(GoldSource.UCMD_BUTTONS.IN_DUCK);
+                                    if (!FirstDuck && CurrentFrameDuck && PreviousFrameDuck)
+                                    {
+                                        FirstDuck = true;
+                                        IsDuck = true;
+                                    }
+                                    else if (!FirstDuck && !CurrentFrameDuck && !PreviousFrameDuck)
+                                    {
+                                        FirstDuck = true;
+                                        IsDuck = false;
+                                    }
 
-                                if (!PreviousFrameDuck && CurrentFrameDuck)
-                                {
-                                    LastCmdDuckTime = CurrentTime;
-                                }
-                                else if (PreviousFrameDuck && !CurrentFrameDuck)
-                                {
-                                    LastCmdUnduckTime = CurrentTime;
-                                }
-
-                                if (!CurrentFrameDuck && IsDuckPressed)
-                                {
-                                    IsDuckPressed = false;
-                                    LastUnDuckTime = CurrentTime;
-                                    //Console.WriteLine("Reset already induck!");
-                                }
-
-                                if (RealAlive && !IsDuck && !IsDuckPressed && FirstDuck &&
-                                    abs(CurrentTime - LastUnDuckTime) > 2.5f && abs(CurrentTime - LastDuckTime) > 2.5f &&
-                                    abs(CurrentTime - LastAliveTime) > 1.2f && !IsPlayerTeleport())
-                                {
                                     if (!PreviousFrameDuck && CurrentFrameDuck)
                                     {
-                                        SearchOneFrameDuck = true;
+                                        LastCmdDuckTime = CurrentTime;
                                     }
-                                    else if (SearchOneFrameDuck && PreviousFrameDuck && !CurrentFrameDuck)
+                                    else if (PreviousFrameDuck && !CurrentFrameDuck)
                                     {
-                                        if (abs(CurrentTime - LastKreedzHackTime) > 2.5f)
+                                        LastCmdUnduckTime = CurrentTime;
+                                    }
+
+                                    if (!CurrentFrameDuck && IsDuckPressed)
+                                    {
+                                        IsDuckPressed = false;
+                                        LastUnDuckTime = CurrentTime;
+                                        //Console.WriteLine("Reset already induck!");
+                                    }
+
+                                    if (RealAlive && !IsDuck && !IsDuckPressed && FirstDuck &&
+                                        abs(CurrentTime - LastUnDuckTime) > 2.5f && abs(CurrentTime - LastDuckTime) > 2.5f &&
+                                        abs(CurrentTime - LastAliveTime) > 1.2f && !IsPlayerTeleport())
+                                    {
+                                        if (!PreviousFrameDuck && CurrentFrameDuck)
                                         {
-                                            if (DemoScanner_AddWarn(
-                                                "[DUCK HACK TYPE 3] at (" + LastKnowRealTime + ") " + LastKnowTimeString,
-                                                !IsPlayerLossConnection()))
+                                            SearchOneFrameDuck = true;
+                                        }
+                                        else if (SearchOneFrameDuck && PreviousFrameDuck && !CurrentFrameDuck)
+                                        {
+                                            if (abs(CurrentTime - LastKreedzHackTime) > 2.5f)
                                             {
-                                                LastKreedzHackTime = CurrentTime;
-                                                KreedzHacksCount++;
+                                                if (DemoScanner_AddWarn(
+                                                    "[DUCK HACK TYPE 3] at (" + LastKnowRealTime + ") " + LastKnowTimeString,
+                                                    !IsPlayerLossConnection()))
+                                                {
+                                                    LastKreedzHackTime = CurrentTime;
+                                                    KreedzHacksCount++;
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            SearchOneFrameDuck = false;
+                                        }
+
+                                        if (CurrentFrameDuck && PreviousFrameDuck && LastDuckTime > LastUnDuckTime &&
+                                            abs(CurrentTime - LastUnDuckTime) > 1.5f && abs(CurrentTime - LastDuckTime) > 5.0f)
+                                        {
+                                            if (abs(CurrentTime - LastKreedzHackTime) > 2.5f)
+                                            {
+                                                if (DemoScanner_AddWarn(
+                                                    "[DUCK HACK TYPE 2] at (" + LastKnowRealTime + ") " + LastKnowTimeString, false))
+                                                {
+                                                    LastKreedzHackTime = CurrentTime;
+                                                    KreedzHacksCount++;
+                                                }
+                                            }
+                                        }
+
+                                        if (CurrentFrameDuck && !PreviousFrameDuck && LastUnDuckTime > LastDuckTime &&
+                                            abs(CurrentTime - LastDuckTime) > 2.5f && abs(CurrentTime - LastUnDuckTime) > 0.2f)
+                                        {
+                                            if (DuckStrikes < 2)
+                                            {
+                                                if (abs(CurrentTime - LastKreedzHackTime) > 2.5f)
+                                                {
+                                                    if (DemoScanner_AddWarn(
+                                                        "[DUCK HACK TYPE 1] at (" + LastKnowRealTime + ") " + LastKnowTimeString,
+                                                        !IsPlayerLossConnection()))
+                                                    {
+                                                        LastKreedzHackTime = CurrentTime;
+                                                        KreedzHacksCount++;
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -6121,1864 +6257,1846 @@ namespace DemoScanner.DG
                                         SearchOneFrameDuck = false;
                                     }
 
-                                    if (CurrentFrameDuck && PreviousFrameDuck && LastDuckTime > LastUnDuckTime &&
-                                        abs(CurrentTime - LastUnDuckTime) > 1.5f && abs(CurrentTime - LastDuckTime) > 5.0f)
+                                    CurrentFrameOnGround = nf.RParms.Onground != 0;
+                                    if (CurrentFrameOnGround && PreviousFrameOnGround)
                                     {
-                                        if (abs(CurrentTime - LastKreedzHackTime) > 2.5f)
+                                        FramesOnGround++;
+                                        FramesOnFly = 0;
+                                    }
+
+                                    if (CurrentFrameOnGround)
+                                    {
+                                        TotalFramesOnGround++;
+                                    }
+                                    else
+                                    {
+                                        TotalFramesOnFly++;
+                                    }
+
+                                    if (CurrentFrameAttacked)
+                                    {
+                                        if (!CurrentFrameOnGround)
                                         {
-                                            if (DemoScanner_AddWarn(
-                                                "[DUCK HACK TYPE 2] at (" + LastKnowRealTime + ") " + LastKnowTimeString, false))
-                                            {
-                                                LastKreedzHackTime = CurrentTime;
-                                                KreedzHacksCount++;
-                                            }
+                                            TotalAttackFramesOnFly++;
                                         }
                                     }
 
-                                    if (CurrentFrameDuck && !PreviousFrameDuck && LastUnDuckTime > LastDuckTime &&
-                                        abs(CurrentTime - LastDuckTime) > 2.5f && abs(CurrentTime - LastUnDuckTime) > 0.2f)
+                                    if (RealAlive && CurrentFrameOnGround)
                                     {
-                                        if (DuckStrikes < 2)
+                                        StrafeAngleDirectionChanges = 0;
+                                    }
+
+                                    if (NewAttack)
+                                    {
+                                        if (!CurrentFrameOnGround)
                                         {
-                                            if (abs(CurrentTime - LastKreedzHackTime) > 2.5f)
-                                            {
-                                                if (DemoScanner_AddWarn(
-                                                    "[DUCK HACK TYPE 1] at (" + LastKnowRealTime + ") " + LastKnowTimeString,
-                                                    !IsPlayerLossConnection()))
-                                                {
-                                                    LastKreedzHackTime = CurrentTime;
-                                                    KreedzHacksCount++;
-                                                }
-                                            }
+                                            AirShots++;
                                         }
                                     }
-                                }
-                                else
-                                {
-                                    SearchOneFrameDuck = false;
-                                }
 
-                                CurrentFrameOnGround = nf.RParms.Onground != 0;
-                                if (CurrentFrameOnGround && PreviousFrameOnGround)
-                                {
-                                    FramesOnGround++;
-                                    FramesOnFly = 0;
-                                }
-
-                                if (CurrentFrameOnGround)
-                                {
-                                    TotalFramesOnGround++;
-                                }
-                                else
-                                {
-                                    TotalFramesOnFly++;
-                                }
-
-                                if (CurrentFrameAttacked)
-                                {
-                                    if (!CurrentFrameOnGround)
+                                    //if (RealAlive)
+                                    //{
+                                    //    if (FramesOnGround > 10)
+                                    //    {
+                                    //        if (nf.UCmd.Forwardmove > MaxSpeed)
+                                    //        {
+                                    //            MaxSpeed = nf.UCmd.Forwardmove;
+                                    //            Console.WriteLine("Max speed : " + MaxSpeed);
+                                    //        }
+                                    //    }
+                                    //}
+                                    if (!PreviousFrameOnGround && !CurrentFrameOnGround && RealAlive &&
+                                        nf.RParms.Waterlevel == 0)
                                     {
-                                        TotalAttackFramesOnFly++;
-                                    }
-                                }
-
-                                if (RealAlive && CurrentFrameOnGround)
-                                {
-                                    StrafeAngleDirectionChanges = 0;
-                                }
-
-                                if (NewAttack)
-                                {
-                                    if (!CurrentFrameOnGround)
-                                    {
-                                        AirShots++;
-                                    }
-                                }
-
-                                //if (RealAlive)
-                                //{
-                                //    if (FramesOnGround > 10)
-                                //    {
-                                //        if (nf.UCmd.Forwardmove > MaxSpeed)
-                                //        {
-                                //            MaxSpeed = nf.UCmd.Forwardmove;
-                                //            Console.WriteLine("Max speed : " + MaxSpeed);
-                                //        }
-                                //    }
-                                //}
-                                if (!PreviousFrameOnGround && !CurrentFrameOnGround && RealAlive &&
-                                    nf.RParms.Waterlevel == 0)
-                                {
-                                    if (CurrentFrameDuplicated == 0)
-                                    {
-                                        FramesOnFly++;
-                                        FramesOnGround = 0;
-                                        if (nf.RParms.Simvel.Z > 100.0 && nf.RParms.Simvel.Z > PreviousSimvelZ)
+                                        if (CurrentFrameDuplicated == 0)
                                         {
-                                            if (SearchFakeJump && FlyDirection < -5 && PreviousSimvelZ < -500.0f)
+                                            FramesOnFly++;
+                                            FramesOnGround = 0;
+                                            if (nf.RParms.Simvel.Z > 100.0 && nf.RParms.Simvel.Z > PreviousSimvelZ)
                                             {
-                                                if (abs(CurrentTime - LastJumpBtnTime) > 0.2)
+                                                if (SearchFakeJump && FlyDirection < -5 && PreviousSimvelZ < -500.0f)
                                                 {
-                                                    if (DemoScanner_AddWarn("[JUMPHACK HPP] at (" + LastKnowRealTime +
-                                                                        ") : " + LastKnowTimeString))
+                                                    if (abs(CurrentTime - LastJumpBtnTime) > 0.2)
                                                     {
-                                                        KreedzHacksCount++;
+                                                        if (DemoScanner_AddWarn("[JUMPHACK HPP] at (" + LastKnowRealTime +
+                                                                            ") : " + LastKnowTimeString))
+                                                        {
+                                                            KreedzHacksCount++;
+                                                        }
+                                                    }
+                                                }
+
+                                                if (FlyDirection < 0)
+                                                {
+                                                    FlyDirection = 0;
+                                                }
+
+                                                FlyDirection++;
+                                            }
+                                            else if (nf.RParms.Simvel.Z < -100.0 && nf.RParms.Simvel.Z < PreviousSimvelZ)
+                                            {
+                                                if (FlyDirection > 0)
+                                                {
+                                                    FlyDirection = 0;
+                                                }
+
+                                                FlyDirection--;
+                                            }
+                                            else
+                                            {
+                                                FlyDirection /= 2;
+                                            }
+
+                                            var abssimvelz = abs(nf.RParms.Simvel.Z);
+                                            var abssimorgz = abs(nf.RParms.Simorg.Z);
+                                            if (abssimvelz > 50.0)
+                                            {
+                                                if (abs(PreviousSimvelZ_forstuck) < 0.01f)
+                                                {
+                                                    PreviousSimvelZ_forstuck = abssimvelz;
+                                                    PreviousSimorgZ_forstuck = abssimorgz;
+                                                }
+                                                else if (abs(abssimvelz - PreviousSimvelZ_forstuck) > 2.0f ||
+                                                         abs(abssimorgz - PreviousSimorgZ_forstuck) > 2.0f)
+                                                {
+                                                    PreviousSimvelZ_forstuck = 0.0f;
+                                                    PreviousSimorgZ_forstuck = 0.0f;
+                                                    AirStuckWarnTimes = 0;
+                                                }
+                                                else
+                                                {
+                                                    AirStuckWarnTimes++;
+                                                    if (AirStuckWarnTimes > 50)
+                                                    {
+                                                        if (!GameEnd)
+                                                        {
+                                                            if (DemoScanner_AddWarn("[AIRSTUCK HACK] at (" + LastKnowRealTime +
+                                                                                ") : " + LastKnowTimeString, false))
+                                                            {
+                                                                KreedzHacksCount++;
+                                                            }
+                                                        }
+                                                        AirStuckWarnTimes = 0;
                                                     }
                                                 }
                                             }
-
-                                            if (FlyDirection < 0)
-                                            {
-                                                FlyDirection = 0;
-                                            }
-
-                                            FlyDirection++;
-                                        }
-                                        else if (nf.RParms.Simvel.Z < -100.0 && nf.RParms.Simvel.Z < PreviousSimvelZ)
-                                        {
-                                            if (FlyDirection > 0)
-                                            {
-                                                FlyDirection = 0;
-                                            }
-
-                                            FlyDirection--;
-                                        }
-                                        else
-                                        {
-                                            FlyDirection /= 2;
-                                        }
-
-                                        var abssimvelz = abs(nf.RParms.Simvel.Z);
-                                        var abssimorgz = abs(nf.RParms.Simorg.Z);
-                                        if (abssimvelz > 50.0)
-                                        {
-                                            if (abs(PreviousSimvelZ_forstuck) < 0.01f)
-                                            {
-                                                PreviousSimvelZ_forstuck = abssimvelz;
-                                                PreviousSimorgZ_forstuck = abssimorgz;
-                                            }
-                                            else if (abs(abssimvelz - PreviousSimvelZ_forstuck) > 2.0f ||
-                                                     abs(abssimorgz - PreviousSimorgZ_forstuck) > 2.0f)
+                                            else
                                             {
                                                 PreviousSimvelZ_forstuck = 0.0f;
                                                 PreviousSimorgZ_forstuck = 0.0f;
                                                 AirStuckWarnTimes = 0;
                                             }
-                                            else
-                                            {
-                                                AirStuckWarnTimes++;
-                                                if (AirStuckWarnTimes > 50)
-                                                {
-                                                    if (!GameEnd)
-                                                    {
-                                                        if (DemoScanner_AddWarn("[AIRSTUCK HACK] at (" + LastKnowRealTime +
-                                                                            ") : " + LastKnowTimeString, false))
-                                                        {
-                                                            KreedzHacksCount++;
-                                                        }
-                                                    }
-                                                    AirStuckWarnTimes = 0;
-                                                }
-                                            }
+
+                                            PreviousSimvelZ = nf.RParms.Simvel.Z;
+                                            SearchFakeJump = true;
                                         }
-                                        else
-                                        {
-                                            PreviousSimvelZ_forstuck = 0.0f;
-                                            PreviousSimorgZ_forstuck = 0.0f;
-                                            AirStuckWarnTimes = 0;
-                                        }
-
-                                        PreviousSimvelZ = nf.RParms.Simvel.Z;
-                                        SearchFakeJump = true;
-                                    }
-                                }
-                                else
-                                {
-                                    PreviousSimvelZ_forstuck = 0.0f;
-                                    PreviousSimorgZ_forstuck = 0.0f;
-                                    FlyDirection = 0;
-                                    AirStuckWarnTimes = 0;
-                                }
-
-                                if (PreviousFrameOnGround || CurrentFrameOnGround)
-                                {
-                                    FlyDirection /= 2;
-                                    SearchFakeJump = false;
-                                }
-
-                                if (!PreviousFrameOnGround && CurrentFrameOnGround)
-                                {
-                                    if (NeedDetectBHOPHack && RealAlive)
-                                    {
-                                        BHOP_GroundSearchDirection = 1;
-                                    }
-                                }
-                                else if (PreviousFrameOnGround && CurrentFrameOnGround)
-                                {
-                                    if (NeedDetectBHOPHack && RealAlive && BHOP_GroundSearchDirection > 0)
-                                    {
-                                        BHOP_GroundSearchDirection += 1;
                                     }
                                     else
                                     {
-                                        BHOP_GroundSearchDirection = 0;
+                                        PreviousSimvelZ_forstuck = 0.0f;
+                                        PreviousSimorgZ_forstuck = 0.0f;
+                                        FlyDirection = 0;
+                                        AirStuckWarnTimes = 0;
                                     }
-                                }
-                                else if (PreviousFrameOnGround && !CurrentFrameOnGround)
-                                {
-                                    FirstJump = true;
-                                    if (IsUserAlive())
-                                    {
-                                        if (nf.RParms.Simvel.Z > 100.0
-                                            && abs(LastJumpFrame - CurrentFrameId) < 5)
-                                        {
-                                            // TODO: Detect alt hack here?
-                                            JumpCount3++;
-                                        }
 
-                                        /*
-                                        if (abs(CurrentTime - PluginJmpTime) > 0.35)
+                                    if (PreviousFrameOnGround || CurrentFrameOnGround)
+                                    {
+                                        FlyDirection /= 2;
+                                        SearchFakeJump = false;
+                                    }
+
+                                    if (!PreviousFrameOnGround && CurrentFrameOnGround)
+                                    {
+                                        if (NeedDetectBHOPHack && RealAlive)
                                         {
-                                            if (flPluginVersion > 1.62 && abs(CurrentTime - LastKreedzHackTime) > 2.5f &&
-                                                        abs(LastJumpHackFalseDetectionTime) < EPSILON)
+                                            BHOP_GroundSearchDirection = 1;
+                                        }
+                                    }
+                                    else if (PreviousFrameOnGround && CurrentFrameOnGround)
+                                    {
+                                        if (NeedDetectBHOPHack && RealAlive && BHOP_GroundSearchDirection > 0)
+                                        {
+                                            BHOP_GroundSearchDirection += 1;
+                                        }
+                                        else
+                                        {
+                                            BHOP_GroundSearchDirection = 0;
+                                        }
+                                    }
+                                    else if (PreviousFrameOnGround && !CurrentFrameOnGround)
+                                    {
+                                        FirstJump = true;
+                                        if (IsUserAlive())
+                                        {
+                                            if (nf.RParms.Simvel.Z > 100.0
+                                                && abs(LastJumpFrame - CurrentFrameId) < 5)
                                             {
-                                                if (DemoScanner_AddWarn(
-                                                    "[JUMPHACK TYPE 6] at (" + LastKnowTime + ") " +
-                                                    CurrentTimeString, !IsAngleEditByEngine()))
-                                                {
-                                                    LastKreedzHackTime = CurrentTime;
-                                                    KreedzHacksCount++;
-                                                }
+                                                // TODO: Detect alt hack here?
+                                                JumpCount3++;
                                             }
-                                        }*/
 
-                                        //Console.WriteLine("LastJumpNoGroundTime = " + LastJumpNoGroundTime);
-                                        LastJumpNoGroundTime = CurrentTime;
-                                    }
+                                            /*
+                                            if (abs(CurrentTime - PluginJmpTime) > 0.35)
+                                            {
+                                                if (flPluginVersion > 1.62 && abs(CurrentTime - LastKreedzHackTime) > 2.5f &&
+                                                            abs(LastJumpHackFalseDetectionTime) < EPSILON)
+                                                {
+                                                    if (DemoScanner_AddWarn(
+                                                        "[JUMPHACK TYPE 6] at (" + LastKnowTime + ") " +
+                                                        CurrentTimeString, !IsAngleEditByEngine()))
+                                                    {
+                                                        LastKreedzHackTime = CurrentTime;
+                                                        KreedzHacksCount++;
+                                                    }
+                                                }
+                                            }*/
 
-                                    if (DEBUG_ENABLED)
-                                    {
-                                        CheckConsoleCommand("over ground", true);
-                                    }
-
-                                    if (NeedDetectBHOPHack && RealAlive)
-                                    {
-                                        if (BHOP_GroundSearchDirection < 5)
-                                        {
-                                            BHOP_GroundWarn++;
+                                            //Console.WriteLine("LastJumpNoGroundTime = " + LastJumpNoGroundTime);
+                                            LastJumpNoGroundTime = CurrentTime;
                                         }
 
-                                        BHOP_GroundSearchDirection = 0;
+                                        if (DEBUG_ENABLED)
+                                        {
+                                            CheckConsoleCommand("over ground", true);
+                                        }
+
+                                        if (NeedDetectBHOPHack && RealAlive)
+                                        {
+                                            if (BHOP_GroundSearchDirection < 5)
+                                            {
+                                                BHOP_GroundWarn++;
+                                            }
+
+                                            BHOP_GroundSearchDirection = 0;
+                                        }
+
+                                        LastRealJumpTime = CurrentTime;
                                     }
 
-                                    LastRealJumpTime = CurrentTime;
-                                }
-
-                                //if (NeedDetectBHOPHack)
-                                //{
-                                //    NeedDetectBHOPHack = false;
-                                //    if (!CurrentFrameOnGround && CurrentFramePunchangleZ > 2.0f)
-                                //    {
-                                //        Console.WriteLine("BHOP");
-                                //    }
-                                //}
-                                //if (!PreviousFrameOnGround && CurrentFrameOnGround &&
-                                //    RealAlive
-                                //    && PreviousFramePunchangleZ == 0.0f &&
-                                //    CurrentFramePunchangleZ > 2.0f)
-                                //    NeedDetectBHOPHack = true;
+                                    //if (NeedDetectBHOPHack)
+                                    //{
+                                    //    NeedDetectBHOPHack = false;
+                                    //    if (!CurrentFrameOnGround && CurrentFramePunchangleZ > 2.0f)
+                                    //    {
+                                    //        Console.WriteLine("BHOP");
+                                    //    }
+                                    //}
+                                    //if (!PreviousFrameOnGround && CurrentFrameOnGround &&
+                                    //    RealAlive
+                                    //    && PreviousFramePunchangleZ == 0.0f &&
+                                    //    CurrentFramePunchangleZ > 2.0f)
+                                    //    NeedDetectBHOPHack = true;
 
 
-                                AddLerpAndMs(nf.UCmd.LerpMsec, nf.UCmd.Msec);
-                                BadPunchAngle = abs(CurrentFramePunchangleZ) > EPSILON /* ||
+                                    AddLerpAndMs(nf.UCmd.LerpMsec, nf.UCmd.Msec);
+                                    BadPunchAngle = abs(CurrentFramePunchangleZ) > EPSILON /* ||
                                  abs(nf.RParms.Punchangle.Y) > EPSILON ||
                                  abs(nf.RParms.Punchangle.X) > EPSILON*/;
-                                addAngleInPunchListX(nf.RParms.Punchangle.X);
-                                addAngleInPunchListY(nf.RParms.Punchangle.Y);
+                                    addAngleInPunchListX(nf.RParms.Punchangle.X);
+                                    addAngleInPunchListY(nf.RParms.Punchangle.Y);
 
-                                if (WeaponChanged || IsTakeDamage(1.5f) || CurrentWeapon == WeaponIdType.WEAPON_NONE ||
-                                    CurrentWeapon == WeaponIdType.WEAPON_BAD || CurrentWeapon == WeaponIdType.WEAPON_BAD2 ||
-                                    CurrentWeapon == WeaponIdType.WEAPON_C4 ||
-                                    CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE ||
-                                    CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE ||
-                                    CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG ||
-                                    !IsUserAlive() || IsAngleEditByEngine() || IsPlayerInDuck() || IsPlayerUnDuck())
-                                {
-                                    PunchWarnings = 0;
-                                    LostAngleWarnings = 0;
-                                }
-                                else if (PunchWarnings > 2)
-                                {
-                                    PunchWarnings = 0;
-
-                                    if (IsPlayerLossConnection())
+                                    if (WeaponChanged || IsTakeDamage(1.5f) || CurrentWeapon == WeaponIdType.WEAPON_NONE ||
+                                        CurrentWeapon == WeaponIdType.WEAPON_BAD || CurrentWeapon == WeaponIdType.WEAPON_BAD2 ||
+                                        CurrentWeapon == WeaponIdType.WEAPON_C4 ||
+                                        CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE ||
+                                        CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE ||
+                                        CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG ||
+                                        !IsUserAlive() || IsAngleEditByEngine() || IsPlayerInDuck() || IsPlayerUnDuck())
                                     {
-                                        DemoScanner_AddWarn(
-                                            "[BETA] [AIM TYPE 9.2 " + CurrentWeapon + "] at (" + LastAnglePunchSearchTime +
-                                            "):" + GetTimeString(LastAnglePunchSearchTime), false);
+                                        PunchWarnings = 0;
+                                        LostAngleWarnings = 0;
+                                    }
+                                    else if (PunchWarnings > 2)
+                                    {
+                                        PunchWarnings = 0;
+
+                                        if (IsPlayerLossConnection())
+                                        {
+                                            DemoScanner_AddWarn(
+                                                "[BETA] [AIM TYPE 9.2 " + CurrentWeapon + "] at (" + LastAnglePunchSearchTime +
+                                                "):" + GetTimeString(LastAnglePunchSearchTime), false);
+                                        }
+                                        else
+                                        {
+                                            DemoScanner_AddWarn(
+                                              "[BETA] [AIM TYPE 9.1 " + CurrentWeapon + "] at (" + LastAnglePunchSearchTime +
+                                              "):" + GetTimeString(LastAnglePunchSearchTime), false);
+                                        }
+                                    }
+                                    else if (LostAngleWarnings > 2)
+                                    {
+                                        LostAngleWarnings = 0;
+                                        // TODO
+                                        DemoScanner_AddWarn("[BETA] [AIM TYPE 9.2 " + CurrentWeapon.ToString() + "] at (" + LastAnglePunchSearchTime +
+                                         "):" + LastKnowTimeString, false);
+                                    }
+
+                                    if (AimType7Event != 0)
+                                    {
+                                        if (abs(Aim7PunchangleY) < EPSILON && abs(nf.RParms.Punchangle.Y) > EPSILON)
+                                        {
+                                            Aim7PunchangleY = nf.RParms.Punchangle.Y;
+                                        }
                                     }
                                     else
                                     {
-                                        DemoScanner_AddWarn(
-                                          "[BETA] [AIM TYPE 9.1 " + CurrentWeapon + "] at (" + LastAnglePunchSearchTime +
-                                          "):" + GetTimeString(LastAnglePunchSearchTime), false);
+                                        Aim7PunchangleY = 0.0f;
                                     }
-                                }
-                                else if (LostAngleWarnings > 2)
-                                {
-                                    LostAngleWarnings = 0;
-                                    // TODO
-                                    DemoScanner_AddWarn("[BETA] [AIM TYPE 9.2 " + CurrentWeapon.ToString() + "] at (" + LastAnglePunchSearchTime +
-                                     "):" + LastKnowTimeString, false);
-                                }
 
-                                if (AimType7Event != 0)
-                                {
-                                    if (abs(Aim7PunchangleY) < EPSILON && abs(nf.RParms.Punchangle.Y) > EPSILON)
+                                    if (IsUserAlive() && abs(CurrentTime) > EPSILON)
                                     {
-                                        Aim7PunchangleY = nf.RParms.Punchangle.Y;
-                                    }
-                                }
-                                else
-                                {
-                                    Aim7PunchangleY = 0.0f;
-                                }
-
-                                if (IsUserAlive() && abs(CurrentTime) > EPSILON)
-                                {
-                                    if (CurrentFrameLerp < 8)
-                                    {
-                                        if (abs(CurrentTime - LastCmdHack) > 5.0)
+                                        if (CurrentFrameLerp < 8)
                                         {
-                                            DemoScanner_AddWarn(
-                                                "[CMD HACK TYPE 6] at (" + LastKnowRealTime + ") " + LastKnowTimeString,
-                                                !IsAngleEditByEngine());
-                                            if (DEBUG_ENABLED)
+                                            if (abs(CurrentTime - LastCmdHack) > 5.0)
                                             {
-                                                Console.WriteLine("BAD BAD LERP:" + CurrentFrameLerp);
-                                            }
+                                                DemoScanner_AddWarn(
+                                                    "[CMD HACK TYPE 6] at (" + LastKnowRealTime + ") " + LastKnowTimeString,
+                                                    !IsAngleEditByEngine());
+                                                if (DEBUG_ENABLED)
+                                                {
+                                                    Console.WriteLine("BAD BAD LERP:" + CurrentFrameLerp);
+                                                }
 
-                                            LastCmdHack = CurrentTime;
+                                                LastCmdHack = CurrentTime;
+                                            }
                                         }
                                     }
-                                }
 
-                                if (!FakeLagsValus.Contains(CurrentFrameLerp))
-                                {
-                                    FakeLagsValus.Add(CurrentFrameLerp);
-                                }
-
-                                // 01 
-                                if (RealAlive)
-                                {
-                                    if (SearchNextJumpStrike)
+                                    if (!FakeLagsValus.Contains(CurrentFrameLerp))
                                     {
-                                        SearchNextJumpStrike = false;
-                                        if (abs(IdealJmpTmpTime1 - LastUnJumpTime) > EPSILON &&
-                                            abs(IdealJmpTmpTime2 - LastJumpTime) > EPSILON && PreviousFrameOnGround &&
-                                            !CurrentFrameOnGround && (abs(CurrentTime - LastUnJumpTime) < 0.15f ||
-                                                                      abs(CurrentTime - LastJumpTime) < 0.15f))
-                                        {
-                                            IdealJmpTmpTime1 = LastUnJumpTime;
-                                            IdealJmpTmpTime2 = LastJumpTime;
-                                            CurrentIdealJumpsStrike++;
-                                            if (CurrentIdealJumpsStrike > MaxIdealJumps)
-                                            {
-                                                DemoScanner_AddWarn("[IDEALJUMP x" + CurrentIdealJumpsStrike + "] at (" +
-                                                                    LastKnowRealTime + ") : " + LastKnowTimeString);
-                                                CurrentIdealJumpsStrike = 0;
-                                            }
+                                        FakeLagsValus.Add(CurrentFrameLerp);
+                                    }
 
-                                            if (DEBUG_ENABLED)
+                                    // 01 
+                                    if (RealAlive)
+                                    {
+                                        if (SearchNextJumpStrike)
+                                        {
+                                            SearchNextJumpStrike = false;
+                                            if (abs(IdealJmpTmpTime1 - LastUnJumpTime) > EPSILON &&
+                                                abs(IdealJmpTmpTime2 - LastJumpTime) > EPSILON && PreviousFrameOnGround &&
+                                                !CurrentFrameOnGround && (abs(CurrentTime - LastUnJumpTime) < 0.15f ||
+                                                                          abs(CurrentTime - LastJumpTime) < 0.15f))
                                             {
-                                                Console.WriteLine("IDEALJUMP WARN [" + (CurrentFrameId - LastCmdFrameId) +
-                                                                  "] (" + LastKnowRealTime + ") : " + LastKnowTimeString);
+                                                IdealJmpTmpTime1 = LastUnJumpTime;
+                                                IdealJmpTmpTime2 = LastJumpTime;
+                                                CurrentIdealJumpsStrike++;
+                                                if (CurrentIdealJumpsStrike > MaxIdealJumps)
+                                                {
+                                                    DemoScanner_AddWarn("[IDEALJUMP x" + CurrentIdealJumpsStrike + "] at (" +
+                                                                        LastKnowRealTime + ") : " + LastKnowTimeString);
+                                                    CurrentIdealJumpsStrike = 0;
+                                                }
+
+                                                if (DEBUG_ENABLED)
+                                                {
+                                                    Console.WriteLine("IDEALJUMP WARN [" + (CurrentFrameId - LastCmdFrameId) +
+                                                                      "] (" + LastKnowRealTime + ") : " + LastKnowTimeString);
+                                                }
+                                            }
+                                            else
+                                            {
+                                                CurrentIdealJumpsStrike = 0;
                                             }
                                         }
                                         else
                                         {
-                                            CurrentIdealJumpsStrike = 0;
-                                        }
-                                    }
-                                    else
-                                    {
-                                        if (!PreviousFrameOnGround && CurrentFrameOnGround)
-                                        {
-                                            if (FramesOnFly > 10)
+                                            if (!PreviousFrameOnGround && CurrentFrameOnGround)
                                             {
-                                                SearchNextJumpStrike = true;
-                                            }
-
-                                            FlyJumps = 0;
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    FlyJumps = 0;
-                                    SearchNextJumpStrike = false;
-                                    CurrentIdealJumpsStrike = 0;
-                                }
-
-                                if (NeedDetectThirdPersonHack)
-                                {
-                                    if (ThirdPersonHackDetectionTimeout > 0)
-                                    {
-                                        ThirdPersonHackDetectionTimeout--;
-                                    }
-                                    else if (ThirdPersonHackDetectionTimeout == 0)
-                                    {
-                                        if (ThirdHackDetected <= 5)
-                                        {
-                                            DemoScanner_AddWarn("[THIRD PERSON TYPE 1] at (" + LastKnowRealTime + "):" +
-                                                                LastKnowTimeString, !IsPlayerLossConnection());
-                                        }
-                                        ThirdHackDetected += 1;
-                                        NeedDetectThirdPersonHack = false;
-                                        ThirdPersonHackDetectionTimeout = -1;
-                                        if (ThirdHackDetected == 1)
-                                        {
-                                            if (IsRussia)
-                                            {
-                                                DemoScanner_AddInfo("Внимание. Обнаружен вид от третьего лица.");
-                                                DemoScanner_AddInfo(
-                                                    "Отключаются ложные обнаружение : NO SPREAD TYPE X и THIRD PERSON TYPE X.");
-                                            }
-                                            else
-                                            {
-                                                DemoScanner_AddInfo("WARNING! Deteceted 'THIRD PERSON' camera");
-                                                DemoScanner_AddInfo(
-                                                    "False NO SPREAD TYPE X and THIRD PERSON TYPE X detection is disabled.");
-                                            }
-                                        }
-                                    }
-                                }
-
-                                if (RealAlive && !IsAngleEditByEngine() &&
-                                    abs(CurrentTime - LastJumpTime) > 0.5f)
-                                {
-                                    if (!NeedDetectThirdPersonHack && CurrentFrameAttacked &&
-                                        GetDistance(new FPoint(nf.View.X, nf.View.Y),
-                                            new FPoint(nf.RParms.Vieworg.X, nf.RParms.Vieworg.Y)) > 50 &&
-                                        abs(CurrentTime - LastAliveTime) > 2.0f && !IsTakeDamage() &&
-                                        abs(CurrentTime - LastDeathTime) > 5.0f && ThirdHackDetected < 5 &&
-                                        CurrentWeapon != WeaponIdType.WEAPON_NONE &&
-                                        CurrentWeapon != WeaponIdType.WEAPON_BAD &&
-                                        CurrentWeapon != WeaponIdType.WEAPON_BAD2)
-                                    {
-                                        NeedDetectThirdPersonHack = true;
-                                        ThirdPersonHackDetectionTimeout = 10;
-                                    }
-                                }
-                                else
-                                {
-                                    NeedDetectThirdPersonHack = false;
-                                    ThirdPersonHackDetectionTimeout = -1;
-                                }
-
-                                if (abs(CurrentTime2) > EPSILON)
-                                {
-                                    if (LastFpsCheckTime2 < 0.0)
-                                    {
-                                        LastFpsCheckTime2 = CurrentTime2;
-                                    }
-
-                                    if (abs(CurrentTime2 - LastFpsCheckTime2) >= 1.0f)
-                                    {
-                                        LastFpsCheckTime2 = CurrentTime2;
-                                        if (DUMP_ALL_FRAMES)
-                                        {
-                                            subnode.Text += "CurrentFps2:" + CurrentFps2 + "\n";
-                                        }
-
-                                        if (CurrentFps2 > RealFpsMax2)
-                                        {
-                                            RealFpsMax2 = CurrentFps2;
-                                        }
-
-                                        if (CurrentFps2 < RealFpsMin2 && CurrentFps2 > 0)
-                                        {
-                                            RealFpsMin2 = CurrentFps2;
-                                        }
-
-                                        SecondFound2 = true;
-                                        CurrentGameSecond2++;
-                                        MaxIdealJumps = 10;
-                                        if (averagefps2.Count > 1)
-                                        {
-                                            var tmpafps = averagefps2.Average();
-                                            if (tmpafps < 50.0f)
-                                            {
-                                                MaxIdealJumps = 10;
-                                            }
-                                            else if (tmpafps < 60.0f)
-                                            {
-                                                MaxIdealJumps = 9;
-                                            }
-                                            else if (tmpafps < 75.0f)
-                                            {
-                                                MaxIdealJumps = 8;
-                                            }
-                                            else if (tmpafps < 90.0f)
-                                            {
-                                                MaxIdealJumps = 6;
-                                            }
-                                            else if (tmpafps < 100.0f)
-                                            {
-                                                MaxIdealJumps = 5;
-                                            }
-                                            else if (tmpafps < 130.0f)
-                                            {
-                                                MaxIdealJumps = 4;
-                                            }
-                                        }
-
-                                        if (nf.RParms.Frametime > EPSILON)
-                                        {
-                                            averagefps2.Add(1000.0f / (1000.0f * nf.RParms.Frametime));
-                                            CurrentFps3Second = Convert.ToInt32(1000.0f / (1000.0f * nf.RParms.Frametime));
-                                        }
-
-                                        CurrentFps2Second = CurrentFps2;
-                                        CurrentFps2 = 0;
-                                    }
-                                    else
-                                    {
-                                        CurrentFps2++;
-                                    }
-                                }
-
-                                if (!RealAlive || HideWeapon || CurrentFrameDuplicated > 1 ||
-                                    CurrentWeapon == WeaponIdType.WEAPON_NONE || CurrentWeapon == WeaponIdType.WEAPON_BAD ||
-                                    CurrentWeapon == WeaponIdType.WEAPON_BAD2 || CurrentWeapon == WeaponIdType.WEAPON_C4 ||
-                                    CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE ||
-                                    CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE ||
-                                    CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG || IsPlayerTeleport())
-                                {
-                                    AimType8Warn = 0;
-                                    AimType8WarnTime = 0.0f;
-                                    AimType8WarnTime2 = 0.0f;
-                                }
-                                else
-                                {
-                                    if (CurrentFrameAttacked || PreviousFrameAttacked ||
-                                        (CurrentWeapon == WeaponIdType.WEAPON_KNIFE &&
-                                         (CurrentFrameAttacked2 || PreviousFrameAttacked2)))
-                                    {
-                                        if (IsForceCenterView())
-                                        {
-                                            if (abs(CurrentTime - LastForceCenterView) > 10.0f)
-                                            {
-                                                DemoScanner_AddInfo("[FORCE_CENTERVIEW 2] at (" + LastKnowRealTime + "):" +
-                                                                    LastKnowTimeString);
-                                                LastForceCenterView = CurrentTime;
-                                            }
-
-                                            AimType8WarnTime = 0.0f;
-                                            AimType8WarnTime2 = 0.0f;
-                                            AimType8False = false;
-                                        }
-
-                                        if (abs(AimType8WarnTime) > EPSILON && abs(CurrentTime - AimType8WarnTime) < 0.350f)
-                                        {
-                                            if (DemoScanner_AddWarn(
-                                                "[AIM TYPE 8.1 " + CurrentWeapon + "] at (" + AimType8WarnTime + "):" +
-                                                GetTimeString(AimType8WarnTime), !AimType8False && !IsCmdChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck()))
-                                            {
-                                                if (!AimType8False && !IsCmdChangeWeapon())
+                                                if (FramesOnFly > 10)
                                                 {
-                                                    TotalAimBotDetected++;
+                                                    SearchNextJumpStrike = true;
+                                                }
+
+                                                FlyJumps = 0;
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        FlyJumps = 0;
+                                        SearchNextJumpStrike = false;
+                                        CurrentIdealJumpsStrike = 0;
+                                    }
+
+                                    if (NeedDetectThirdPersonHack)
+                                    {
+                                        if (ThirdPersonHackDetectionTimeout > 0)
+                                        {
+                                            ThirdPersonHackDetectionTimeout--;
+                                        }
+                                        else if (ThirdPersonHackDetectionTimeout == 0)
+                                        {
+                                            if (ThirdHackDetected <= 5)
+                                            {
+                                                DemoScanner_AddWarn("[THIRD PERSON TYPE 1] at (" + LastKnowRealTime + "):" +
+                                                                    LastKnowTimeString, !IsPlayerLossConnection());
+                                            }
+                                            ThirdHackDetected += 1;
+                                            NeedDetectThirdPersonHack = false;
+                                            ThirdPersonHackDetectionTimeout = -1;
+                                            if (ThirdHackDetected == 1)
+                                            {
+                                                if (IsRussia)
+                                                {
+                                                    DemoScanner_AddInfo("Внимание. Обнаружен вид от третьего лица.");
+                                                    DemoScanner_AddInfo(
+                                                        "Отключаются ложные обнаружение : NO SPREAD TYPE X и THIRD PERSON TYPE X.");
+                                                }
+                                                else
+                                                {
+                                                    DemoScanner_AddInfo("WARNING! Deteceted 'THIRD PERSON' camera");
+                                                    DemoScanner_AddInfo(
+                                                        "False NO SPREAD TYPE X and THIRD PERSON TYPE X detection is disabled.");
                                                 }
                                             }
-                                            AimType8WarnTime = 0.0f;
-                                            AimType8False = false;
                                         }
-                                        else if (abs(AimType8WarnTime2) > EPSILON &&
-                                                 abs(CurrentTime - AimType8WarnTime2) < 0.350f)
+                                    }
+
+                                    if (RealAlive && !IsAngleEditByEngine() &&
+                                        abs(CurrentTime - LastJumpTime) > 0.5f)
+                                    {
+                                        if (!NeedDetectThirdPersonHack && CurrentFrameAttacked &&
+                                            GetDistance(new FPoint(nf.View.X, nf.View.Y),
+                                                new FPoint(nf.RParms.Vieworg.X, nf.RParms.Vieworg.Y)) > 50 &&
+                                            abs(CurrentTime - LastAliveTime) > 2.0f && !IsTakeDamage() &&
+                                            abs(CurrentTime - LastDeathTime) > 5.0f && ThirdHackDetected < 5 &&
+                                            CurrentWeapon != WeaponIdType.WEAPON_NONE &&
+                                            CurrentWeapon != WeaponIdType.WEAPON_BAD &&
+                                            CurrentWeapon != WeaponIdType.WEAPON_BAD2)
                                         {
-                                            if (abs(CurrentTime - LastSilentAim) > 0.3)
+                                            NeedDetectThirdPersonHack = true;
+                                            ThirdPersonHackDetectionTimeout = 10;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        NeedDetectThirdPersonHack = false;
+                                        ThirdPersonHackDetectionTimeout = -1;
+                                    }
+
+                                    if (abs(CurrentTime2) > EPSILON)
+                                    {
+                                        if (LastFpsCheckTime2 < 0.0)
+                                        {
+                                            LastFpsCheckTime2 = CurrentTime2;
+                                        }
+
+                                        if (abs(CurrentTime2 - LastFpsCheckTime2) >= 1.0f)
+                                        {
+                                            LastFpsCheckTime2 = CurrentTime2;
+                                            if (DUMP_ALL_FRAMES)
+                                            {
+                                                subnode.Text += "CurrentFps2:" + CurrentFps2 + "\n";
+                                            }
+
+                                            if (CurrentFps2 > RealFpsMax2)
+                                            {
+                                                RealFpsMax2 = CurrentFps2;
+                                            }
+
+                                            if (CurrentFps2 < RealFpsMin2 && CurrentFps2 > 0)
+                                            {
+                                                RealFpsMin2 = CurrentFps2;
+                                            }
+
+                                            SecondFound2 = true;
+                                            CurrentGameSecond2++;
+                                            MaxIdealJumps = 10;
+                                            if (averagefps2.Count > 1)
+                                            {
+                                                var tmpafps = averagefps2.Average();
+                                                if (tmpafps < 50.0f)
+                                                {
+                                                    MaxIdealJumps = 10;
+                                                }
+                                                else if (tmpafps < 60.0f)
+                                                {
+                                                    MaxIdealJumps = 9;
+                                                }
+                                                else if (tmpafps < 75.0f)
+                                                {
+                                                    MaxIdealJumps = 8;
+                                                }
+                                                else if (tmpafps < 90.0f)
+                                                {
+                                                    MaxIdealJumps = 6;
+                                                }
+                                                else if (tmpafps < 100.0f)
+                                                {
+                                                    MaxIdealJumps = 5;
+                                                }
+                                                else if (tmpafps < 130.0f)
+                                                {
+                                                    MaxIdealJumps = 4;
+                                                }
+                                            }
+
+                                            if (nf.RParms.Frametime > EPSILON)
+                                            {
+                                                averagefps2.Add(1000.0f / (1000.0f * nf.RParms.Frametime));
+                                                CurrentFps3Second = Convert.ToInt32(1000.0f / (1000.0f * nf.RParms.Frametime));
+                                            }
+
+                                            CurrentFps2Second = CurrentFps2;
+                                            CurrentFps2 = 0;
+                                        }
+                                        else
+                                        {
+                                            CurrentFps2++;
+                                        }
+                                    }
+
+                                    if (!RealAlive || HideWeapon || CurrentFrameDuplicated > 1 ||
+                                        CurrentWeapon == WeaponIdType.WEAPON_NONE || CurrentWeapon == WeaponIdType.WEAPON_BAD ||
+                                        CurrentWeapon == WeaponIdType.WEAPON_BAD2 || CurrentWeapon == WeaponIdType.WEAPON_C4 ||
+                                        CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE ||
+                                        CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE ||
+                                        CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG || IsPlayerTeleport())
+                                    {
+                                        AimType8Warn = 0;
+                                        AimType8WarnTime = 0.0f;
+                                        AimType8WarnTime2 = 0.0f;
+                                    }
+                                    else
+                                    {
+                                        if (CurrentFrameAttacked || PreviousFrameAttacked ||
+                                            (CurrentWeapon == WeaponIdType.WEAPON_KNIFE &&
+                                             (CurrentFrameAttacked2 || PreviousFrameAttacked2)))
+                                        {
+                                            if (IsForceCenterView())
+                                            {
+                                                if (abs(CurrentTime - LastForceCenterView) > 10.0f)
+                                                {
+                                                    DemoScanner_AddInfo("[FORCE_CENTERVIEW 2] at (" + LastKnowRealTime + "):" +
+                                                                        LastKnowTimeString);
+                                                    LastForceCenterView = CurrentTime;
+                                                }
+
+                                                AimType8WarnTime = 0.0f;
+                                                AimType8WarnTime2 = 0.0f;
+                                                AimType8False = false;
+                                            }
+
+                                            if (abs(AimType8WarnTime) > EPSILON && abs(CurrentTime - AimType8WarnTime) < 0.350f)
                                             {
                                                 if (DemoScanner_AddWarn(
-                                                    "[AIM TYPE 8.2 " + CurrentWeapon + "] at (" + AimType8WarnTime2 + "):" +
-                                                    GetTimeString(AimType8WarnTime2), /*CurrentWeapon != WeaponIdType.WEAPON_AWP
-                                    && CurrentWeapon != WeaponIdType.WEAPON_SCOUT &&*/
-                                                    !AimType8False && !IsCmdChangeWeapon()))
+                                                    "[AIM TYPE 8.1 " + CurrentWeapon + "] at (" + AimType8WarnTime + "):" +
+                                                    GetTimeString(AimType8WarnTime), !AimType8False && !IsCmdChangeWeapon() && !IsPlayerInDuck() && !IsPlayerUnDuck()))
                                                 {
-                                                    LastSilentAim = CurrentTime;
                                                     if (!AimType8False && !IsCmdChangeWeapon())
                                                     {
                                                         TotalAimBotDetected++;
                                                     }
                                                 }
+                                                AimType8WarnTime = 0.0f;
+                                                AimType8False = false;
                                             }
-                                            AimType8WarnTime2 = 0.0f;
-                                            AimType8False = false;
-                                        }
-                                    }
-
-                                    if (RealAlive && (CurrentFrameAttacked || PreviousFrameAttacked) &&
-                                        CurrentFrameOnGround && abs(CurrentTime - LastDeathTime) > 2.0f &&
-                                        abs(CurrentTime - LastAliveTime) > 2.0f && !IsForceCenterView() &&
-                                        !IsAngleEditByEngine() && !IsPlayerInDuck() && !IsPlayerUnDuck())
-                                    {
-                                        if (AngleBetween(CDFRAME_ViewAngles.X, nf.RParms.Viewangles.X) > EPSILON &&
-                                            AngleBetween(PREV_CDFRAME_ViewAngles.X, nf.RParms.Viewangles.X) > EPSILON)
-                                        {
-                                            var spreadtest = AngleBetween(CDFRAME_ViewAngles.X,
-                                                nf.RParms.Viewangles.X - nf.RParms.Punchangle.X);
-                                            var spreadtest2 = AngleBetween(PREV_CDFRAME_ViewAngles.X,
-                                                nf.RParms.Viewangles.X - nf.RParms.Punchangle.X);
-                                            if (spreadtest > nospreadtest && spreadtest2 > nospreadtest)
+                                            else if (abs(AimType8WarnTime2) > EPSILON &&
+                                                     abs(CurrentTime - AimType8WarnTime2) < 0.350f)
                                             {
-                                                nospreadtest = spreadtest > spreadtest2 ? spreadtest : spreadtest2;
-                                            }
-                                            // Console.WriteLine(nospreadtest.ToString("F8"));
-                                            if (abs(NoSpreadDetectionTime - CurrentTime) > 0.01f &&
-                                                spreadtest > MAX_SPREAD_CONST && spreadtest2 > MAX_SPREAD_CONST)
-                                            {
-                                                if (ThirdHackDetected <= 0)
+                                                if (abs(CurrentTime - LastSilentAim) > 0.3)
                                                 {
-                                                    NoSpreadDetectionTime = CurrentTime;
-                                                    DemoScanner_AddWarn(
-                                                        "[NO SPREAD TYPE 1 " + CurrentWeapon + "] at (" + LastKnowRealTime +
-                                                        "):" + LastKnowTimeString, false);
+                                                    if (DemoScanner_AddWarn(
+                                                        "[AIM TYPE 8.2 " + CurrentWeapon + "] at (" + AimType8WarnTime2 + "):" +
+                                                        GetTimeString(AimType8WarnTime2), /*CurrentWeapon != WeaponIdType.WEAPON_AWP
+                                    && CurrentWeapon != WeaponIdType.WEAPON_SCOUT &&*/
+                                                        !AimType8False && !IsCmdChangeWeapon()))
+                                                    {
+                                                        LastSilentAim = CurrentTime;
+                                                        if (!AimType8False && !IsCmdChangeWeapon())
+                                                        {
+                                                            TotalAimBotDetected++;
+                                                        }
+                                                    }
                                                 }
+                                                AimType8WarnTime2 = 0.0f;
+                                                AimType8False = false;
                                             }
                                         }
 
-                                        if (AngleBetween(CDFRAME_ViewAngles.Y, nf.RParms.Viewangles.Y) > EPSILON &&
-                                            AngleBetween(PREV_CDFRAME_ViewAngles.Y, nf.RParms.Viewangles.Y) > EPSILON)
+                                        if (RealAlive && (CurrentFrameAttacked || PreviousFrameAttacked) &&
+                                            CurrentFrameOnGround && abs(CurrentTime - LastDeathTime) > 2.0f &&
+                                            abs(CurrentTime - LastAliveTime) > 2.0f && !IsForceCenterView() &&
+                                            !IsAngleEditByEngine() && !IsPlayerInDuck() && !IsPlayerUnDuck())
                                         {
-                                            var spreadtest = AngleBetween(CDFRAME_ViewAngles.Y,
-                                                nf.RParms.Viewangles.Y - nf.RParms.Punchangle.Y);
-                                            var spreadtest2 = AngleBetween(PREV_CDFRAME_ViewAngles.Y,
-                                                nf.RParms.Viewangles.Y - nf.RParms.Punchangle.Y);
-                                            if (spreadtest > nospreadtest2 && spreadtest2 > nospreadtest2)
+                                            if (AngleBetween(CDFRAME_ViewAngles.X, nf.RParms.Viewangles.X) > EPSILON &&
+                                                AngleBetween(PREV_CDFRAME_ViewAngles.X, nf.RParms.Viewangles.X) > EPSILON)
                                             {
-                                                nospreadtest2 = spreadtest > spreadtest2 ? spreadtest : spreadtest2;
-                                            }
-                                            // Console.WriteLine(nospreadtest.ToString("F8"));
-                                            if (abs(NoSpreadDetectionTime - CurrentTime) > 1.0f &&
-                                                spreadtest > MAX_SPREAD_CONST2 && spreadtest2 > MAX_SPREAD_CONST2)
-                                            {
-                                                if (ThirdHackDetected <= 0)
+                                                var spreadtest = AngleBetween(CDFRAME_ViewAngles.X,
+                                                    nf.RParms.Viewangles.X - nf.RParms.Punchangle.X);
+                                                var spreadtest2 = AngleBetween(PREV_CDFRAME_ViewAngles.X,
+                                                    nf.RParms.Viewangles.X - nf.RParms.Punchangle.X);
+                                                if (spreadtest > nospreadtest && spreadtest2 > nospreadtest)
                                                 {
-                                                    NoSpreadDetectionTime = CurrentTime;
-                                                    DemoScanner_AddWarn(
-                                                        "[NO SPREAD TYPE 2 " + CurrentWeapon + "] at (" + LastKnowRealTime +
-                                                        "):" + LastKnowTimeString, false);
+                                                    nospreadtest = spreadtest > spreadtest2 ? spreadtest : spreadtest2;
                                                 }
-                                            }
-                                        }
-
-                                        FPoint3D tmpClAngles = new FPoint3D();
-                                        VectorsToAngles(nf.RParms.Forward, nf.RParms.Right, nf.RParms.Up, ref tmpClAngles);
-
-                                        var normCD_Angles1 = CDFRAME_ViewAngles;
-                                        if (normCD_Angles1.Y > 180.0f)
-                                        {
-                                            normCD_Angles1.Y -= 360.0f;
-                                        }
-
-                                        if (normCD_Angles1.Y < -180.0f)
-                                        {
-                                            normCD_Angles1.Y += 360.0f;
-                                        }
-
-                                        var normCD_Angles2 = PREV_CDFRAME_ViewAngles;
-                                        if (normCD_Angles2.Y > 180.0f)
-                                        {
-                                            normCD_Angles2.Y -= 360.0f;
-                                        }
-
-                                        if (normCD_Angles2.Y < -180.0f)
-                                        {
-                                            normCD_Angles2.Y += 360.0f;
-                                        }
-
-                                        var spreadtest_1 = AngleBetween(normCD_Angles1.X, tmpClAngles.X);
-                                        var spreadtest_2 = AngleBetween(normCD_Angles1.Y, tmpClAngles.Y);
-                                        var spreadtest_1_2 = AngleBetween(normCD_Angles2.X, tmpClAngles.X);
-                                        var spreadtest_2_2 = AngleBetween(normCD_Angles2.Y, tmpClAngles.Y);
-                                        var spreadtest_3 = AngleBetween(normCD_Angles1.Z, tmpClAngles.Z);
-                                        var spreadtest_3_2 = AngleBetween(normCD_Angles2.Z, tmpClAngles.Z);
-
-                                        if ((spreadtest_3 > MAX_SPREAD_CONST && spreadtest_3_2 > MAX_SPREAD_CONST) ||
-                                            (spreadtest_1 > MAX_SPREAD_CONST && spreadtest_1_2 > MAX_SPREAD_CONST) ||
-                                                (spreadtest_2 > MAX_SPREAD_CONST && spreadtest_2_2 > MAX_SPREAD_CONST))
-                                        {
-                                            if (spreadtest_3 < 0.001f && spreadtest_3_2 < 0.001f)
-                                            {
-                                                if (abs(NoSpreadDetectionTime - CurrentTime) > 2.0f)
+                                                // Console.WriteLine(nospreadtest.ToString("F8"));
+                                                if (abs(NoSpreadDetectionTime - CurrentTime) > 0.01f &&
+                                                    spreadtest > MAX_SPREAD_CONST && spreadtest2 > MAX_SPREAD_CONST)
                                                 {
                                                     if (ThirdHackDetected <= 0)
                                                     {
                                                         NoSpreadDetectionTime = CurrentTime;
                                                         DemoScanner_AddWarn(
-                                                            "[NO SPREAD TYPE 3 " + CurrentWeapon + "] at (" + LastKnowRealTime +
-                                                            "):" + LastKnowTimeString + "[" +
-                                                            spreadtest_1 + " " +
-                                                            spreadtest_1_2 + " " +
-                                                            spreadtest_2 + " " +
-                                                            spreadtest_2_2 + " " +
-                                                            spreadtest_3 + " " +
-                                                            spreadtest_3_2 + " " + "]", false);
+                                                            "[NO SPREAD TYPE 1 " + CurrentWeapon + "] at (" + LastKnowRealTime +
+                                                            "):" + LastKnowTimeString, false);
+                                                    }
+                                                }
+                                            }
+
+                                            if (AngleBetween(CDFRAME_ViewAngles.Y, nf.RParms.Viewangles.Y) > EPSILON &&
+                                                AngleBetween(PREV_CDFRAME_ViewAngles.Y, nf.RParms.Viewangles.Y) > EPSILON)
+                                            {
+                                                var spreadtest = AngleBetween(CDFRAME_ViewAngles.Y,
+                                                    nf.RParms.Viewangles.Y - nf.RParms.Punchangle.Y);
+                                                var spreadtest2 = AngleBetween(PREV_CDFRAME_ViewAngles.Y,
+                                                    nf.RParms.Viewangles.Y - nf.RParms.Punchangle.Y);
+                                                if (spreadtest > nospreadtest2 && spreadtest2 > nospreadtest2)
+                                                {
+                                                    nospreadtest2 = spreadtest > spreadtest2 ? spreadtest : spreadtest2;
+                                                }
+                                                // Console.WriteLine(nospreadtest.ToString("F8"));
+                                                if (abs(NoSpreadDetectionTime - CurrentTime) > 1.0f &&
+                                                    spreadtest > MAX_SPREAD_CONST2 && spreadtest2 > MAX_SPREAD_CONST2)
+                                                {
+                                                    if (ThirdHackDetected <= 0)
+                                                    {
+                                                        NoSpreadDetectionTime = CurrentTime;
+                                                        DemoScanner_AddWarn(
+                                                            "[NO SPREAD TYPE 2 " + CurrentWeapon + "] at (" + LastKnowRealTime +
+                                                            "):" + LastKnowTimeString, false);
+                                                    }
+                                                }
+                                            }
+
+                                            FPoint3D tmpClAngles = new FPoint3D();
+                                            VectorsToAngles(nf.RParms.Forward, nf.RParms.Right, nf.RParms.Up, ref tmpClAngles);
+
+                                            var normCD_Angles1 = CDFRAME_ViewAngles;
+                                            if (normCD_Angles1.Y > 180.0f)
+                                            {
+                                                normCD_Angles1.Y -= 360.0f;
+                                            }
+
+                                            if (normCD_Angles1.Y < -180.0f)
+                                            {
+                                                normCD_Angles1.Y += 360.0f;
+                                            }
+
+                                            var normCD_Angles2 = PREV_CDFRAME_ViewAngles;
+                                            if (normCD_Angles2.Y > 180.0f)
+                                            {
+                                                normCD_Angles2.Y -= 360.0f;
+                                            }
+
+                                            if (normCD_Angles2.Y < -180.0f)
+                                            {
+                                                normCD_Angles2.Y += 360.0f;
+                                            }
+
+                                            var spreadtest_1 = AngleBetween(normCD_Angles1.X, tmpClAngles.X);
+                                            var spreadtest_2 = AngleBetween(normCD_Angles1.Y, tmpClAngles.Y);
+                                            var spreadtest_1_2 = AngleBetween(normCD_Angles2.X, tmpClAngles.X);
+                                            var spreadtest_2_2 = AngleBetween(normCD_Angles2.Y, tmpClAngles.Y);
+                                            var spreadtest_3 = AngleBetween(normCD_Angles1.Z, tmpClAngles.Z);
+                                            var spreadtest_3_2 = AngleBetween(normCD_Angles2.Z, tmpClAngles.Z);
+
+                                            if ((spreadtest_3 > MAX_SPREAD_CONST && spreadtest_3_2 > MAX_SPREAD_CONST) ||
+                                                (spreadtest_1 > MAX_SPREAD_CONST && spreadtest_1_2 > MAX_SPREAD_CONST) ||
+                                                    (spreadtest_2 > MAX_SPREAD_CONST && spreadtest_2_2 > MAX_SPREAD_CONST))
+                                            {
+                                                if (spreadtest_3 < 0.001f && spreadtest_3_2 < 0.001f)
+                                                {
+                                                    if (abs(NoSpreadDetectionTime - CurrentTime) > 2.0f)
+                                                    {
+                                                        if (ThirdHackDetected <= 0)
+                                                        {
+                                                            NoSpreadDetectionTime = CurrentTime;
+                                                            DemoScanner_AddWarn(
+                                                                "[NO SPREAD TYPE 3 " + CurrentWeapon + "] at (" + LastKnowRealTime +
+                                                                "):" + LastKnowTimeString + "[" +
+                                                                spreadtest_1 + " " +
+                                                                spreadtest_1_2 + " " +
+                                                                spreadtest_2 + " " +
+                                                                spreadtest_2_2 + " " +
+                                                                spreadtest_3 + " " +
+                                                                spreadtest_3_2 + " " + "]", false);
+                                                        }
                                                     }
                                                 }
                                             }
                                         }
-                                    }
 
 
-                                    if (abs(nf.RParms.ClViewangles.Y - PREV_CDFRAME_ViewAngles.Y) > EPSILON ||
-                                        abs(nf.UCmd.Viewangles.Y - PREV_CDFRAME_ViewAngles.Y) > EPSILON)
-                                    {
-                                        if (CDFRAME_ViewAngles != nf.RParms.ClViewangles)
+                                        if (abs(nf.RParms.ClViewangles.Y - PREV_CDFRAME_ViewAngles.Y) > EPSILON ||
+                                            abs(nf.UCmd.Viewangles.Y - PREV_CDFRAME_ViewAngles.Y) > EPSILON)
                                         {
-                                            if (AimType8Warn > 5)
+                                            if (CDFRAME_ViewAngles != nf.RParms.ClViewangles)
                                             {
-                                                AimType8Warn = 0;
-                                            }
-
-                                            AimType8Warn++;
-                                            if (AimType8Warn == 1 || AimType8Warn == 2)
-                                            {
-                                                if (abs(bAimType8WarnTime - CurrentTime) > EPSILON)
+                                                if (AimType8Warn > 5)
                                                 {
-                                                    AimType8WarnTime = CurrentTime;
+                                                    AimType8Warn = 0;
                                                 }
 
-                                                bAimType8WarnTime = CurrentTime;
-                                                //Console.WriteLine("LastClientDataTime:" + LastClientDataTime + ". AimType8WarnTime:" + LastKnowTime
-                                                //     + ". LastOverflow:" + FpsOverflowTime);
-                                                if (!AimType8False)
+                                                AimType8Warn++;
+                                                if (AimType8Warn == 1 || AimType8Warn == 2)
                                                 {
-                                                    AimType8False = CurrentWeapon == WeaponIdType.WEAPON_C4 ||
-                                                                    CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE ||
-                                                                    CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE ||
-                                                                    CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG ||
-                                                                    !CurrentFrameOnGround || IsAngleEditByEngine() ||
-                                                                    IsPlayerLossConnection() || IsCmdChangeWeapon();
-                                                }
-                                            }
-                                        }
-                                        else
-                                        {
-                                            AimType8Warn = 0;
-                                        }
+                                                    if (abs(bAimType8WarnTime - CurrentTime) > EPSILON)
+                                                    {
+                                                        AimType8WarnTime = CurrentTime;
+                                                    }
 
-                                        if (CDFRAME_ViewAngles != nf.UCmd.Viewangles)
-                                        {
-                                            if (AimType8Warn > 5)
-                                            {
-                                                AimType8Warn = 0;
-                                            }
-
-                                            AimType8Warn++;
-                                            if (AimType8Warn == 1 || AimType8Warn == 2)
-                                            {
-                                                if (abs(bAimType8WarnTime2 - CurrentTime) > EPSILON)
-                                                {
-                                                    AimType8WarnTime2 = CurrentTime;
-                                                }
-
-                                                bAimType8WarnTime2 = CurrentTime;
-                                                if (!AimType8False)
-                                                {
-                                                    AimType8False = CurrentWeapon == WeaponIdType.WEAPON_C4 ||
-                                                                    CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE ||
-                                                                    CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE ||
-                                                                    CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG ||
-                                                                    !CurrentFrameOnGround || IsAngleEditByEngine() ||
-                                                                    IsPlayerLossConnection() || IsCmdChangeWeapon();
-                                                }
-                                                //AimType8Warn = -1;
-                                            }
-                                        }
-                                        else
-                                        {
-                                            AimType8Warn = 0;
-                                        }
-                                    }
-                                    else
-                                    {
-                                        if (CDFRAME_ViewAngles != nf.UCmd.Viewangles &&
-                                            CDFRAME_ViewAngles != nf.RParms.ClViewangles)
-                                        {
-                                            if (abs(CurrentTime - FpsOverflowTime) < 1.0f)
-                                            {
-                                                FPS_OVERFLOW++;
-                                                if (FPS_OVERFLOW > 5)
-                                                {
-                                                    FoundFpsHack1 = true;
-                                                }
-
-                                                if (FPS_OVERFLOW == 20)
-                                                {
-                                                    DemoScanner_AddWarn("[FPS HACK TYPE 1] at (" + LastKnowRealTime + "):" +
-                                                                        LastKnowTimeString);
+                                                    bAimType8WarnTime = CurrentTime;
+                                                    //Console.WriteLine("LastClientDataTime:" + LastClientDataTime + ". AimType8WarnTime:" + LastKnowTime
+                                                    //     + ". LastOverflow:" + FpsOverflowTime);
+                                                    if (!AimType8False)
+                                                    {
+                                                        AimType8False = CurrentWeapon == WeaponIdType.WEAPON_C4 ||
+                                                                        CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE ||
+                                                                        CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE ||
+                                                                        CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG ||
+                                                                        !CurrentFrameOnGround || IsAngleEditByEngine() ||
+                                                                        IsPlayerLossConnection() || IsCmdChangeWeapon();
+                                                    }
                                                 }
                                             }
                                             else
                                             {
-                                                FPS_OVERFLOW = 0;
+                                                AimType8Warn = 0;
                                             }
 
-                                            FpsOverflowTime = CurrentTime;
-                                        }
-                                    }
-                                }
-
-                                if (abs(CurrentTime) > EPSILON && abs(PreviousTime) > EPSILON &&
-                                    abs(CurrentTime2) > EPSILON && abs(PreviousTime2) > EPSILON)
-                                {
-                                    if (abs(MaximumTimeBetweenFrames) < EPSILON)
-                                    {
-                                        MaximumTimeBetweenFrames = 0.001f;
-                                    }
-                                    else
-                                    {
-                                        if (CurrentTime - PreviousTime > MaximumTimeBetweenFrames)
-                                        {
-                                            MaximumTimeBetweenFrames = abs(CurrentTime - PreviousTime);
-                                        }
-                                    }
-
-
-                                    if (CurrentFrameDuplicated == 0 && abs(CurrentTime - PreviousTime) > 0.2f)
-                                    {
-                                        TimeShiftStreak1 += 1;
-                                        if (TimeShiftStreak1 > 3 &&
-                                            abs(CurrentTime - LastTimeShiftTime) > 2)
-                                        {
-                                            DemoScanner_AddWarn(
-                                                "[TIMEHACK TYPE 1.1] at (" + DemoStartTime + "):" + "(" + LastKnowRealTime + "):" +
-                                                "(" + DemoStartTime2 + "):" + "(" + CurrentTime2 + "):" +
-                                                LastKnowTimeString, false);
-                                            TimeShiftStreak1 = 0;
-                                            LastTimeShiftTime = CurrentTime;
-                                        }
-                                    }
-                                }
-
-
-                                if (abs(LastTimeDesync2 - (-999.0f)) < EPSILON)
-                                {
-                                    LastTimeDesync2 = abs(CurrentTime2 - CurrentTimeSvc);
-                                    TimeShiftStreak3 = 0;
-                                }
-                                else
-                                {
-                                    float CurTimeDesync = abs(CurrentTime2 - CurrentTimeSvc);
-                                    if (abs(LastTimeDesync2 - CurTimeDesync) > 0.15f)
-                                    {
-                                        if (RealAlive)
-                                        {
-                                            TimeShiftStreak3 += 1;
-                                            if (TimeShiftStreak3 > 3 &&
-                                                abs(CurrentTime - LastTimeShiftTime) > 2)
+                                            if (CDFRAME_ViewAngles != nf.UCmd.Viewangles)
                                             {
-                                                DemoScanner_AddWarn(
-                                                    "[TIMEHACK TYPE 1.3] at (" + DemoStartTime + "):" + "(" +
-                                                    LastKnowRealTime + "):" + "(" + DemoStartTime2 + "):" + "(" +
-                                                    CurrentTimeSvc + "):" + LastKnowTimeString, false);
-                                                TimeShiftStreak3 = 0;
-                                                LastTimeShiftTime = CurrentTime;
-                                            }
-                                        }
-                                    }
-                                    else
-                                    {
-                                        if (TimeShiftStreak3 > 0)
-                                            TimeShiftStreak3--;
-                                    }
-                                    LastTimeDesync2 = CurTimeDesync;
-                                }
-
-
-                                if (abs(LastTimeDesync - (-999.0f)) < EPSILON)
-                                {
-                                    LastTimeDesync = abs(CurrentTime - CurrentTime2);
-                                    TimeShiftStreak2 = 0;
-                                }
-                                else
-                                {
-                                    float CurTimeDesync = abs(CurrentTime - CurrentTime2);
-                                    if (abs(LastTimeDesync - CurTimeDesync) > 0.05f)
-                                    {
-                                        if (RealAlive)
-                                        {
-                                            TimeShiftStreak2 += 1;
-                                            if (TimeShiftStreak2 > 3 &&
-                                                abs(CurrentTime - LastTimeShiftTime) > 2)
-                                            {
-                                                DemoScanner_AddWarn(
-                                                    "[TIMEHACK TYPE 1.2] at (" + DemoStartTime + "):" + "(" +
-                                                    LastKnowRealTime + "):" + "(" + DemoStartTime2 + "):" + "(" +
-                                                    CurrentTime2 + "):" + LastKnowTimeString, false);
-                                                TimeShiftStreak2 = 0;
-                                                LastTimeShiftTime = CurrentTime;
-                                            }
-                                        }
-                                    }
-                                    else
-                                    {
-                                        if (TimeShiftStreak2 > 0)
-                                            TimeShiftStreak2--;
-                                    }
-                                    LastTimeDesync = CurTimeDesync;
-                                }
-
-                                if (NeedDetectLerpAfterAttack)
-                                {
-                                    NeedDetectLerpAfterAttack = false;
-                                    LerpAfterAttack = CurrentFrameLerp;
-                                }
-
-                                if (LerpSearchFramesCount > 0)
-                                {
-                                    LerpSearchFramesCount--;
-                                    if (LerpSearchFramesCount == 1)
-                                    {
-                                        if (LerpBeforeStopAttack > LerpBeforeAttack)
-                                        {
-                                            if (LerpAfterAttack > LerpBeforeAttack)
-                                            {
-                                                if (CurrentFrameLerp == LerpBeforeAttack && RealAlive && FirstAttack)
+                                                if (AimType8Warn > 5)
                                                 {
-                                                    if (DemoScanner_AddWarn(
-                                                        "[AIM TYPE 4.1 " + CurrentWeapon + "] at (" + LastKnowRealTime + "):" +
-                                                        LastKnowTimeString,
-                                                        !IsPlayerLossConnection() && !IsCmdChangeWeapon()))
+                                                    AimType8Warn = 0;
+                                                }
+
+                                                AimType8Warn++;
+                                                if (AimType8Warn == 1 || AimType8Warn == 2)
+                                                {
+                                                    if (abs(bAimType8WarnTime2 - CurrentTime) > EPSILON)
                                                     {
-                                                        TotalAimBotDetected++;
+                                                        AimType8WarnTime2 = CurrentTime;
+                                                    }
+
+                                                    bAimType8WarnTime2 = CurrentTime;
+                                                    if (!AimType8False)
+                                                    {
+                                                        AimType8False = CurrentWeapon == WeaponIdType.WEAPON_C4 ||
+                                                                        CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE ||
+                                                                        CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE ||
+                                                                        CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG ||
+                                                                        !CurrentFrameOnGround || IsAngleEditByEngine() ||
+                                                                        IsPlayerLossConnection() || IsCmdChangeWeapon();
+                                                    }
+                                                    //AimType8Warn = -1;
+                                                }
+                                            }
+                                            else
+                                            {
+                                                AimType8Warn = 0;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if (CDFRAME_ViewAngles != nf.UCmd.Viewangles &&
+                                                CDFRAME_ViewAngles != nf.RParms.ClViewangles)
+                                            {
+                                                if (abs(CurrentTime - FpsOverflowTime) < 1.0f)
+                                                {
+                                                    FPS_OVERFLOW++;
+                                                    if (FPS_OVERFLOW > 5)
+                                                    {
+                                                        FoundFpsHack1 = true;
+                                                    }
+
+                                                    if (FPS_OVERFLOW == 20)
+                                                    {
+                                                        DemoScanner_AddWarn("[FPS HACK TYPE 1] at (" + LastKnowRealTime + "):" +
+                                                                            LastKnowTimeString);
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    FPS_OVERFLOW = 0;
+                                                }
+
+                                                FpsOverflowTime = CurrentTime;
+                                            }
+                                        }
+                                    }
+
+                                    if (abs(CurrentTime) > EPSILON && abs(PreviousTime) > EPSILON &&
+                                        abs(CurrentTime2) > EPSILON && abs(PreviousTime2) > EPSILON)
+                                    {
+                                        if (abs(MaximumTimeBetweenFrames) < EPSILON)
+                                        {
+                                            MaximumTimeBetweenFrames = 0.001f;
+                                        }
+                                        else
+                                        {
+                                            if (CurrentTime - PreviousTime > MaximumTimeBetweenFrames)
+                                            {
+                                                MaximumTimeBetweenFrames = abs(CurrentTime - PreviousTime);
+                                            }
+                                        }
+
+
+                                        if (CurrentFrameDuplicated == 0 && abs(CurrentTime - PreviousTime) > 0.2f)
+                                        {
+                                            TimeShiftStreak1 += 1;
+                                            if (TimeShiftStreak1 > 3 &&
+                                                abs(CurrentTime - LastTimeShiftTime) > 2)
+                                            {
+                                                DemoScanner_AddWarn(
+                                                    "[TIMEHACK TYPE 1.1] at (" + DemoStartTime + "):" + "(" + LastKnowRealTime + "):" +
+                                                    "(" + DemoStartTime2 + "):" + "(" + CurrentTime2 + "):" +
+                                                    LastKnowTimeString, false);
+                                                TimeShiftStreak1 = 0;
+                                                LastTimeShiftTime = CurrentTime;
+                                            }
+                                        }
+                                    }
+
+
+                                    if (abs(LastTimeDesync2 - (-999.0f)) < EPSILON)
+                                    {
+                                        LastTimeDesync2 = abs(CurrentTime2 - CurrentTimeSvc);
+                                        TimeShiftStreak3 = 0;
+                                    }
+                                    else
+                                    {
+                                        float CurTimeDesync = abs(CurrentTime2 - CurrentTimeSvc);
+                                        if (abs(LastTimeDesync2 - CurTimeDesync) > 0.15f)
+                                        {
+                                            if (RealAlive)
+                                            {
+                                                TimeShiftStreak3 += 1;
+                                                if (TimeShiftStreak3 > 3 &&
+                                                    abs(CurrentTime - LastTimeShiftTime) > 2)
+                                                {
+                                                    DemoScanner_AddWarn(
+                                                        "[TIMEHACK TYPE 1.3] at (" + DemoStartTime + "):" + "(" +
+                                                        LastKnowRealTime + "):" + "(" + DemoStartTime2 + "):" + "(" +
+                                                        CurrentTimeSvc + "):" + LastKnowTimeString, false);
+                                                    TimeShiftStreak3 = 0;
+                                                    LastTimeShiftTime = CurrentTime;
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if (TimeShiftStreak3 > 0)
+                                                TimeShiftStreak3--;
+                                        }
+                                        LastTimeDesync2 = CurTimeDesync;
+                                    }
+
+
+                                    if (abs(LastTimeDesync - (-999.0f)) < EPSILON)
+                                    {
+                                        LastTimeDesync = abs(CurrentTime - CurrentTime2);
+                                        TimeShiftStreak2 = 0;
+                                    }
+                                    else
+                                    {
+                                        float CurTimeDesync = abs(CurrentTime - CurrentTime2);
+                                        if (abs(LastTimeDesync - CurTimeDesync) > 0.05f)
+                                        {
+                                            if (RealAlive)
+                                            {
+                                                TimeShiftStreak2 += 1;
+                                                if (TimeShiftStreak2 > 3 &&
+                                                    abs(CurrentTime - LastTimeShiftTime) > 2)
+                                                {
+                                                    DemoScanner_AddWarn(
+                                                        "[TIMEHACK TYPE 1.2] at (" + DemoStartTime + "):" + "(" +
+                                                        LastKnowRealTime + "):" + "(" + DemoStartTime2 + "):" + "(" +
+                                                        CurrentTime2 + "):" + LastKnowTimeString, false);
+                                                    TimeShiftStreak2 = 0;
+                                                    LastTimeShiftTime = CurrentTime;
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if (TimeShiftStreak2 > 0)
+                                                TimeShiftStreak2--;
+                                        }
+                                        LastTimeDesync = CurTimeDesync;
+                                    }
+
+                                    if (NeedDetectLerpAfterAttack)
+                                    {
+                                        NeedDetectLerpAfterAttack = false;
+                                        LerpAfterAttack = CurrentFrameLerp;
+                                    }
+
+                                    if (LerpSearchFramesCount > 0)
+                                    {
+                                        LerpSearchFramesCount--;
+                                        if (LerpSearchFramesCount == 1)
+                                        {
+                                            if (LerpBeforeStopAttack > LerpBeforeAttack)
+                                            {
+                                                if (LerpAfterAttack > LerpBeforeAttack)
+                                                {
+                                                    if (CurrentFrameLerp == LerpBeforeAttack && RealAlive && FirstAttack)
+                                                    {
+                                                        if (DemoScanner_AddWarn(
+                                                            "[AIM TYPE 4.1 " + CurrentWeapon + "] at (" + LastKnowRealTime + "):" +
+                                                            LastKnowTimeString,
+                                                            !IsPlayerLossConnection() && !IsCmdChangeWeapon()))
+                                                        {
+                                                            TotalAimBotDetected++;
+                                                        }
                                                     }
                                                 }
                                             }
                                         }
                                     }
-                                }
 
-                                if (NeedSearchViewAnglesAfterAttack == 1)
-                                {
-                                    ViewanglesXBeforeAttack = CDFRAME_ViewAngles.X;
-                                    ViewanglesYBeforeAttack = CDFRAME_ViewAngles.Y;
-                                    NeedSearchViewAnglesAfterAttack++;
-                                }
-                                else if (NeedSearchViewAnglesAfterAttack == 2 && IsInAttack() && RealAlive)
-                                {
-                                    if (CurrentWeapon == WeaponIdType.WEAPON_C4 ||
-                                        CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE ||
-                                        CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE ||
-                                        CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG ||
-                                        CurrentWeapon == WeaponIdType.WEAPON_NONE ||
-                                        CurrentWeapon == WeaponIdType.WEAPON_BAD ||
-                                        CurrentWeapon == WeaponIdType.WEAPON_BAD2)
+                                    if (NeedSearchViewAnglesAfterAttack == 1)
                                     {
+                                        ViewanglesXBeforeAttack = CDFRAME_ViewAngles.X;
+                                        ViewanglesYBeforeAttack = CDFRAME_ViewAngles.Y;
+                                        NeedSearchViewAnglesAfterAttack++;
                                     }
-                                    else if (CurrentFrameAttacked)
+                                    else if (NeedSearchViewAnglesAfterAttack == 2 && IsInAttack() && RealAlive)
                                     {
-                                        NeedSearchViewAnglesAfterAttack = 0;
-                                        ViewanglesXAfterAttack = CDFRAME_ViewAngles.X;
-                                        ViewanglesYAfterAttack = CDFRAME_ViewAngles.Y;
-                                        NeedSearchViewAnglesAfterAttackNext = true;
-                                    }
-                                }
-                                else
-                                {
-                                    NeedSearchViewAnglesAfterAttack = 0;
-                                    if (NeedSearchViewAnglesAfterAttackNext && RealAlive && IsInAttack())
-                                    {
-                                        NeedSearchViewAnglesAfterAttackNext = false;
-                                        ViewanglesXAfterAttackNext = CDFRAME_ViewAngles.X;
-                                        ViewanglesYAfterAttackNext = CDFRAME_ViewAngles.Y;
+                                        if (CurrentWeapon == WeaponIdType.WEAPON_C4 ||
+                                            CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE ||
+                                            CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE ||
+                                            CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG ||
+                                            CurrentWeapon == WeaponIdType.WEAPON_NONE ||
+                                            CurrentWeapon == WeaponIdType.WEAPON_BAD ||
+                                            CurrentWeapon == WeaponIdType.WEAPON_BAD2)
+                                        {
+                                        }
+                                        else if (CurrentFrameAttacked)
+                                        {
+                                            NeedSearchViewAnglesAfterAttack = 0;
+                                            ViewanglesXAfterAttack = CDFRAME_ViewAngles.X;
+                                            ViewanglesYAfterAttack = CDFRAME_ViewAngles.Y;
+                                            NeedSearchViewAnglesAfterAttackNext = true;
+                                        }
                                     }
                                     else
                                     {
-                                        NeedSearchViewAnglesAfterAttackNext = false;
+                                        NeedSearchViewAnglesAfterAttack = 0;
+                                        if (NeedSearchViewAnglesAfterAttackNext && RealAlive && IsInAttack())
+                                        {
+                                            NeedSearchViewAnglesAfterAttackNext = false;
+                                            ViewanglesXAfterAttackNext = CDFRAME_ViewAngles.X;
+                                            ViewanglesYAfterAttackNext = CDFRAME_ViewAngles.Y;
+                                        }
+                                        else
+                                        {
+                                            NeedSearchViewAnglesAfterAttackNext = false;
+                                        }
                                     }
-                                }
 
-                                if (abs(CurrentTime) > EPSILON && RealAlive)
-                                {
-                                    if ((IsJump && FirstJump) || CurrentTime - LastUnJumpTime < 0.5f)
+                                    if (abs(CurrentTime) > EPSILON && RealAlive)
+                                    {
+                                        if ((IsJump && FirstJump) || CurrentTime - LastUnJumpTime < 0.5f)
+                                        {
+                                            JumpHackCount2 = 0;
+                                        }
+
+                                        if (!CurrentFrameJumped && !FirstJump)
+                                        {
+                                            FirstJump = true;
+                                            IsJump = false;
+                                        }
+                                        else
+                                        {
+                                            if (FirstJump && !IsJump)
+                                            {
+                                                if (JumpHackCount2 > 0)
+                                                {
+                                                    JumpHackCount2 = 0;
+                                                    if (abs(LastJumpHackFalseDetectionTime) > EPSILON &&
+                                                        abs(CurrentTime - LastJumpHackFalseDetectionTime) > 5.0f)
+                                                    {
+                                                        LastJumpHackFalseDetectionTime = 0.0f;
+                                                    }
+
+                                                    if (abs(CurrentTime - LastUnJumpTime) > 1.5f &&
+                                                        abs(CurrentTime - LastJumpTime) > 1.5f)
+                                                    {
+                                                        if (abs(CurrentTime - LastKreedzHackTime) > 2.5f &&
+                                                            abs(LastJumpHackFalseDetectionTime) < EPSILON)
+                                                        {
+                                                            if (DemoScanner_AddWarn(
+                                                                "[JUMPHACK TYPE 1] at (" + LastKnowRealTime + ") " +
+                                                                LastKnowTimeString, !IsAngleEditByEngine()))
+                                                            {
+                                                                LastKreedzHackTime = CurrentTime;
+                                                                KreedzHacksCount++;
+                                                            }
+                                                        }
+                                                    }
+                                                    else if (abs(CurrentTime - LastUnJumpTime) > 0.5f &&
+                                                             abs(CurrentTime - LastJumpTime) > 0.5f)
+                                                    {
+                                                        if (abs(CurrentTime - LastKreedzHackTime) > 2.5f &&
+                                                            !IsAngleEditByEngine() &&
+                                                            abs(LastJumpHackFalseDetectionTime) < EPSILON)
+                                                        {
+                                                            if (DemoScanner_AddWarn(
+                                                                "[JUMPHACK TYPE 3] at (" + LastKnowRealTime + ") " +
+                                                                LastKnowTimeString, false))
+                                                            {
+                                                                LastKreedzHackTime = CurrentTime;
+                                                                KreedzHacksCount++;
+                                                            }
+                                                        }
+                                                    }
+                                                    else if (abs(CurrentTime - LastUnJumpTime) > 0.3f &&
+                                                             abs(CurrentTime - LastJumpTime) > 0.3f)
+                                                    {
+                                                        if (abs(CurrentTime - LastKreedzHackTime) > 2.5f &&
+                                                            !IsAngleEditByEngine() &&
+                                                            abs(LastJumpHackFalseDetectionTime) < EPSILON)
+                                                        {
+                                                            if (DemoScanner_AddWarn(
+                                                                "[JUMPHACK TYPE 4] at (" + LastKnowRealTime + ") " +
+                                                                LastKnowTimeString, false, false))
+                                                            {
+                                                                LastKreedzHackTime = CurrentTime;
+                                                                KreedzHacksCount++;
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+
+                                            if (FirstJump && !IsJump && CurrentFrameJumped)
+                                            {
+                                                if (abs(CurrentTime - LastUnJumpTime) > 0.5f &&
+                                                    abs(CurrentTime - LastJumpTime) > 0.5f)
+                                                {
+                                                    JumpHackCount2++;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    else
                                     {
                                         JumpHackCount2 = 0;
                                     }
 
-                                    if (!CurrentFrameJumped && !FirstJump)
+                                    if (abs(LastKnowRealTime - LastScoreTime) < 0.75f || abs(LastKnowRealTime - LastAltTabStartTime) < 0.75f)
                                     {
-                                        FirstJump = true;
-                                        IsJump = false;
+                                        FakeLagSearchTime = 0.0f;
                                     }
-                                    else
+                                    else if (abs(FakeLagSearchTime) > 0.001 && CurrentTime > FakeLagSearchTime)
                                     {
-                                        if (FirstJump && !IsJump)
+                                        if (abs(LastKnowRealTime - LastFakeLagTime) > 20.0f)
                                         {
-                                            if (JumpHackCount2 > 0)
-                                            {
-                                                JumpHackCount2 = 0;
-                                                if (abs(LastJumpHackFalseDetectionTime) > EPSILON &&
-                                                    abs(CurrentTime - LastJumpHackFalseDetectionTime) > 5.0f)
-                                                {
-                                                    LastJumpHackFalseDetectionTime = 0.0f;
-                                                }
-
-                                                if (abs(CurrentTime - LastUnJumpTime) > 1.5f &&
-                                                    abs(CurrentTime - LastJumpTime) > 1.5f)
-                                                {
-                                                    if (abs(CurrentTime - LastKreedzHackTime) > 2.5f &&
-                                                        abs(LastJumpHackFalseDetectionTime) < EPSILON)
-                                                    {
-                                                        if (DemoScanner_AddWarn(
-                                                            "[JUMPHACK TYPE 1] at (" + LastKnowRealTime + ") " +
-                                                            LastKnowTimeString, !IsAngleEditByEngine()))
-                                                        {
-                                                            LastKreedzHackTime = CurrentTime;
-                                                            KreedzHacksCount++;
-                                                        }
-                                                    }
-                                                }
-                                                else if (abs(CurrentTime - LastUnJumpTime) > 0.5f &&
-                                                         abs(CurrentTime - LastJumpTime) > 0.5f)
-                                                {
-                                                    if (abs(CurrentTime - LastKreedzHackTime) > 2.5f &&
-                                                        !IsAngleEditByEngine() &&
-                                                        abs(LastJumpHackFalseDetectionTime) < EPSILON)
-                                                    {
-                                                        if (DemoScanner_AddWarn(
-                                                            "[JUMPHACK TYPE 3] at (" + LastKnowRealTime + ") " +
-                                                            LastKnowTimeString, false))
-                                                        {
-                                                            LastKreedzHackTime = CurrentTime;
-                                                            KreedzHacksCount++;
-                                                        }
-                                                    }
-                                                }
-                                                else if (abs(CurrentTime - LastUnJumpTime) > 0.3f &&
-                                                         abs(CurrentTime - LastJumpTime) > 0.3f)
-                                                {
-                                                    if (abs(CurrentTime - LastKreedzHackTime) > 2.5f &&
-                                                        !IsAngleEditByEngine() &&
-                                                        abs(LastJumpHackFalseDetectionTime) < EPSILON)
-                                                    {
-                                                        if (DemoScanner_AddWarn(
-                                                            "[JUMPHACK TYPE 4] at (" + LastKnowRealTime + ") " +
-                                                            LastKnowTimeString, false, false))
-                                                        {
-                                                            LastKreedzHackTime = CurrentTime;
-                                                            KreedzHacksCount++;
-                                                        }
-                                                    }
-                                                }
-                                            }
+                                            DemoScanner_AddWarn("[BETA][FAKELAG TYPE 3.1] at (" + LastKnowRealTime + "):" + LastKnowTimeString, false);
+                                            LastFakeLagTime = LastKnowRealTime;
                                         }
+                                        FakeLagSearchTime = 0.0f;
+                                    }
 
-                                        if (FirstJump && !IsJump && CurrentFrameJumped)
+                                    if (KnownSkyName == string.Empty)
+                                    {
+                                        KnownSkyName = nf.MVars.SkyName;
+                                    }
+                                    else if (KnownSkyName != nf.MVars.SkyName)
+                                    {
+                                        if (IsRussia)
                                         {
-                                            if (abs(CurrentTime - LastUnJumpTime) > 0.5f &&
-                                                abs(CurrentTime - LastJumpTime) > 0.5f)
-                                            {
-                                                JumpHackCount2++;
-                                            }
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    JumpHackCount2 = 0;
-                                }
-
-                                if (abs(LastKnowRealTime - LastScoreTime) < 0.75f || abs(LastKnowRealTime - LastAltTabStartTime) < 0.75f)
-                                {
-                                    FakeLagSearchTime = 0.0f;
-                                }
-                                else if (abs(FakeLagSearchTime) > 0.001 && CurrentTime > FakeLagSearchTime)
-                                {
-                                    if (abs(LastKnowRealTime - LastFakeLagTime) > 20.0f)
-                                    {
-                                        DemoScanner_AddWarn("[BETA][FAKELAG TYPE 3.1] at (" + LastKnowRealTime + "):" + LastKnowTimeString, false);
-                                        LastFakeLagTime = LastKnowRealTime;
-                                    }
-                                    FakeLagSearchTime = 0.0f;
-                                }
-
-                                if (KnownSkyName == string.Empty)
-                                {
-                                    KnownSkyName = nf.MVars.SkyName;
-                                }
-                                else if (KnownSkyName != nf.MVars.SkyName)
-                                {
-                                    if (IsRussia)
-                                    {
-                                        DemoScanner_AddInfo("Сменилось небо с \"" + KnownSkyName + "\" на \"" +
-                                                            nf.MVars.SkyName + "\" (" + LastKnowRealTime + "):" +
-                                                            LastKnowTimeString);
-                                    }
-                                    else
-                                    {
-                                        DemoScanner_AddInfo("Player changed sky name from \"" + KnownSkyName + "\" to \"" +
-                                                            nf.MVars.SkyName + "\" at (" + LastKnowRealTime + "):" +
-                                                            LastKnowTimeString);
-                                    }
-
-                                    KnownSkyName = nf.MVars.SkyName;
-                                }
-
-                                var toRemovePunch0 = new List<int>();
-                                for (var i = 0; i < Punch0_Search_Time.Count; i++)
-                                {
-                                    if (toRemovePunch0.Contains(i))
-                                    {
-                                        continue;
-                                    }
-
-                                    if (abs(Punch0_Search_Time[i]) > EPSILON)
-                                    {
-                                        if (abs(Punch0_Search_Time[i] - CurrentTime) > 1.00f)
-                                        {
-                                            if (abs(NoSpreadDetectionTime - CurrentTime) > 2.00f)
-                                            {
-                                                NoSpreadDetectionTime = CurrentTime;
-
-                                                if (!IsTakeDamage())
-                                                {
-                                                    if (!IsPlayerLossConnection())
-                                                    {
-                                                        DemoScanner_AddWarn(
-                                                            "[BETA] [NO SPREAD TYPE 4.1 " + CurrentWeapon + "] at (" +
-                                                            Punch0_Search_Time[i] /*+ " + debug=" + Punch0_Search[i] */ + "):" +
-                                                            LastKnowTimeString, false);
-                                                    }
-                                                    else
-                                                    {
-                                                        DemoScanner_AddWarn(
-                                                            "[BETA] [NO SPREAD TYPE 4.2 " + CurrentWeapon + "] at (" +
-                                                            Punch0_Search_Time[i] /*+ " + debug=" + Punch0_Search[i] */ + "):" +
-                                                            LastKnowTimeString, false);
-                                                    }
-                                                }
-                                            }
-
-                                            Punch0_Search_Time[i] = 0.0f;
-                                        }
-                                        else if (abs(nf.RParms.Punchangle.X - Punch0_Search[i]) <= MAX_SPREAD_CONST)
-                                        {
-                                            Punch0_Valid_Time = CurrentTime;
-                                            Punch0_Search_Time[i] = 0.0f;
-                                        }
-                                        else if (CurrentFrameDuplicated > 0 &&
-                                                 abs(Punch0_Search_Time[i] - CurrentTime) < EPSILON_2)
-                                        {
-                                            Punch0_Search_Time[i] = 0.0f;
-                                        }
-                                    }
-                                    else
-                                    {
-                                        toRemovePunch0.Add(i);
-                                    }
-                                }
-
-                                toRemovePunch0.Reverse();
-                                foreach (var del in toRemovePunch0)
-                                {
-                                    Punch0_Search_Time.RemoveAt(del);
-                                    Punch0_Search.RemoveAt(del);
-                                }
-
-                                if (DUMP_ALL_FRAMES)
-                                {
-                                    subnode.Text += "{\n";
-                                    subnode.Text += "RParms.Time  = " + nf.RParms.Time + "(" + LastKnowTimeString + ")\n";
-                                    subnode.Text += "RParms.Vieworg.X  = " + nf.RParms.Vieworg.X + "\n";
-                                    subnode.Text += "RParms.Vieworg.Y  = " + nf.RParms.Vieworg.Y + "\n";
-                                    subnode.Text += "RParms.Vieworg.Z  = " + nf.RParms.Vieworg.Z + "\n";
-                                    subnode.Text += "RParms.Viewangles.X  = " + nf.RParms.Viewangles.X + "\n";
-                                    subnode.Text += "RParms.Viewangles.Y  = " + nf.RParms.Viewangles.Y + "\n";
-                                    subnode.Text += "RParms.Viewangles.Z  = " + nf.RParms.Viewangles.Z + "\n";
-                                    subnode.Text += "RParms.Forward.X  = " + nf.RParms.Forward.X + "\n";
-                                    subnode.Text += "RParms.Forward.Y  = " + nf.RParms.Forward.Y + "\n";
-                                    subnode.Text += "RParms.Forward.Z  = " + nf.RParms.Forward.Z + "\n";
-                                    subnode.Text += "RParms.Right.X  = " + nf.RParms.Right.X + "\n";
-                                    subnode.Text += "RParms.Right.Y  = " + nf.RParms.Right.Y + "\n";
-                                    subnode.Text += "RParms.Right.Z  = " + nf.RParms.Right.Z + "\n";
-                                    subnode.Text += "RParms.Up.X  = " + nf.RParms.Up.X + "\n";
-                                    subnode.Text += "RParms.Up.Y  = " + nf.RParms.Up.Y + "\n";
-                                    subnode.Text += "RParms.Up.Z  = " + nf.RParms.Up.Z + "\n";
-                                    subnode.Text += "RParms.Frametime  = " + nf.RParms.Frametime + "\n";
-                                    subnode.Text += "RParms.Intermission  = " + nf.RParms.Intermission + "\n";
-                                    subnode.Text += "RParms.Paused  = " + nf.RParms.Paused + "\n";
-                                    subnode.Text += "RParms.Spectator  = " + nf.RParms.Spectator + "\n";
-                                    subnode.Text += "RParms.Onground  = " + nf.RParms.Onground + "\n";
-                                }
-
-                                if (nf.RParms.Intermission != 0)
-                                {
-                                    if (CL_Intermission == 0)
-                                    {
-                                        if (!NewDirectory)
-                                        {
-                                            if (IsRussia)
-                                            {
-                                                Console.WriteLine("---------- Подготовка к смене уровня [" + LastKnowTimeString +
-                                                             "] ----------");
-                                            }
-                                            else
-                                            {
-                                                Console.WriteLine("---------- Preparing to changelevel [" + LastKnowTimeString +
-                                                             "] ----------");
-                                            }
-
-                                        }
-                                    }
-                                    CL_Intermission = 1;
-                                }
-                                else
-                                {
-                                    CL_Intermission = 0;
-                                }
-
-                                if (DUMP_ALL_FRAMES)
-                                {
-                                    subnode.Text += "RParms.Waterlevel  = " + nf.RParms.Waterlevel + "\n";
-                                    subnode.Text += "RParms.Simvel.X  = " + nf.RParms.Simvel.X + "\n";
-                                    subnode.Text += "RParms.Simvel.Y  = " + nf.RParms.Simvel.Y + "\n";
-                                    subnode.Text += "RParms.Simvel.Z  = " + nf.RParms.Simvel.Z + "\n";
-                                    subnode.Text += "RParms.Simorg.X  = " + nf.RParms.Simorg.X + "\n";
-                                    subnode.Text += "RParms.Simorg.Y  = " + nf.RParms.Simorg.Y + "\n";
-                                    subnode.Text += "RParms.Simorg.Z  = " + nf.RParms.Simorg.Z + "\n";
-                                    subnode.Text += "RParms.Viewheight.X  = " + nf.RParms.Viewheight.X + "\n";
-                                    subnode.Text += "RParms.Viewheight.Y  = " + nf.RParms.Viewheight.Y + "\n";
-                                    subnode.Text += "RParms.Viewheight.Z  = " + nf.RParms.Viewheight.Z + "\n";
-                                    subnode.Text += "RParms.Idealpitch  = " + nf.RParms.Idealpitch + "\n";
-                                    subnode.Text += "RParms.ClViewangles.X  = " + nf.RParms.ClViewangles.X + "\n";
-                                    subnode.Text += "RParms.ClViewangles.Y  = " + nf.RParms.ClViewangles.Y + "\n";
-                                    subnode.Text += "RParms.ClViewangles.Z  = " + nf.RParms.ClViewangles.Z + "\n";
-                                    subnode.Text += "RParms.Health  = " + nf.RParms.Health + "\n";
-                                    subnode.Text += "RParms.Crosshairangle.X  = " + nf.RParms.Crosshairangle.X + "\n";
-                                    subnode.Text += "RParms.Crosshairangle.Y  = " + nf.RParms.Crosshairangle.Y + "\n";
-                                    subnode.Text += "RParms.Crosshairangle.Z  = " + nf.RParms.Crosshairangle.Z + "\n";
-                                    subnode.Text += "RParms.Viewsize  = " + nf.RParms.Viewsize + "\n";
-                                    subnode.Text += "RParms.Punchangle.X  = " + nf.RParms.Punchangle.X + "\n";
-                                    subnode.Text += "RParms.Punchangle.Y  = " + nf.RParms.Punchangle.Y + "\n";
-                                    subnode.Text += "RParms.Punchangle.Z  = " + nf.RParms.Punchangle.Z + "\n";
-                                    subnode.Text += "RParms.Maxclients  = " + nf.RParms.Maxclients + "\n";
-                                    subnode.Text += "RParms.Viewentity  = " + nf.RParms.Viewentity + "\n";
-                                    subnode.Text += "RParms.Playernum  = " + nf.RParms.Playernum + "\n";
-                                }
-
-                                ViewModel = nf.Viewmodel;
-
-                                if (!UserAlive && ViewEntity == nf.RParms.Viewentity)
-                                {
-                                    if (CL_Intermission == 0 && FirstUserAlive && nf.Viewmodel != 0)
-                                    {
-                                        NeedSearchUserAliveTime = CurrentTime;
-                                    }
-
-                                    CL_Intermission = 0;
-                                    ViewEntity = -1;
-                                }
-
-                                AddResolution(nf.RParms.Viewport.Z, nf.RParms.Viewport.W);
-                                if (DUMP_ALL_FRAMES)
-                                {
-                                    subnode.Text += "RParms.MaxEntities  = " + nf.RParms.MaxEntities + "\n";
-                                    subnode.Text += "RParms.Demoplayback  = " + nf.RParms.Demoplayback + "\n";
-                                    subnode.Text += "RParms.Hardware  = " + nf.RParms.Hardware + "\n";
-                                    subnode.Text += "RParms.Smoothing  = " + nf.RParms.Smoothing + "\n";
-                                    subnode.Text += "RParms.PtrCmd  = " + nf.RParms.PtrCmd + "\n";
-                                    subnode.Text += "RParms.PtrMovevars  = " + nf.RParms.PtrMovevars + "\n";
-                                    subnode.Text += "RParms.Viewport.X  = " + nf.RParms.Viewport.X + "\n";
-                                    subnode.Text += "RParms.Viewport.Y  = " + nf.RParms.Viewport.Y + "\n";
-                                    subnode.Text += "RParms.Viewport.Z  = " + nf.RParms.Viewport.Z + "\n";
-                                    subnode.Text += "RParms.Viewport.W  = " + nf.RParms.Viewport.W + "\n";
-                                    subnode.Text += "RParms.NextView  = " + nf.RParms.NextView + "\n";
-                                    subnode.Text += "RParms.OnlyClientDraw  = " + nf.RParms.OnlyClientDraw + "\n";
-                                    subnode.Text += "UCmd.LerpMsec  = " + nf.UCmd.LerpMsec + "\n";
-                                    subnode.Text += "UCmd.Msec  = " + nf.UCmd.Msec + "\n";
-                                    subnode.Text += "UCmd.Align1  = " + nf.UCmd.Align1 + "\n";
-                                    subnode.Text += "UCmd.Forwardmove  = " + nf.UCmd.Forwardmove + "\n";
-                                    subnode.Text += "UCmd.Sidemove  = " + nf.UCmd.Sidemove + "\n";
-                                    subnode.Text += "UCmd.Upmove  = " + nf.UCmd.Upmove + "\n";
-                                    subnode.Text += "UCmd.Lightlevel  = " + nf.UCmd.Lightlevel + "\n";
-                                    subnode.Text += "UCmd.Align2  = " + nf.UCmd.Align2 + "\n";
-                                    subnode.Text += "UCmd.Buttons  = " + nf.UCmd.Buttons + "\n";
-                                }
-
-                                if (nf.UCmd.Msec > 50)
-                                {
-                                    LastBadMsecTime = CurrentTime;
-                                }
-
-                                if (IsUserAlive() && FirstJump && abs(CurrentTime) > EPSILON)
-                                {
-                                    if (nf.UCmd.Msec == 0 && nf.RParms.Frametime > EPSILON_2 && CurrentFrameDuplicated == 0)
-                                    {
-                                        if (abs(CurrentTime - LastCmdHack) > 5.0)
-                                        {
-                                            if (RealFpsMax > 2000)
-                                            {
-                                                DemoScanner_AddWarn(
-                                                    "[FPS HACK TYPE 3. FPS = " + RealFpsMax + " ] at (" + LastKnowRealTime +
-                                                    ") " + LastKnowTimeString, !IsAngleEditByEngine());
-                                            }
-
-                                            if (RealFpsMax < 600)
-                                            {
-                                                DemoScanner_AddWarn(
-                                                    "[CMD HACK TYPE 1] at (" + LastKnowRealTime + ") " + LastKnowTimeString,
-                                                    !IsAngleEditByEngine());
-                                            }
-
-                                            LastCmdHack = CurrentTime;
-                                        }
-
-                                        StuckFrames++;
-                                    }
-                                    else if (nf.UCmd.Msec / nf.RParms.Frametime < 500.0f)
-                                    {
-                                        if (abs(CurrentTime - LastCmdHack) > 4.0)
-                                        {
-                                            if (FoundFpsHack1)
-                                            {
-                                                DemoScanner_AddWarn("[FPS HACK TYPE 2] at (" + LastKnowRealTime + "):" +
-                                                                    LastKnowTimeString);
-                                            }
-                                            else
-                                            {
-                                                DemoScanner_AddWarn(
-                                                    "[CMD HACK TYPE 2] at (" + LastKnowRealTime + ") " + LastKnowTimeString,
-                                                    !IsAngleEditByEngine());
-                                            }
-
-                                            LastCmdHack = CurrentTime;
-                                        }
-                                    }
-                                }
-
-                                if (ShotFound > 0 && !IsReload && IsInAttack() && RealAlive && SelectSlot <= 0)
-                                {
-                                }
-                                else
-                                {
-                                    ShotFound = 0;
-                                }
-
-                                if (ReallyAim2 > 0)
-                                {
-                                    if (FirstAttack)
-                                    {
-                                        if (CurrentWeapon == WeaponIdType.WEAPON_KNIFE ||
-                                            CurrentWeapon == WeaponIdType.WEAPON_C4 ||
-                                            CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE ||
-                                            CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE ||
-                                            CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG)
-                                        {
+                                            DemoScanner_AddInfo("Сменилось небо с \"" + KnownSkyName + "\" на \"" +
+                                                                nf.MVars.SkyName + "\" (" + LastKnowRealTime + "):" +
+                                                                LastKnowTimeString);
                                         }
                                         else
                                         {
-                                            if (ReallyAim2 == 2 && TotalAimBotDetected < 2 && TriggerAimAttackCount < 2)
+                                            DemoScanner_AddInfo("Player changed sky name from \"" + KnownSkyName + "\" to \"" +
+                                                                nf.MVars.SkyName + "\" at (" + LastKnowRealTime + "):" +
+                                                                LastKnowTimeString);
+                                        }
+
+                                        KnownSkyName = nf.MVars.SkyName;
+                                    }
+
+                                    var toRemovePunch0 = new List<int>();
+                                    for (var i = 0; i < Punch0_Search_Time.Count; i++)
+                                    {
+                                        if (toRemovePunch0.Contains(i))
+                                        {
+                                            continue;
+                                        }
+
+                                        if (abs(Punch0_Search_Time[i]) > EPSILON)
+                                        {
+                                            if (abs(Punch0_Search_Time[i] - CurrentTime) > 1.00f)
                                             {
-                                                DemoScanner_AddWarn(
-                                                    "[AIM TYPE 2.1 " + CurrentWeapon + "] at (" + LastKnowRealTime + "):" +
-                                                    LastKnowTimeString, false);
+                                                if (abs(NoSpreadDetectionTime - CurrentTime) > 2.00f)
+                                                {
+                                                    NoSpreadDetectionTime = CurrentTime;
+
+                                                    if (!IsTakeDamage())
+                                                    {
+                                                        if (!IsPlayerLossConnection())
+                                                        {
+                                                            DemoScanner_AddWarn(
+                                                                "[BETA] [NO SPREAD TYPE 4.1 " + CurrentWeapon + "] at (" +
+                                                                Punch0_Search_Time[i] /*+ " + debug=" + Punch0_Search[i] */ + "):" +
+                                                                LastKnowTimeString, false);
+                                                        }
+                                                        else
+                                                        {
+                                                            DemoScanner_AddWarn(
+                                                                "[BETA] [NO SPREAD TYPE 4.2 " + CurrentWeapon + "] at (" +
+                                                                Punch0_Search_Time[i] /*+ " + debug=" + Punch0_Search[i] */ + "):" +
+                                                                LastKnowTimeString, false);
+                                                        }
+                                                    }
+                                                }
+
+                                                Punch0_Search_Time[i] = 0.0f;
+                                            }
+                                            else if (abs(nf.RParms.Punchangle.X - Punch0_Search[i]) <= MAX_SPREAD_CONST)
+                                            {
+                                                Punch0_Valid_Time = CurrentTime;
+                                                Punch0_Search_Time[i] = 0.0f;
+                                            }
+                                            else if (CurrentFrameDuplicated > 0 &&
+                                                     abs(Punch0_Search_Time[i] - CurrentTime) < EPSILON_2)
+                                            {
+                                                Punch0_Search_Time[i] = 0.0f;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            toRemovePunch0.Add(i);
+                                        }
+                                    }
+
+                                    toRemovePunch0.Reverse();
+                                    foreach (var del in toRemovePunch0)
+                                    {
+                                        Punch0_Search_Time.RemoveAt(del);
+                                        Punch0_Search.RemoveAt(del);
+                                    }
+
+                                    if (DUMP_ALL_FRAMES)
+                                    {
+                                        subnode.Text += "{\n";
+                                        subnode.Text += "RParms.Time  = " + nf.RParms.Time + "(" + LastKnowTimeString + ")\n";
+                                        subnode.Text += "RParms.Vieworg.X  = " + nf.RParms.Vieworg.X + "\n";
+                                        subnode.Text += "RParms.Vieworg.Y  = " + nf.RParms.Vieworg.Y + "\n";
+                                        subnode.Text += "RParms.Vieworg.Z  = " + nf.RParms.Vieworg.Z + "\n";
+                                        subnode.Text += "RParms.Viewangles.X  = " + nf.RParms.Viewangles.X + "\n";
+                                        subnode.Text += "RParms.Viewangles.Y  = " + nf.RParms.Viewangles.Y + "\n";
+                                        subnode.Text += "RParms.Viewangles.Z  = " + nf.RParms.Viewangles.Z + "\n";
+                                        subnode.Text += "RParms.Forward.X  = " + nf.RParms.Forward.X + "\n";
+                                        subnode.Text += "RParms.Forward.Y  = " + nf.RParms.Forward.Y + "\n";
+                                        subnode.Text += "RParms.Forward.Z  = " + nf.RParms.Forward.Z + "\n";
+                                        subnode.Text += "RParms.Right.X  = " + nf.RParms.Right.X + "\n";
+                                        subnode.Text += "RParms.Right.Y  = " + nf.RParms.Right.Y + "\n";
+                                        subnode.Text += "RParms.Right.Z  = " + nf.RParms.Right.Z + "\n";
+                                        subnode.Text += "RParms.Up.X  = " + nf.RParms.Up.X + "\n";
+                                        subnode.Text += "RParms.Up.Y  = " + nf.RParms.Up.Y + "\n";
+                                        subnode.Text += "RParms.Up.Z  = " + nf.RParms.Up.Z + "\n";
+                                        subnode.Text += "RParms.Frametime  = " + nf.RParms.Frametime + "\n";
+                                        subnode.Text += "RParms.Intermission  = " + nf.RParms.Intermission + "\n";
+                                        subnode.Text += "RParms.Paused  = " + nf.RParms.Paused + "\n";
+                                        subnode.Text += "RParms.Spectator  = " + nf.RParms.Spectator + "\n";
+                                        subnode.Text += "RParms.Onground  = " + nf.RParms.Onground + "\n";
+                                    }
+
+                                    if (nf.RParms.Intermission != 0)
+                                    {
+                                        if (CL_Intermission == 0)
+                                        {
+                                            if (!NewDirectory)
+                                            {
+                                                if (IsRussia)
+                                                {
+                                                    Console.WriteLine("---------- Подготовка к смене уровня [" + LastKnowTimeString +
+                                                                 "] ----------");
+                                                }
+                                                else
+                                                {
+                                                    Console.WriteLine("---------- Preparing to changelevel [" + LastKnowTimeString +
+                                                                 "] ----------");
+                                                }
+
+                                            }
+                                        }
+                                        CL_Intermission = 1;
+                                    }
+                                    else
+                                    {
+                                        CL_Intermission = 0;
+                                    }
+
+                                    if (DUMP_ALL_FRAMES)
+                                    {
+                                        subnode.Text += "RParms.Waterlevel  = " + nf.RParms.Waterlevel + "\n";
+                                        subnode.Text += "RParms.Simvel.X  = " + nf.RParms.Simvel.X + "\n";
+                                        subnode.Text += "RParms.Simvel.Y  = " + nf.RParms.Simvel.Y + "\n";
+                                        subnode.Text += "RParms.Simvel.Z  = " + nf.RParms.Simvel.Z + "\n";
+                                        subnode.Text += "RParms.Simorg.X  = " + nf.RParms.Simorg.X + "\n";
+                                        subnode.Text += "RParms.Simorg.Y  = " + nf.RParms.Simorg.Y + "\n";
+                                        subnode.Text += "RParms.Simorg.Z  = " + nf.RParms.Simorg.Z + "\n";
+                                        subnode.Text += "RParms.Viewheight.X  = " + nf.RParms.Viewheight.X + "\n";
+                                        subnode.Text += "RParms.Viewheight.Y  = " + nf.RParms.Viewheight.Y + "\n";
+                                        subnode.Text += "RParms.Viewheight.Z  = " + nf.RParms.Viewheight.Z + "\n";
+                                        subnode.Text += "RParms.Idealpitch  = " + nf.RParms.Idealpitch + "\n";
+                                        subnode.Text += "RParms.ClViewangles.X  = " + nf.RParms.ClViewangles.X + "\n";
+                                        subnode.Text += "RParms.ClViewangles.Y  = " + nf.RParms.ClViewangles.Y + "\n";
+                                        subnode.Text += "RParms.ClViewangles.Z  = " + nf.RParms.ClViewangles.Z + "\n";
+                                        subnode.Text += "RParms.Health  = " + nf.RParms.Health + "\n";
+                                        subnode.Text += "RParms.Crosshairangle.X  = " + nf.RParms.Crosshairangle.X + "\n";
+                                        subnode.Text += "RParms.Crosshairangle.Y  = " + nf.RParms.Crosshairangle.Y + "\n";
+                                        subnode.Text += "RParms.Crosshairangle.Z  = " + nf.RParms.Crosshairangle.Z + "\n";
+                                        subnode.Text += "RParms.Viewsize  = " + nf.RParms.Viewsize + "\n";
+                                        subnode.Text += "RParms.Punchangle.X  = " + nf.RParms.Punchangle.X + "\n";
+                                        subnode.Text += "RParms.Punchangle.Y  = " + nf.RParms.Punchangle.Y + "\n";
+                                        subnode.Text += "RParms.Punchangle.Z  = " + nf.RParms.Punchangle.Z + "\n";
+                                        subnode.Text += "RParms.Maxclients  = " + nf.RParms.Maxclients + "\n";
+                                        subnode.Text += "RParms.Viewentity  = " + nf.RParms.Viewentity + "\n";
+                                        subnode.Text += "RParms.Playernum  = " + nf.RParms.Playernum + "\n";
+                                    }
+
+                                    ViewModel = nf.Viewmodel;
+
+                                    if (!UserAlive && ViewEntity == nf.RParms.Viewentity)
+                                    {
+                                        if (CL_Intermission == 0 && FirstUserAlive && nf.Viewmodel != 0)
+                                        {
+                                            NeedSearchUserAliveTime = CurrentTime;
+                                        }
+
+                                        CL_Intermission = 0;
+                                        ViewEntity = -1;
+                                    }
+
+                                    AddResolution(nf.RParms.Viewport.Z, nf.RParms.Viewport.W);
+                                    if (DUMP_ALL_FRAMES)
+                                    {
+                                        subnode.Text += "RParms.MaxEntities  = " + nf.RParms.MaxEntities + "\n";
+                                        subnode.Text += "RParms.Demoplayback  = " + nf.RParms.Demoplayback + "\n";
+                                        subnode.Text += "RParms.Hardware  = " + nf.RParms.Hardware + "\n";
+                                        subnode.Text += "RParms.Smoothing  = " + nf.RParms.Smoothing + "\n";
+                                        subnode.Text += "RParms.PtrCmd  = " + nf.RParms.PtrCmd + "\n";
+                                        subnode.Text += "RParms.PtrMovevars  = " + nf.RParms.PtrMovevars + "\n";
+                                        subnode.Text += "RParms.Viewport.X  = " + nf.RParms.Viewport.X + "\n";
+                                        subnode.Text += "RParms.Viewport.Y  = " + nf.RParms.Viewport.Y + "\n";
+                                        subnode.Text += "RParms.Viewport.Z  = " + nf.RParms.Viewport.Z + "\n";
+                                        subnode.Text += "RParms.Viewport.W  = " + nf.RParms.Viewport.W + "\n";
+                                        subnode.Text += "RParms.NextView  = " + nf.RParms.NextView + "\n";
+                                        subnode.Text += "RParms.OnlyClientDraw  = " + nf.RParms.OnlyClientDraw + "\n";
+                                        subnode.Text += "UCmd.LerpMsec  = " + nf.UCmd.LerpMsec + "\n";
+                                        subnode.Text += "UCmd.Msec  = " + nf.UCmd.Msec + "\n";
+                                        subnode.Text += "UCmd.Align1  = " + nf.UCmd.Align1 + "\n";
+                                        subnode.Text += "UCmd.Forwardmove  = " + nf.UCmd.Forwardmove + "\n";
+                                        subnode.Text += "UCmd.Sidemove  = " + nf.UCmd.Sidemove + "\n";
+                                        subnode.Text += "UCmd.Upmove  = " + nf.UCmd.Upmove + "\n";
+                                        subnode.Text += "UCmd.Lightlevel  = " + nf.UCmd.Lightlevel + "\n";
+                                        subnode.Text += "UCmd.Align2  = " + nf.UCmd.Align2 + "\n";
+                                        subnode.Text += "UCmd.Buttons  = " + nf.UCmd.Buttons + "\n";
+                                    }
+
+                                    if (nf.UCmd.Msec > 50)
+                                    {
+                                        LastBadMsecTime = CurrentTime;
+                                    }
+
+                                    if (IsUserAlive() && FirstJump && abs(CurrentTime) > EPSILON)
+                                    {
+                                        if (nf.UCmd.Msec == 0 && nf.RParms.Frametime > EPSILON_2 && CurrentFrameDuplicated == 0)
+                                        {
+                                            if (abs(CurrentTime - LastCmdHack) > 5.0)
+                                            {
+                                                if (RealFpsMax > 2000)
+                                                {
+                                                    DemoScanner_AddWarn(
+                                                        "[FPS HACK TYPE 3. FPS = " + RealFpsMax + " ] at (" + LastKnowRealTime +
+                                                        ") " + LastKnowTimeString, !IsAngleEditByEngine());
+                                                }
+
+                                                if (RealFpsMax < 600)
+                                                {
+                                                    DemoScanner_AddWarn(
+                                                        "[CMD HACK TYPE 1] at (" + LastKnowRealTime + ") " + LastKnowTimeString,
+                                                        !IsAngleEditByEngine());
+                                                }
+
+                                                LastCmdHack = CurrentTime;
+                                            }
+
+                                            StuckFrames++;
+                                        }
+                                        else if (nf.UCmd.Msec / nf.RParms.Frametime < 500.0f)
+                                        {
+                                            if (abs(CurrentTime - LastCmdHack) > 4.0)
+                                            {
+                                                if (FoundFpsHack1)
+                                                {
+                                                    DemoScanner_AddWarn("[FPS HACK TYPE 2] at (" + LastKnowRealTime + "):" +
+                                                                        LastKnowTimeString);
+                                                }
+                                                else
+                                                {
+                                                    DemoScanner_AddWarn(
+                                                        "[CMD HACK TYPE 2] at (" + LastKnowRealTime + ") " + LastKnowTimeString,
+                                                        !IsAngleEditByEngine());
+                                                }
+
+                                                LastCmdHack = CurrentTime;
+                                            }
+                                        }
+                                    }
+
+                                    if (ShotFound > 0 && !IsReload && IsInAttack() && RealAlive && SelectSlot <= 0)
+                                    {
+                                    }
+                                    else
+                                    {
+                                        ShotFound = 0;
+                                    }
+
+                                    if (ReallyAim2 > 0)
+                                    {
+                                        if (FirstAttack)
+                                        {
+                                            if (CurrentWeapon == WeaponIdType.WEAPON_KNIFE ||
+                                                CurrentWeapon == WeaponIdType.WEAPON_C4 ||
+                                                CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE ||
+                                                CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE ||
+                                                CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG)
+                                            {
                                             }
                                             else
                                             {
-                                                if (DemoScanner_AddWarn(
-                                                    "[AIM TYPE 2.1 " + CurrentWeapon + "] at (" + LastKnowRealTime + "):" +
-                                                    LastKnowTimeString,
-                                                    !IsPlayerLossConnection() &&
-                                                    !IsCmdChangeWeapon() /* && !IsForceCenterView() */ &&
-                                                    !IsAngleEditByEngine()))
+                                                if (ReallyAim2 == 2 && TotalAimBotDetected < 2 && TriggerAimAttackCount < 2)
                                                 {
-                                                    if (!IsPlayerLossConnection() && !IsCmdChangeWeapon() &&
+                                                    DemoScanner_AddWarn(
+                                                        "[AIM TYPE 2.1 " + CurrentWeapon + "] at (" + LastKnowRealTime + "):" +
+                                                        LastKnowTimeString, false);
+                                                }
+                                                else
+                                                {
+                                                    if (DemoScanner_AddWarn(
+                                                        "[AIM TYPE 2.1 " + CurrentWeapon + "] at (" + LastKnowRealTime + "):" +
+                                                        LastKnowTimeString,
+                                                        !IsPlayerLossConnection() &&
+                                                        !IsCmdChangeWeapon() /* && !IsForceCenterView() */ &&
+                                                        !IsAngleEditByEngine()))
+                                                    {
+                                                        if (!IsPlayerLossConnection() && !IsCmdChangeWeapon() &&
+                                                            !IsAngleEditByEngine())
+                                                        {
+                                                            TotalAimBotDetected++;
+                                                        }
+                                                    }
+                                                }
+                                                //FirstAttack = false;
+                                            }
+                                        }
+
+                                        ReallyAim2 = 0;
+                                    }
+
+                                    if (!IsPlayerBtnAttackedPressed() && !CurrentFrameAttacked && !IsAttack2 &&
+                                        CurrentWeapon == WeaponIdType.WEAPON_KNIFE && NeedIgnoreAttackFlag == 0)
+                                    {
+                                        if (!KnifeTriggerAttackFound && CurrentFrameAttacked2 && FirstAttack)
+                                        {
+                                            if (SelectSlot > 0)
+                                            {
+                                                //  Console.WriteLine("Select weapon(" + LastKnowTime + ") " + CurrentTimeString);
+                                            }
+                                            else if (attackscounter3 < 2)
+                                            {
+                                                //  Console.WriteLine("Select weapon(" + LastKnowTime + ") " + CurrentTimeString);
+                                            }
+                                            else if (abs(CurrentTime2 - IsNoAttackLastTime2) < 0.1f)
+                                            {
+                                                //   Console.WriteLine("No attack in current frame(" + LastKnowTime + ") " + CurrentTimeString);
+                                            }
+                                            else if (IsReload)
+                                            {
+                                                //  Console.WriteLine("Reload weapon(" + LastKnowTime + ") " + CurrentTimeString);
+                                            }
+                                            else if (!RealAlive)
+                                            {
+                                                //  Console.WriteLine("Dead (" + LastKnowTime + ") " + CurrentTimeString);
+                                            }
+                                            else
+                                            {
+                                                LastTriggerAttack = LastKnowRealTime;
+                                                //FirstAttack = false;
+                                                KnifeTriggerAttackFound = true;
+                                            }
+                                        }
+                                    }
+
+                                    if (!IsPlayerBtnAttackedPressed() && !IsInAttack() && NeedIgnoreAttackFlag == 0)
+                                    {
+                                        if (!TriggerAttackFound && CurrentFrameAttacked && FirstAttack)
+                                        {
+                                            if (CurrentWeapon == WeaponIdType.WEAPON_C4 ||
+                                                CurrentWeapon == WeaponIdType.WEAPON_KNIFE ||
+                                                CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE ||
+                                                CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE ||
+                                                CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG)
+                                            {
+                                                //  Console.WriteLine("Invalid weapon(" + LastKnowTime + ") " + CurrentTimeString);
+                                            }
+                                            else if (SelectSlot > 0)
+                                            {
+                                                //  Console.WriteLine("Select weapon(" + LastKnowTime + ") " + CurrentTimeString);
+                                            }
+                                            else if (attackscounter3 < 2)
+                                            {
+                                                //  Console.WriteLine("Select weapon(" + LastKnowTime + ") " + CurrentTimeString);
+                                            }
+                                            else if (abs(CurrentTime2 - IsNoAttackLastTime2) < 0.1f)
+                                            {
+                                                //   Console.WriteLine("No attack in current frame(" + LastKnowTime + ") " + CurrentTimeString);
+                                            }
+                                            else if (IsReload)
+                                            {
+                                                //  Console.WriteLine("Reload weapon(" + LastKnowTime + ") " + CurrentTimeString);
+                                            }
+                                            else if (!RealAlive)
+                                            {
+                                                //  Console.WriteLine("Dead (" + LastKnowTime + ") " + CurrentTimeString);
+                                            }
+                                            else
+                                            {
+                                                //FirstAttack = false;
+                                                LastTriggerAttack = LastKnowRealTime;
+                                                TriggerAttackFound = true;
+                                            }
+                                        }
+                                    }
+
+                                    if (!CurrentFrameAttacked && !PreviousFrameAttacked && CurrentFrameDuplicated == 0)
+                                    {
+                                        if (TriggerAttackFound && !IsPlayerBtnAttackedPressed())
+                                        {
+                                            if (DemoScanner_AddWarn(
+                                                "[TRIGGER TYPE 1 " + CurrentWeapon + "] at (" + LastTriggerAttack + ") " +
+                                                GetTimeString(LastTriggerAttack),
+                                                !IsCmdChangeWeapon() && !IsAngleEditByEngine()))
+                                            {
+                                                TriggerAimAttackCount++;
+                                            }
+                                        }
+
+                                        TriggerAttackFound = false;
+                                    }
+
+                                    if (!CurrentFrameAttacked2 && !PreviousFrameAttacked2 && CurrentFrameDuplicated == 0)
+                                    {
+                                        if (KnifeTriggerAttackFound && !IsPlayerBtnAttackedPressed())
+                                        {
+                                            if (DemoScanner_AddWarn(
+                                                "[KNIFEBOT TYPE 1 " + CurrentWeapon + "] at (" + LastTriggerAttack + ") " +
+                                                GetTimeString(LastTriggerAttack),
+                                                !IsCmdChangeWeapon() && !IsAngleEditByEngine()))
+                                            {
+                                                TriggerAimAttackCount++;
+                                            }
+                                        }
+
+                                        KnifeTriggerAttackFound = false;
+                                    }
+
+                                    if (NeedSearchAim2 && !IsReload && RealAlive && SelectSlot <= 0)
+                                    {
+                                        if (!Aim2AttackDetected)
+                                        {
+                                            if (CurrentFrameAttacked)
+                                            {
+                                                ShotFound++;
+                                                Aim2AttackDetected = true;
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if (!CurrentFrameAttacked)
+                                            {
+                                                ShotFound++;
+                                                Aim2AttackDetected = false;
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        NeedSearchAim2 = false;
+                                        Aim2AttackDetected = false;
+                                    }
+
+                                    if (NeedWriteAim > 0 && CurrentFrameAttacked)
+                                    {
+                                        if (AimType1FalseDetect)
+                                        {
+                                            AimType1FalseDetect = false;
+                                            if (FirstAttack)
+                                            {
+                                                if ((TotalAimBotDetected > 0 || KreedzHacksCount > 0) && !IsAngleEditByEngine())
+                                                {
+                                                    if (DemoScanner_AddWarn(
+                                                        "[AIM TYPE 1.2 " + CurrentWeapon + "] at (" + NeedWriteAimTime + "):" +
+                                                        GetTimeString(NeedWriteAimTime),
+                                                        NeedWriteAim == 2 && !IsCmdChangeWeapon() &&
+                                                        !IsPlayerLossConnection() && !IsForceCenterView()))
+                                                    {
+                                                        TotalAimBotDetected++;
+                                                    }
+                                                }
+                                                else
+                                                {
+                                                    DemoScanner_AddWarn(
+                                                        "[AIM TYPE 1.3 " + CurrentWeapon + "] at (" + NeedWriteAimTime + "):" +
+                                                        GetTimeString(NeedWriteAimTime), false, false);
+                                                }
+                                            }
+                                        }
+                                        else
+                                        {
+                                            if (FirstAttack)
+                                            {
+                                                if (DemoScanner_AddWarn(
+                                                    "[AIM TYPE 1.1 " + CurrentWeapon + "] at (" + NeedWriteAimTime + "):" +
+                                                    GetTimeString(NeedWriteAim),
+                                                    NeedWriteAim == 2 && !IsCmdChangeWeapon() && !IsPlayerLossConnection() &&
+                                                    !IsForceCenterView() && !IsAngleEditByEngine()))
+                                                {
+                                                    if (!IsCmdChangeWeapon() && !IsPlayerLossConnection() && !IsForceCenterView() &&
                                                         !IsAngleEditByEngine())
                                                     {
                                                         TotalAimBotDetected++;
                                                     }
                                                 }
                                             }
-                                            //FirstAttack = false;
                                         }
+
+                                        NeedWriteAim = 0;
+                                        LastSilentAim = CurrentTime;
                                     }
 
-                                    ReallyAim2 = 0;
-                                }
-
-                                if (!IsPlayerBtnAttackedPressed() && !CurrentFrameAttacked && !IsAttack2 &&
-                                    CurrentWeapon == WeaponIdType.WEAPON_KNIFE && NeedIgnoreAttackFlag == 0)
-                                {
-                                    if (!KnifeTriggerAttackFound && CurrentFrameAttacked2 && FirstAttack)
+                                    if (AttackCheck > -1)
                                     {
-                                        if (SelectSlot > 0)
+                                        if (!CurrentFrameAttacked && !IsReload && SelectSlot <= 0 && IsInAttack() && RealAlive &&
+                                            IsRealWeapon() && CurrentWeapon != WeaponIdType.WEAPON_KNIFE &&
+                                            CurrentWeapon != WeaponIdType.WEAPON_C4 &&
+                                            CurrentWeapon != WeaponIdType.WEAPON_HEGRENADE &&
+                                            CurrentWeapon != WeaponIdType.WEAPON_SMOKEGRENADE &&
+                                            CurrentWeapon != WeaponIdType.WEAPON_FLASHBANG)
                                         {
-                                            //  Console.WriteLine("Select weapon(" + LastKnowTime + ") " + CurrentTimeString);
-                                        }
-                                        else if (attackscounter3 < 2)
-                                        {
-                                            //  Console.WriteLine("Select weapon(" + LastKnowTime + ") " + CurrentTimeString);
-                                        }
-                                        else if (abs(CurrentTime2 - IsNoAttackLastTime2) < 0.1f)
-                                        {
-                                            //   Console.WriteLine("No attack in current frame(" + LastKnowTime + ") " + CurrentTimeString);
-                                        }
-                                        else if (IsReload)
-                                        {
-                                            //  Console.WriteLine("Reload weapon(" + LastKnowTime + ") " + CurrentTimeString);
-                                        }
-                                        else if (!RealAlive)
-                                        {
-                                            //  Console.WriteLine("Dead (" + LastKnowTime + ") " + CurrentTimeString);
-                                        }
-                                        else
-                                        {
-                                            LastTriggerAttack = LastKnowRealTime;
-                                            //FirstAttack = false;
-                                            KnifeTriggerAttackFound = true;
-                                        }
-                                    }
-                                }
-
-                                if (!IsPlayerBtnAttackedPressed() && !IsInAttack() && NeedIgnoreAttackFlag == 0)
-                                {
-                                    if (!TriggerAttackFound && CurrentFrameAttacked && FirstAttack)
-                                    {
-                                        if (CurrentWeapon == WeaponIdType.WEAPON_C4 ||
-                                            CurrentWeapon == WeaponIdType.WEAPON_KNIFE ||
-                                            CurrentWeapon == WeaponIdType.WEAPON_HEGRENADE ||
-                                            CurrentWeapon == WeaponIdType.WEAPON_SMOKEGRENADE ||
-                                            CurrentWeapon == WeaponIdType.WEAPON_FLASHBANG)
-                                        {
-                                            //  Console.WriteLine("Invalid weapon(" + LastKnowTime + ") " + CurrentTimeString);
-                                        }
-                                        else if (SelectSlot > 0)
-                                        {
-                                            //  Console.WriteLine("Select weapon(" + LastKnowTime + ") " + CurrentTimeString);
-                                        }
-                                        else if (attackscounter3 < 2)
-                                        {
-                                            //  Console.WriteLine("Select weapon(" + LastKnowTime + ") " + CurrentTimeString);
-                                        }
-                                        else if (abs(CurrentTime2 - IsNoAttackLastTime2) < 0.1f)
-                                        {
-                                            //   Console.WriteLine("No attack in current frame(" + LastKnowTime + ") " + CurrentTimeString);
-                                        }
-                                        else if (IsReload)
-                                        {
-                                            //  Console.WriteLine("Reload weapon(" + LastKnowTime + ") " + CurrentTimeString);
-                                        }
-                                        else if (!RealAlive)
-                                        {
-                                            //  Console.WriteLine("Dead (" + LastKnowTime + ") " + CurrentTimeString);
-                                        }
-                                        else
-                                        {
-                                            //FirstAttack = false;
-                                            LastTriggerAttack = LastKnowRealTime;
-                                            TriggerAttackFound = true;
-                                        }
-                                    }
-                                }
-
-                                if (!CurrentFrameAttacked && !PreviousFrameAttacked && CurrentFrameDuplicated == 0)
-                                {
-                                    if (TriggerAttackFound && !IsPlayerBtnAttackedPressed())
-                                    {
-                                        if (DemoScanner_AddWarn(
-                                            "[TRIGGER TYPE 1 " + CurrentWeapon + "] at (" + LastTriggerAttack + ") " +
-                                            GetTimeString(LastTriggerAttack),
-                                            !IsCmdChangeWeapon() && !IsAngleEditByEngine()))
-                                        {
-                                            TriggerAimAttackCount++;
-                                        }
-                                    }
-
-                                    TriggerAttackFound = false;
-                                }
-
-                                if (!CurrentFrameAttacked2 && !PreviousFrameAttacked2 && CurrentFrameDuplicated == 0)
-                                {
-                                    if (KnifeTriggerAttackFound && !IsPlayerBtnAttackedPressed())
-                                    {
-                                        if (DemoScanner_AddWarn(
-                                            "[KNIFEBOT TYPE 1 " + CurrentWeapon + "] at (" + LastTriggerAttack + ") " +
-                                            GetTimeString(LastTriggerAttack),
-                                            !IsCmdChangeWeapon() && !IsAngleEditByEngine()))
-                                        {
-                                            TriggerAimAttackCount++;
-                                        }
-                                    }
-
-                                    KnifeTriggerAttackFound = false;
-                                }
-
-                                if (NeedSearchAim2 && !IsReload && RealAlive && SelectSlot <= 0)
-                                {
-                                    if (!Aim2AttackDetected)
-                                    {
-                                        if (CurrentFrameAttacked)
-                                        {
-                                            ShotFound++;
-                                            Aim2AttackDetected = true;
-                                        }
-                                    }
-                                    else
-                                    {
-                                        if (!CurrentFrameAttacked)
-                                        {
-                                            ShotFound++;
-                                            Aim2AttackDetected = false;
-                                        }
-                                    }
-                                }
-                                else
-                                {
-                                    NeedSearchAim2 = false;
-                                    Aim2AttackDetected = false;
-                                }
-
-                                if (NeedWriteAim > 0 && CurrentFrameAttacked)
-                                {
-                                    if (AimType1FalseDetect)
-                                    {
-                                        AimType1FalseDetect = false;
-                                        if (FirstAttack)
-                                        {
-                                            if ((TotalAimBotDetected > 0 || KreedzHacksCount > 0) && !IsAngleEditByEngine())
+                                            if (DEBUG_ENABLED)
                                             {
-                                                if (DemoScanner_AddWarn(
-                                                    "[AIM TYPE 1.2 " + CurrentWeapon + "] at (" + NeedWriteAimTime + "):" +
-                                                    GetTimeString(NeedWriteAimTime),
-                                                    NeedWriteAim == 2 && !IsCmdChangeWeapon() &&
-                                                    !IsPlayerLossConnection() && !IsForceCenterView()))
-                                                {
-                                                    TotalAimBotDetected++;
-                                                }
+                                                Console.WriteLine("Check attack:" + AttackCheck + " " + SkipNextAttack + " " +
+                                                                  CurrentFrameButtons + " " + LastKnowRealTime);
+                                            }
+
+                                            if (AttackCheck > 0)
+                                            {
+                                                AttackCheck--;
                                             }
                                             else
                                             {
-                                                DemoScanner_AddWarn(
-                                                    "[AIM TYPE 1.3 " + CurrentWeapon + "] at (" + NeedWriteAimTime + "):" +
-                                                    GetTimeString(NeedWriteAimTime), false, false);
-                                            }
-                                        }
-                                    }
-                                    else
-                                    {
-                                        if (FirstAttack)
-                                        {
-                                            if (DemoScanner_AddWarn(
-                                                "[AIM TYPE 1.1 " + CurrentWeapon + "] at (" + NeedWriteAimTime + "):" +
-                                                GetTimeString(NeedWriteAim),
-                                                NeedWriteAim == 2 && !IsCmdChangeWeapon() && !IsPlayerLossConnection() &&
-                                                !IsForceCenterView() && !IsAngleEditByEngine()))
-                                            {
-                                                if (!IsCmdChangeWeapon() && !IsPlayerLossConnection() && !IsForceCenterView() &&
-                                                    !IsAngleEditByEngine())
+                                                if (SkipNextAttack <= 0)
                                                 {
-                                                    TotalAimBotDetected++;
-                                                }
-                                            }
-                                        }
-                                    }
+                                                    //File.AppendAllText("bug.txt", "NeedWriteAim" + LastKnowTime + " " + IsAttackLastTime + "\n");
+                                                    if (DEBUG_ENABLED)
+                                                    {
+                                                        Console.WriteLine("Aim detected?... Teleport:" + IsAngleEditByEngine() +
+                                                                          ". Alive:" + IsUserAlive());
+                                                    }
 
-                                    NeedWriteAim = 0;
-                                    LastSilentAim = CurrentTime;
-                                }
+                                                    if (CurrentFrameDuplicated == 0)
+                                                    {
+                                                        NeedWriteAim = 2;
+                                                        if (IsAngleEditByEngine())
+                                                        {
+                                                            NeedWriteAim = 1;
+                                                        }
 
-                                if (AttackCheck > -1)
-                                {
-                                    if (!CurrentFrameAttacked && !IsReload && SelectSlot <= 0 && IsInAttack() && RealAlive &&
-                                        IsRealWeapon() && CurrentWeapon != WeaponIdType.WEAPON_KNIFE &&
-                                        CurrentWeapon != WeaponIdType.WEAPON_C4 &&
-                                        CurrentWeapon != WeaponIdType.WEAPON_HEGRENADE &&
-                                        CurrentWeapon != WeaponIdType.WEAPON_SMOKEGRENADE &&
-                                        CurrentWeapon != WeaponIdType.WEAPON_FLASHBANG)
-                                    {
-                                        if (DEBUG_ENABLED)
-                                        {
-                                            Console.WriteLine("Check attack:" + AttackCheck + " " + SkipNextAttack + " " +
-                                                              CurrentFrameButtons + " " + LastKnowRealTime);
-                                        }
+                                                        AttackCheck = -1;
+                                                        NeedWriteAimTime = CurrentTime;
+                                                    }
 
-                                        if (AttackCheck > 0)
-                                        {
-                                            AttackCheck--;
-                                        }
-                                        else
-                                        {
-                                            if (SkipNextAttack <= 0)
-                                            {
-                                                //File.AppendAllText("bug.txt", "NeedWriteAim" + LastKnowTime + " " + IsAttackLastTime + "\n");
-                                                if (DEBUG_ENABLED)
-                                                {
-                                                    Console.WriteLine("Aim detected?... Teleport:" + IsAngleEditByEngine() +
-                                                                      ". Alive:" + IsUserAlive());
+                                                    AttackCheck--;
                                                 }
 
                                                 if (CurrentFrameDuplicated == 0)
                                                 {
-                                                    NeedWriteAim = 2;
-                                                    if (IsAngleEditByEngine())
-                                                    {
-                                                        NeedWriteAim = 1;
-                                                    }
-
-                                                    AttackCheck = -1;
-                                                    NeedWriteAimTime = CurrentTime;
+                                                    SkipNextAttack -= 1;
                                                 }
-
-                                                AttackCheck--;
-                                            }
-
-                                            if (CurrentFrameDuplicated == 0)
-                                            {
-                                                SkipNextAttack -= 1;
                                             }
                                         }
+                                        else
+                                        {
+                                            NeedWriteAim = 0;
+                                            AttackCheck = -1;
+                                        }
+                                    }
+
+                                    if (FirstClientMovevars)
+                                    {
+                                        FirstClientMovevars = false;
+                                        if (GlobalMovevarsDump.Length == 0)
+                                        {
+                                            GlobalMovevarsDump += "//THIS IS MOVEVARS CHANGE HISTORY\n";
+                                            GlobalMovevarsDump += "//ЭТО СПИСОК MOVEVARS И ИХ ИЗМЕНЕНИЙ СЕРВЕРОМ\n\n";
+                                        }
+                                        GlobalMovevarsDump += "[" + LastKnowTimeString + "]" + "[INITIAL CLIENT MOVEVARS]";
+                                        GlobalMovevarsDump += "\nClient Gravity cvar = " + nf.MVars.Gravity + "\n";
+                                        GlobalMovevarsDump += "Client Stopspeed cvar = " + nf.MVars.Stopspeed + "\n";
+                                        GlobalMovevarsDump += "Client Maxspeed cvar = " + nf.MVars.Maxspeed + "\n";
+                                        GlobalMovevarsDump += "Client Spectatormaxspeed cvar = " + nf.MVars.Spectatormaxspeed + "\n";
+                                        GlobalMovevarsDump += "Client Accelerate cvar = " + nf.MVars.Accelerate + "\n";
+                                        GlobalMovevarsDump += "Client Airaccelerate cvar = " + nf.MVars.Airaccelerate + "\n";
+                                        GlobalMovevarsDump += "Client Wateraccelerate cvar = " + nf.MVars.Wateraccelerate + "\n";
+                                        GlobalMovevarsDump += "Client Friction cvar = " + nf.MVars.Friction + "\n";
+                                        GlobalMovevarsDump += "Client Edgefriction cvar = " + nf.MVars.Edgefriction + "\n";
+                                        GlobalMovevarsDump += "Client Waterfriction cvar = " + nf.MVars.Waterfriction + "\n";
+                                        GlobalMovevarsDump += "Client Entgravity cvar = " + nf.MVars.Entgravity + "\n";
+                                        GlobalMovevarsDump += "Client Bounce cvar = " + nf.MVars.Bounce + "\n";
+                                        GlobalMovevarsDump += "Client Stepsize cvar = " + nf.MVars.Stepsize + "\n";
+                                        GlobalMovevarsDump += "Client Maxvelocity cvar = " + nf.MVars.Maxvelocity + "\n";
+                                        GlobalMovevarsDump += "Client Zmax cvar = " + nf.MVars.Zmax + "\n";
+                                        GlobalMovevarsDump += "Client WaveHeight cvar = " + nf.MVars.WaveHeight + "\n";
+                                        GlobalMovevarsDump += "Client Footsteps cvar = " + nf.MVars.Footsteps + "\n";
+                                        GlobalMovevarsDump += "Client Rollangle cvar = " + nf.MVars.Rollangle + "\n";
+                                        GlobalMovevarsDump += "Client Rollspeed cvar = " + nf.MVars.Rollspeed + "\n";
+                                        GlobalMovevarsDump += "Client SkycolorR cvar = " + nf.MVars.SkycolorR + "\n";
+                                        GlobalMovevarsDump += "Client SkycolorG cvar = " + nf.MVars.SkycolorG + "\n";
+                                        GlobalMovevarsDump += "Client SkycolorB cvar = " + nf.MVars.SkycolorB + "\n";
+                                        GlobalMovevarsDump += "Client SkyvecX cvar = " + nf.MVars.SkyvecX + "\n";
+                                        GlobalMovevarsDump += "Client SkyvecY cvar = " + nf.MVars.SkyvecY + "\n";
+                                        GlobalMovevarsDump += "Client SkyvecZ cvar = " + nf.MVars.SkyvecZ + "\n";
+                                        GlobalMovevarsDump += "Client SkyName cvar = " + nf.MVars.SkyName + "\n";
                                     }
                                     else
                                     {
-                                        NeedWriteAim = 0;
-                                        AttackCheck = -1;
-                                    }
-                                }
-
-                                if (FirstClientMovevars)
-                                {
-                                    FirstClientMovevars = false;
-                                    if (GlobalMovevarsDump.Length == 0)
-                                    {
-                                        GlobalMovevarsDump += "//THIS IS MOVEVARS CHANGE HISTORY\n";
-                                        GlobalMovevarsDump += "//ЭТО СПИСОК MOVEVARS И ИХ ИЗМЕНЕНИЙ СЕРВЕРОМ\n\n";
-                                    }
-                                    GlobalMovevarsDump += "[" + LastKnowTimeString + "]" + "[INITIAL CLIENT MOVEVARS]";
-                                    GlobalMovevarsDump += "\nClient Gravity cvar = " + nf.MVars.Gravity + "\n";
-                                    GlobalMovevarsDump += "Client Stopspeed cvar = " + nf.MVars.Stopspeed + "\n";
-                                    GlobalMovevarsDump += "Client Maxspeed cvar = " + nf.MVars.Maxspeed + "\n";
-                                    GlobalMovevarsDump += "Client Spectatormaxspeed cvar = " + nf.MVars.Spectatormaxspeed + "\n";
-                                    GlobalMovevarsDump += "Client Accelerate cvar = " + nf.MVars.Accelerate + "\n";
-                                    GlobalMovevarsDump += "Client Airaccelerate cvar = " + nf.MVars.Airaccelerate + "\n";
-                                    GlobalMovevarsDump += "Client Wateraccelerate cvar = " + nf.MVars.Wateraccelerate + "\n";
-                                    GlobalMovevarsDump += "Client Friction cvar = " + nf.MVars.Friction + "\n";
-                                    GlobalMovevarsDump += "Client Edgefriction cvar = " + nf.MVars.Edgefriction + "\n";
-                                    GlobalMovevarsDump += "Client Waterfriction cvar = " + nf.MVars.Waterfriction + "\n";
-                                    GlobalMovevarsDump += "Client Entgravity cvar = " + nf.MVars.Entgravity + "\n";
-                                    GlobalMovevarsDump += "Client Bounce cvar = " + nf.MVars.Bounce + "\n";
-                                    GlobalMovevarsDump += "Client Stepsize cvar = " + nf.MVars.Stepsize + "\n";
-                                    GlobalMovevarsDump += "Client Maxvelocity cvar = " + nf.MVars.Maxvelocity + "\n";
-                                    GlobalMovevarsDump += "Client Zmax cvar = " + nf.MVars.Zmax + "\n";
-                                    GlobalMovevarsDump += "Client WaveHeight cvar = " + nf.MVars.WaveHeight + "\n";
-                                    GlobalMovevarsDump += "Client Footsteps cvar = " + nf.MVars.Footsteps + "\n";
-                                    GlobalMovevarsDump += "Client Rollangle cvar = " + nf.MVars.Rollangle + "\n";
-                                    GlobalMovevarsDump += "Client Rollspeed cvar = " + nf.MVars.Rollspeed + "\n";
-                                    GlobalMovevarsDump += "Client SkycolorR cvar = " + nf.MVars.SkycolorR + "\n";
-                                    GlobalMovevarsDump += "Client SkycolorG cvar = " + nf.MVars.SkycolorG + "\n";
-                                    GlobalMovevarsDump += "Client SkycolorB cvar = " + nf.MVars.SkycolorB + "\n";
-                                    GlobalMovevarsDump += "Client SkyvecX cvar = " + nf.MVars.SkyvecX + "\n";
-                                    GlobalMovevarsDump += "Client SkyvecY cvar = " + nf.MVars.SkyvecY + "\n";
-                                    GlobalMovevarsDump += "Client SkyvecZ cvar = " + nf.MVars.SkyvecZ + "\n";
-                                    GlobalMovevarsDump += "Client SkyName cvar = " + nf.MVars.SkyName + "\n";
-                                }
-                                else
-                                {
-                                    var difflist = GlobalClientMovevars.GetDifferences(nf.MVars);
-                                    if (difflist.Count > 0)
-                                    {
-                                        GlobalMovevarsDump += "[" + LastKnowTimeString + "]" + "[FOUND CLIENT MOVEVARS CHANGES]\n";
-                                    }
-                                    foreach (var d in difflist)
-                                    {
-                                        GlobalMovevarsDump += "Client cvar " + d.ParameterName + " changed from " + d.OldValue.ToString() + " to " + d.NewValue.ToString() + "!\n";
-                                    }
-                                }
-
-                                GlobalClientMovevars = nf.MVars;
-
-
-                                if (DUMP_ALL_FRAMES)
-                                {
-                                    subnode.Text += "UCmd.Impulse  = " + nf.UCmd.Impulse + "\n";
-                                    subnode.Text += "UCmd.Weaponselect  = " + nf.UCmd.Weaponselect + "\n";
-                                    subnode.Text += "UCmd.Align3  = " + nf.UCmd.Align3 + "\n";
-                                    subnode.Text += "UCmd.Align4  = " + nf.UCmd.Align4 + "\n";
-                                    subnode.Text += "UCmd.ImpactIndex  = " + nf.UCmd.ImpactIndex + "\n";
-                                    subnode.Text += "UCmd.ImpactPosition.X  = " + nf.UCmd.ImpactPosition.X + "\n";
-                                    subnode.Text += "UCmd.ImpactPosition.Y  = " + nf.UCmd.ImpactPosition.Y + "\n";
-                                    subnode.Text += "UCmd.ImpactPosition.Z  = " + nf.UCmd.ImpactPosition.Z + "\n";
-                                    subnode.Text += "MVars.Gravity  = " + nf.MVars.Gravity + "\n";
-                                    subnode.Text += "MVars.Stopspeed  = " + nf.MVars.Stopspeed + "\n";
-                                    subnode.Text += "MVars.Maxspeed  = " + nf.MVars.Maxspeed + "\n";
-                                    subnode.Text += "MVars.Spectatormaxspeed  = " + nf.MVars.Spectatormaxspeed + "\n";
-                                    subnode.Text += "MVars.Accelerate  = " + nf.MVars.Accelerate + "\n";
-                                    subnode.Text += "MVars.Airaccelerate  = " + nf.MVars.Airaccelerate + "\n";
-                                    subnode.Text += "MVars.Wateraccelerate  = " + nf.MVars.Wateraccelerate + "\n";
-                                    subnode.Text += "MVars.Friction  = " + nf.MVars.Friction + "\n";
-                                    subnode.Text += "MVars.Edgefriction  = " + nf.MVars.Edgefriction + "\n";
-                                    subnode.Text += "MVars.Waterfriction  = " + nf.MVars.Waterfriction + "\n";
-                                    subnode.Text += "MVars.Entgravity  = " + nf.MVars.Entgravity + "\n";
-                                    subnode.Text += "MVars.Bounce  = " + nf.MVars.Bounce + "\n";
-                                    subnode.Text += "MVars.Stepsize  = " + nf.MVars.Stepsize + "\n";
-                                    subnode.Text += "MVars.Maxvelocity  = " + nf.MVars.Maxvelocity + "\n";
-                                    subnode.Text += "MVars.Zmax  = " + nf.MVars.Zmax + "\n";
-                                    subnode.Text += "MVars.WaveHeight  = " + nf.MVars.WaveHeight + "\n";
-                                    subnode.Text += "MVars.Footsteps  = " + nf.MVars.Footsteps + "\n";
-                                    subnode.Text += "MVars.SkyName  = " + nf.MVars.SkyName + "\n";
-                                    subnode.Text += "MVars.Rollangle  = " + nf.MVars.Rollangle + "\n";
-                                    subnode.Text += "MVars.Rollspeed  = " + nf.MVars.Rollspeed + "\n";
-                                    subnode.Text += "MVars.SkycolorR  = " + nf.MVars.SkycolorR + "\n";
-                                    subnode.Text += "MVars.SkycolorG  = " + nf.MVars.SkycolorG + "\n";
-                                    subnode.Text += "MVars.SkycolorB  = " + nf.MVars.SkycolorB + "\n";
-                                    subnode.Text += "MVars.SkyvecX  = " + nf.MVars.SkyvecX + "\n";
-                                    subnode.Text += "MVars.SkyvecY  = " + nf.MVars.SkyvecY + "\n";
-                                    subnode.Text += "MVars.SkyvecZ  = " + nf.MVars.SkyvecZ + "\n";
-                                    subnode.Text += "View.X  = " + nf.View.X + "\n";
-                                    subnode.Text += "View.Y  = " + nf.View.Y + "\n";
-                                    subnode.Text += "View.Z  = " + nf.View.Z + "\n";
-                                    subnode.Text += "Viewmodel  = " + nf.Viewmodel + "\n";
-                                    subnode.Text += "IncomingSequence  = " + nf.IncomingSequence + "(" +
-                                                    nf.IncomingSequence.ToString("X2") + ")\n";
-                                    subnode.Text += "IncomingAcknowledged  = " + nf.IncomingAcknowledged + "(" +
-                                                    nf.IncomingAcknowledged.ToString("X2") + ")\n";
-                                    subnode.Text += "IncomingReliableAcknowledged  = " + nf.IncomingReliableAcknowledged +
-                                                    "(" + nf.IncomingReliableAcknowledged.ToString("X2") + ")\n";
-                                    subnode.Text += "IncomingReliableSequence  = " + nf.IncomingReliableSequence + "(" +
-                                                    nf.IncomingReliableSequence.ToString("X2") + ")\n";
-                                    subnode.Text += "OutgoingSequence  = " + nf.OutgoingSequence + "(" +
-                                                    nf.OutgoingSequence.ToString("X2") + ")\n";
-                                    subnode.Text += "ReliableSequence  = " + nf.ReliableSequence + "(" +
-                                                    nf.ReliableSequence.ToString("X2") + ")\n";
-                                    subnode.Text += "LastReliableSequence = " + nf.LastReliableSequence + "(" +
-                                                    nf.LastReliableSequence.ToString("X2") + ")\n";
-                                }
-
-                                //subnode.Text += "msg = " + nf.Msg + "\n";
-                                if (abs(CurrentTime) > 0 && (FirstAttack || FirstJump) && !NewDirectory)
-                                {
-                                    if (LastIncomingSequence > 0 && LastOutgoingSequence > 0 &&
-                                        CurrentFrameDuplicated == 0 &&
-                                        Math.Abs(nf.IncomingSequence - LastIncomingSequence) > 11 &&
-                                        Math.Abs(nf.OutgoingSequence - LastOutgoingSequence) > 11)
-                                    {
-                                        if (FrameErrors > 0 && IsUserAlive())
+                                        var difflist = GlobalClientMovevars.GetDifferences(nf.MVars);
+                                        if (difflist.Count > 0)
                                         {
-                                            if (abs(CurrentTime - LastCmdHack) > 3.0)
+                                            GlobalMovevarsDump += "[" + LastKnowTimeString + "]" + "[FOUND CLIENT MOVEVARS CHANGES]\n";
+                                        }
+                                        foreach (var d in difflist)
+                                        {
+                                            GlobalMovevarsDump += "Client cvar " + d.ParameterName + " changed from " + d.OldValue.ToString() + " to " + d.NewValue.ToString() + "!\n";
+                                        }
+                                    }
+
+                                    GlobalClientMovevars = nf.MVars;
+
+
+                                    if (DUMP_ALL_FRAMES)
+                                    {
+                                        subnode.Text += "UCmd.Impulse  = " + nf.UCmd.Impulse + "\n";
+                                        subnode.Text += "UCmd.Weaponselect  = " + nf.UCmd.Weaponselect + "\n";
+                                        subnode.Text += "UCmd.Align3  = " + nf.UCmd.Align3 + "\n";
+                                        subnode.Text += "UCmd.Align4  = " + nf.UCmd.Align4 + "\n";
+                                        subnode.Text += "UCmd.ImpactIndex  = " + nf.UCmd.ImpactIndex + "\n";
+                                        subnode.Text += "UCmd.ImpactPosition.X  = " + nf.UCmd.ImpactPosition.X + "\n";
+                                        subnode.Text += "UCmd.ImpactPosition.Y  = " + nf.UCmd.ImpactPosition.Y + "\n";
+                                        subnode.Text += "UCmd.ImpactPosition.Z  = " + nf.UCmd.ImpactPosition.Z + "\n";
+                                        subnode.Text += "MVars.Gravity  = " + nf.MVars.Gravity + "\n";
+                                        subnode.Text += "MVars.Stopspeed  = " + nf.MVars.Stopspeed + "\n";
+                                        subnode.Text += "MVars.Maxspeed  = " + nf.MVars.Maxspeed + "\n";
+                                        subnode.Text += "MVars.Spectatormaxspeed  = " + nf.MVars.Spectatormaxspeed + "\n";
+                                        subnode.Text += "MVars.Accelerate  = " + nf.MVars.Accelerate + "\n";
+                                        subnode.Text += "MVars.Airaccelerate  = " + nf.MVars.Airaccelerate + "\n";
+                                        subnode.Text += "MVars.Wateraccelerate  = " + nf.MVars.Wateraccelerate + "\n";
+                                        subnode.Text += "MVars.Friction  = " + nf.MVars.Friction + "\n";
+                                        subnode.Text += "MVars.Edgefriction  = " + nf.MVars.Edgefriction + "\n";
+                                        subnode.Text += "MVars.Waterfriction  = " + nf.MVars.Waterfriction + "\n";
+                                        subnode.Text += "MVars.Entgravity  = " + nf.MVars.Entgravity + "\n";
+                                        subnode.Text += "MVars.Bounce  = " + nf.MVars.Bounce + "\n";
+                                        subnode.Text += "MVars.Stepsize  = " + nf.MVars.Stepsize + "\n";
+                                        subnode.Text += "MVars.Maxvelocity  = " + nf.MVars.Maxvelocity + "\n";
+                                        subnode.Text += "MVars.Zmax  = " + nf.MVars.Zmax + "\n";
+                                        subnode.Text += "MVars.WaveHeight  = " + nf.MVars.WaveHeight + "\n";
+                                        subnode.Text += "MVars.Footsteps  = " + nf.MVars.Footsteps + "\n";
+                                        subnode.Text += "MVars.SkyName  = " + nf.MVars.SkyName + "\n";
+                                        subnode.Text += "MVars.Rollangle  = " + nf.MVars.Rollangle + "\n";
+                                        subnode.Text += "MVars.Rollspeed  = " + nf.MVars.Rollspeed + "\n";
+                                        subnode.Text += "MVars.SkycolorR  = " + nf.MVars.SkycolorR + "\n";
+                                        subnode.Text += "MVars.SkycolorG  = " + nf.MVars.SkycolorG + "\n";
+                                        subnode.Text += "MVars.SkycolorB  = " + nf.MVars.SkycolorB + "\n";
+                                        subnode.Text += "MVars.SkyvecX  = " + nf.MVars.SkyvecX + "\n";
+                                        subnode.Text += "MVars.SkyvecY  = " + nf.MVars.SkyvecY + "\n";
+                                        subnode.Text += "MVars.SkyvecZ  = " + nf.MVars.SkyvecZ + "\n";
+                                        subnode.Text += "View.X  = " + nf.View.X + "\n";
+                                        subnode.Text += "View.Y  = " + nf.View.Y + "\n";
+                                        subnode.Text += "View.Z  = " + nf.View.Z + "\n";
+                                        subnode.Text += "Viewmodel  = " + nf.Viewmodel + "\n";
+                                        subnode.Text += "IncomingSequence  = " + nf.IncomingSequence + "(" +
+                                                        nf.IncomingSequence.ToString("X2") + ")\n";
+                                        subnode.Text += "IncomingAcknowledged  = " + nf.IncomingAcknowledged + "(" +
+                                                        nf.IncomingAcknowledged.ToString("X2") + ")\n";
+                                        subnode.Text += "IncomingReliableAcknowledged  = " + nf.IncomingReliableAcknowledged +
+                                                        "(" + nf.IncomingReliableAcknowledged.ToString("X2") + ")\n";
+                                        subnode.Text += "IncomingReliableSequence  = " + nf.IncomingReliableSequence + "(" +
+                                                        nf.IncomingReliableSequence.ToString("X2") + ")\n";
+                                        subnode.Text += "OutgoingSequence  = " + nf.OutgoingSequence + "(" +
+                                                        nf.OutgoingSequence.ToString("X2") + ")\n";
+                                        subnode.Text += "ReliableSequence  = " + nf.ReliableSequence + "(" +
+                                                        nf.ReliableSequence.ToString("X2") + ")\n";
+                                        subnode.Text += "LastReliableSequence = " + nf.LastReliableSequence + "(" +
+                                                        nf.LastReliableSequence.ToString("X2") + ")\n";
+                                    }
+
+                                    //subnode.Text += "msg = " + nf.Msg + "\n";
+                                    if (abs(CurrentTime) > 0 && (FirstAttack || FirstJump) && !NewDirectory)
+                                    {
+                                        if (LastIncomingSequence > 0 && LastOutgoingSequence > 0 &&
+                                            CurrentFrameDuplicated == 0 &&
+                                            Math.Abs(nf.IncomingSequence - LastIncomingSequence) > 11 &&
+                                            Math.Abs(nf.OutgoingSequence - LastOutgoingSequence) > 11)
+                                        {
+                                            if (FrameErrors > 0 && IsUserAlive())
                                             {
-                                                SkipFirstCMD4--;
-                                                if (SkipFirstCMD4 <= 0)
+                                                if (abs(CurrentTime - LastCmdHack) > 3.0)
+                                                {
+                                                    SkipFirstCMD4--;
+                                                    if (SkipFirstCMD4 <= 0)
+                                                    {
+                                                        DemoScanner_AddWarn(
+                                                            "[CMD HACK TYPE 4] at (" + LastKnowRealTime + ") " + LastKnowTimeString,
+                                                            false);
+                                                        LastCmdHack = CurrentTime;
+                                                    }
+                                                    FrameErrors = 0;
+                                                }
+                                            }
+
+                                            FrameErrors++;
+                                        }
+                                    }
+
+                                    if (RealAlive)
+                                    {
+                                        if (LastIncomingSequence != 0 && nf.IncomingSequence <= LastIncomingSequence)
+                                        {
+                                            if (nf.IncomingSequence < LastIncomingSequence)
+                                            {
+                                                if (abs(CurrentTime - LastCmdHack) > 3.0)
                                                 {
                                                     DemoScanner_AddWarn(
-                                                        "[CMD HACK TYPE 4] at (" + LastKnowRealTime + ") " + LastKnowTimeString,
-                                                        false);
+                                                        "[CMD HACK TYPE 9.1] at (" + LastKnowRealTime + ") " + LastKnowTimeString, false);
                                                     LastCmdHack = CurrentTime;
                                                 }
-                                                FrameErrors = 0;
                                             }
-                                        }
-
-                                        FrameErrors++;
-                                    }
-                                }
-
-                                if (RealAlive)
-                                {
-                                    if (LastIncomingSequence != 0 && nf.IncomingSequence <= LastIncomingSequence)
-                                    {
-                                        if (nf.IncomingSequence < LastIncomingSequence)
-                                        {
-                                            if (abs(CurrentTime - LastCmdHack) > 3.0)
+                                            else if (CurrentFrameDuplicated == 0 && nf.IncomingSequence < LastIncomingSequence)
                                             {
-                                                DemoScanner_AddWarn(
-                                                    "[CMD HACK TYPE 9.1] at (" + LastKnowRealTime + ") " + LastKnowTimeString, false);
-                                                LastCmdHack = CurrentTime;
-                                            }
-                                        }
-                                        else if (CurrentFrameDuplicated == 0 && nf.IncomingSequence < LastIncomingSequence)
-                                        {
-                                            if (abs(CurrentTime - LastCmdHack) > 3.0)
-                                            {
-                                                DemoScanner_AddWarn(
-                                                    "[CMD HACK TYPE 9.2] at (" + LastKnowRealTime + ") " + LastKnowTimeString, false);
-                                                LastCmdHack = CurrentTime;
+                                                if (abs(CurrentTime - LastCmdHack) > 3.0)
+                                                {
+                                                    DemoScanner_AddWarn(
+                                                        "[CMD HACK TYPE 9.2] at (" + LastKnowRealTime + ") " + LastKnowTimeString, false);
+                                                    LastCmdHack = CurrentTime;
+                                                }
                                             }
                                         }
                                     }
-                                }
 
-                                if (RealAlive)
-                                {
-                                    if (nf.RParms.Simvel.X > GlobalServerMovevars.Maxvelocity ||
-                                        nf.RParms.Simvel.X < -GlobalServerMovevars.Maxvelocity ||
-                                        nf.RParms.Simvel.Y > GlobalServerMovevars.Maxvelocity ||
-                                        nf.RParms.Simvel.Y < -GlobalServerMovevars.Maxvelocity ||
-                                        nf.RParms.Simvel.Z > GlobalServerMovevars.Maxvelocity ||
-                                        nf.RParms.Simvel.Z < -GlobalServerMovevars.Maxvelocity)
+                                    if (RealAlive)
                                     {
-                                        // TODO: remove debug 
-                                        DemoScanner_AddWarn("[Traffic police: Speeding] at (" + LastKnowRealTime + ") " + LastKnowTimeString, false);
+                                        if (nf.RParms.Simvel.X > GlobalServerMovevars.Maxvelocity ||
+                                            nf.RParms.Simvel.X < -GlobalServerMovevars.Maxvelocity ||
+                                            nf.RParms.Simvel.Y > GlobalServerMovevars.Maxvelocity ||
+                                            nf.RParms.Simvel.Y < -GlobalServerMovevars.Maxvelocity ||
+                                            nf.RParms.Simvel.Z > GlobalServerMovevars.Maxvelocity ||
+                                            nf.RParms.Simvel.Z < -GlobalServerMovevars.Maxvelocity)
+                                        {
+                                            // TODO: remove debug 
+                                            DemoScanner_AddWarn("[Traffic police: Speeding] at (" + LastKnowRealTime + ") " + LastKnowTimeString, false);
+                                        }
                                     }
+
+                                    if (LastIncomingSequence > 0 && Math.Abs(nf.IncomingSequence - LastIncomingSequence) >
+                                maxLastIncomingSequence)
+                                    {
+                                        maxLastIncomingSequence = Math.Abs(nf.IncomingSequence - LastIncomingSequence);
+                                    }
+
+                                    LastIncomingSequence = nf.IncomingSequence;
+                                    if (LastIncomingAcknowledged > 0 &&
+                                        Math.Abs(nf.IncomingAcknowledged - LastIncomingAcknowledged) > maxLastIncomingAcknowledged)
+                                    {
+                                        maxLastIncomingAcknowledged =
+                                            Math.Abs(nf.IncomingAcknowledged - LastIncomingAcknowledged);
+                                    }
+
+                                    LastIncomingAcknowledged = nf.IncomingAcknowledged;
+                                    if (abs(LastChokePacket - CurrentTime) > 0.5 && abs(CurrentTime) > EPSILON &&
+                                        nf.OutgoingSequence > 0 && LastOutgoingSequence > 0 &&
+                                        nf.OutgoingSequence - LastOutgoingSequence > 3)
+                                    {
+                                        ServerLagCount++;
+                                        TotalTimeDelayWarns = (int)(TotalTimeDelayWarns * 0.5f);
+                                    }
+
+                                    if (LastOutgoingSequence > 0 && Math.Abs(nf.OutgoingSequence - LastOutgoingSequence) >
+                                        maxLastOutgoingSequence)
+                                    {
+                                        maxLastOutgoingSequence = Math.Abs(nf.OutgoingSequence - LastOutgoingSequence);
+                                    }
+
+                                    LastOutgoingSequence = nf.OutgoingSequence;
+                                    if (DUMP_ALL_FRAMES)
+                                    {
+                                        subnode.Text += OutDumpString;
+                                        OutDumpString = "";
+                                        subnode.Text += 1 / nf.RParms.Frametime + " FPS";
+                                        subnode.Text += "}\n";
+                                    }
+
+                                    PreviousFrameButtons = CurrentFrameButtons;
+                                    PreviousFrameAlive = CurrentFrameAlive;
+                                    PreviousFrameAttacked = CurrentFrameAttacked;
+                                    PreviousFrameAttacked2 = CurrentFrameAttacked2;
+                                    PreviousFrameJumped = CurrentFrameJumped;
+                                    PreviousFrameDuck = CurrentFrameDuck;
+                                    PreviousFrameOnGround = CurrentFrameOnGround;
+                                    PreviousFramePunchangleZ = CurrentFramePunchangleZ;
+                                    PreviousFrameForward = CurrentFrameForward;
+
+
+                                    NewDirectory = false;
+                                    SecondFound = false;
+                                    SecondFound2 = false;
+                                    PreviousNetMsgFrame = nf;
+                                    // FrameCrash = 0;
+                                    break;
                                 }
-
-                                if (LastIncomingSequence > 0 && Math.Abs(nf.IncomingSequence - LastIncomingSequence) >
-                            maxLastIncomingSequence)
-                                {
-                                    maxLastIncomingSequence = Math.Abs(nf.IncomingSequence - LastIncomingSequence);
-                                }
-
-                                LastIncomingSequence = nf.IncomingSequence;
-                                if (LastIncomingAcknowledged > 0 &&
-                                    Math.Abs(nf.IncomingAcknowledged - LastIncomingAcknowledged) > maxLastIncomingAcknowledged)
-                                {
-                                    maxLastIncomingAcknowledged =
-                                        Math.Abs(nf.IncomingAcknowledged - LastIncomingAcknowledged);
-                                }
-
-                                LastIncomingAcknowledged = nf.IncomingAcknowledged;
-                                if (abs(LastChokePacket - CurrentTime) > 0.5 && abs(CurrentTime) > EPSILON &&
-                                    nf.OutgoingSequence > 0 && LastOutgoingSequence > 0 &&
-                                    nf.OutgoingSequence - LastOutgoingSequence > 3)
-                                {
-                                    ServerLagCount++;
-                                    TotalTimeDelayWarns = (int)(TotalTimeDelayWarns * 0.5f);
-                                }
-
-                                if (LastOutgoingSequence > 0 && Math.Abs(nf.OutgoingSequence - LastOutgoingSequence) >
-                                    maxLastOutgoingSequence)
-                                {
-                                    maxLastOutgoingSequence = Math.Abs(nf.OutgoingSequence - LastOutgoingSequence);
-                                }
-
-                                LastOutgoingSequence = nf.OutgoingSequence;
-                                if (DUMP_ALL_FRAMES)
-                                {
-                                    subnode.Text += OutDumpString;
-                                    OutDumpString = "";
-                                    subnode.Text += 1 / nf.RParms.Frametime + " FPS";
-                                    subnode.Text += "}\n";
-                                }
-
-                                PreviousFrameButtons = CurrentFrameButtons;
-                                PreviousFrameAlive = CurrentFrameAlive;
-                                PreviousFrameAttacked = CurrentFrameAttacked;
-                                PreviousFrameAttacked2 = CurrentFrameAttacked2;
-                                PreviousFrameJumped = CurrentFrameJumped;
-                                PreviousFrameDuck = CurrentFrameDuck;
-                                PreviousFrameOnGround = CurrentFrameOnGround;
-                                PreviousFramePunchangleZ = CurrentFramePunchangleZ;
-                                PreviousFrameForward = CurrentFrameForward;
-
-
-                                NewDirectory = false;
-                                SecondFound = false;
-                                SecondFound2 = false;
-                                PreviousNetMsgFrame = nf;
-                                // FrameCrash = 0;
-                                break;
-                            }
+                        }
                     }
-
+                    else
+                    {
+                        switch ((byte)frame.Key.Type)
+                        {
+                            case 1:
+                            case 2:
+                                ParseGameData(halfLifeDemoParser, frame.rawData);
+                                subnode.Text += OutDumpString;
+                                OutDumpString = "";
+                                break;
+                            case 5:
+                                ParseGameData(halfLifeDemoParser, frame.rawData);
+                                subnode.Text += OutDumpString;
+                                OutDumpString = "";
+                                break;
+                            default:
+                                break;
+                        }
+                    }
                     node.Text = row;
                     if (subnode.Text.Length > 0)
                     {
@@ -8379,6 +8497,20 @@ namespace DemoScanner.DG
                 }
             }
 
+            Console.ForegroundColor = ConsoleColor.DarkRed;
+            if (CurrentDemoFile.Header.DemoProtocol == 3)
+            {
+                if (IsRussia)
+                {
+                    Console.WriteLine("Извините, демо XASH не поддерживается!");
+                }
+                else
+                {
+                    Console.WriteLine("XASH DEMO NOT SUPPORTED !");
+                }
+            }
+
+
             Console.ForegroundColor = ConsoleColor.DarkGreen;
             ViewDemoHelperComments.Seek(4, SeekOrigin.Begin);
             ViewDemoHelperComments.Write(ViewDemoCommentCount);
@@ -8593,7 +8725,9 @@ namespace DemoScanner.DG
 
                 if (command == "14")
                 {
-                    /* START: SOME BLACK MAGIC OUTSIDE HOGWARTS */
+
+#if !NET6_0_OR_GREATER
+                     /* START: SOME BLACK MAGIC OUTSIDE HOGWARTS */
                     FieldInfo[] fields = typeof(DemoScanner).GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
 
                     foreach (var field in fields)
@@ -8612,6 +8746,41 @@ namespace DemoScanner.DG
                         .GetConstructor(BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public, null,
                             new Type[0], null).Invoke(null, null);
                     /* END: VERY DARK BLACK MAGIC!!!!!! */
+#else
+                    // NET 6 NOT SUPPORT HOGWARTS MAGIC, NEED USE ANOTHER
+                    /* START: ULTRA BLACK MAGIC */
+                    var asmPath = Assembly.GetAssembly(typeof(DemoScanner))!.Location;
+                    var alc = new AssemblyLoadContext("reset", isCollectible: true);
+                    var freshAsm = alc.LoadFromAssemblyPath(asmPath);
+                    var freshType = freshAsm.GetType(typeof(DemoScanner).FullName!)!;
+
+                    foreach (var freshField in freshType.GetFields(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic))
+                    {
+                        var liveField = typeof(DemoScanner).GetField(freshField.Name,
+                            BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+
+                        if (liveField == null) continue;
+
+                        try
+                        {
+                            if (liveField != null)
+                            {
+                                liveField.SetValue(null, freshField.GetValue(null));
+                            }
+                            else
+                            {
+                                liveField.SetValue(null, Activator.CreateInstance(liveField.FieldType));
+                            }
+                        }
+                        catch
+                        {
+
+                        }
+                    }
+
+                    alc.Unload();
+                    /* END: ULTRA BLACK MAGIC */
+#endif
                     DemoRescanned = true;
                     FirstBypassKill = false;
                     DUMP_ALL_FRAMES = true;
@@ -8620,7 +8789,8 @@ namespace DemoScanner.DG
 
                 if (command == "13")
                 {
-                    /* START: SOME BLACK MAGIC OUTSIDE HOGWARTS */
+#if !NET6_0_OR_GREATER
+                     /* START: SOME BLACK MAGIC OUTSIDE HOGWARTS */
                     FieldInfo[] fields = typeof(DemoScanner).GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
 
                     foreach (var field in fields)
@@ -8639,6 +8809,41 @@ namespace DemoScanner.DG
                         .GetConstructor(BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public, null,
                             new Type[0], null).Invoke(null, null);
                     /* END: VERY DARK BLACK MAGIC!!!!!! */
+#else
+                    // NET 6 NOT SUPPORT HOGWARTS MAGIC, NEED USE ANOTHER
+                    /* START: ULTRA BLACK MAGIC */
+                    var asmPath = Assembly.GetAssembly(typeof(DemoScanner))!.Location;
+                    var alc = new AssemblyLoadContext("reset", isCollectible: true);
+                    var freshAsm = alc.LoadFromAssemblyPath(asmPath);
+                    var freshType = freshAsm.GetType(typeof(DemoScanner).FullName!)!;
+
+                    foreach (var freshField in freshType.GetFields(BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic))
+                    {
+                        var liveField = typeof(DemoScanner).GetField(freshField.Name,
+                            BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+
+                        if (liveField == null) continue;
+
+                        try
+                        {
+                            if (liveField != null)
+                            {
+                                liveField.SetValue(null, freshField.GetValue(null));
+                            }
+                            else
+                            {
+                                liveField.SetValue(null, Activator.CreateInstance(liveField.FieldType));
+                            }
+                        }
+                        catch
+                        {
+
+                        }
+                    }
+
+                    alc.Unload();
+                    /* END: ULTRA BLACK MAGIC */
+#endif
                     DemoRescanned = true;
                     FirstBypassKill = false;
                     goto DEMO_FULLRESET;
@@ -9762,8 +9967,6 @@ namespace DemoScanner.DG
                     table.Write(Format.Alternative);
                     try
                     {
-                        //if (new FileInfo(System.Reflection.Assembly.GetExecutingAssembly().Location).Length < 1000000)
-                        //{
                         Console.WriteLine("Real FPS / Реальный FPS");
                         table = new ConsoleTable("Минимальный FPS / FPS MIN", "Максимальный FPS / FPS MAX");
                         table.AddRow(RealFpsMin == int.MaxValue ? "UNKNOWN" : RealFpsMin.ToString(),
@@ -9771,7 +9974,6 @@ namespace DemoScanner.DG
                         table.AddRow(RealFpsMin2 == int.MaxValue ? "UNKNOWN" : RealFpsMin2.ToString(),
                             RealFpsMax2 == int.MinValue ? "UNKNOWN" : RealFpsMax2.ToString());
                         table.Write(Format.Alternative);
-                        //}
                     }
                     catch
                     {
@@ -12630,35 +12832,53 @@ namespace DemoScanner.DG
                 BitBuffer.Endian = BitBuffer.EndianType.Big;
             }
 
-            var deltaSequence = BitBuffer.ReadBoolean();
-            int seqnum = 0;
-
-            if (deltaSequence)
+            if (CurrentDemoFile.Header.DemoProtocol != 3)
             {
-                seqnum = BitBuffer.ReadBits(8); // delta sequence number
-            }
 
-            if (DUMP_ALL_FRAMES)
-            {
-                OutDumpString += "\n[seqnum = " + seqnum + "]\n";
-            }
+                var deltaSequence = BitBuffer.ReadBoolean();
+                int seqnum = 0;
 
-            GetDeltaStructure("clientdata_t").ReadDelta(BitBuffer, null);
-
-            while (BitBuffer.ReadBoolean())
-            {
-                int idx = 0;
-
-                if (demo.Header.NetProtocol < 47)
+                if (deltaSequence)
                 {
-                    idx = BitBuffer.ReadBits(5); // weapon index
-                }
-                else
-                {
-                    idx = BitBuffer.ReadBits(6); // weapon index
+                    seqnum = BitBuffer.ReadBits(8); // delta sequence number
                 }
 
-                GetDeltaStructure("weapon_data_t").ReadDelta(BitBuffer, null);
+                if (DUMP_ALL_FRAMES)
+                {
+                    OutDumpString += "\n[seqnum = " + seqnum + "]\n";
+                }
+
+                GetDeltaStructure("clientdata_t").ReadDelta(BitBuffer, null);
+
+                while (BitBuffer.ReadBoolean())
+                {
+                    int idx = 0;
+
+                    if (demo.Header.NetProtocol < 47)
+                    {
+                        idx = BitBuffer.ReadBits(5); // weapon index
+                    }
+                    else
+                    {
+                        idx = BitBuffer.ReadBits(6); // weapon index
+                    }
+
+                    GetDeltaStructure("weapon_data_t").ReadDelta(BitBuffer, null);
+                }
+            }
+            else
+            {
+                try
+                {
+                    while (true)
+                    {
+                        GetDeltaStructure("usercmd_t").ReadDelta(BitBuffer, null);
+                    }
+                }
+                catch
+                {
+
+                }
             }
 
             BitBuffer.SkipRemainingBits();

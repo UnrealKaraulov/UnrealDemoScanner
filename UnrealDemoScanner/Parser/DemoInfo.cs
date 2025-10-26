@@ -42,5 +42,8 @@ namespace DemoScanner.DemoStuff
         ///     Netprotocol of the demo
         /// </summary>
         public int NetProtocol;
+
+        public double HostFps = 0.0;
+        public string Comment = "";
     }
 }
