@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-waveFormatHeader_t* mono16bit8khzWaveHeaderForLength(uint32_t numberOfFrames) {
-	waveFormatHeader_t* wh = mono16bit8khzWaveHeader();
+waveFormatHeader_t* mono16bit48khzWaveHeaderForLength(uint32_t numberOfFrames) {
+	waveFormatHeader_t* wh = mono16bit48khzWaveHeader();
 	setLengthForWaveFormatHeader(wh, numberOfFrames);
 	return wh;
 }
@@ -19,15 +19,15 @@ waveFormatHeader_t* basicHeader() {
 	waveFormatHeader_t* wh = (waveFormatHeader_t*)malloc(sizeof(waveFormatHeader_t));
 	if (wh)
 	{
-		memcpy(wh->ChunkId, &"RIFF", 4);
-		memcpy(wh->Format, &"WAVE", 4);
-		memcpy(wh->Subchunk1ID, &"fmt ", 4); //notice the space at the end!
+		memcpy(wh->ChunkId, "RIFF", 4);
+		memcpy(wh->Format, "WAVE", 4);
+		memcpy(wh->Subchunk1ID, "fmt ", 4); //notice the space at the end!
 		wh->Subchunk1Size = 16;
 	}
 	return wh;
 }
 
-waveFormatHeader_t* mono16bit8khzWaveHeader() {
+waveFormatHeader_t* mono16bit48khzWaveHeader() {
 	waveFormatHeader_t* wh = basicHeader();
 
 	wh->AudioFormat = 1;

@@ -30,7 +30,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.75.13";
+        public const string PROGRAMVERSION = "1.75.14";
 
         public static string FoundNewVersion = "";
 
@@ -545,7 +545,7 @@ namespace DemoScanner.DG
         public static int AimType7Event;
         public static bool SearchJumpBug = false;
         public static bool SearchDuck = false;
-        public static int MaxIdealJumps = 10;
+        public static int MaxIdealJumps = 11;
         public static int CurrentIdealJumpsStrike;
         public static bool SearchNextJumpStrike;
 
@@ -2070,7 +2070,7 @@ namespace DemoScanner.DG
                 SearchDuck = true;
                 if (!IsDuckPressed)
                 {
-                    if (CurrentIdealJumpsStrike > 6)
+                    if (CurrentIdealJumpsStrike >= MaxIdealJumps - 1)
                     {
                         CurrentIdealJumpsStrike--;
                     }
@@ -6702,33 +6702,45 @@ namespace DemoScanner.DG
 
                                             SecondFound2 = true;
                                             CurrentGameSecond2++;
-                                            MaxIdealJumps = 10;
+                                            MaxIdealJumps = 11;
                                             if (averagefps2.Count > 1)
                                             {
                                                 var tmpafps = averagefps2.Average();
-                                                if (tmpafps < 50.0f)
+                                                if (tmpafps < 49.0f)
+                                                {
+                                                    MaxIdealJumps = 11;
+                                                }
+                                                else if (tmpafps < 59.0f)
                                                 {
                                                     MaxIdealJumps = 10;
                                                 }
-                                                else if (tmpafps < 60.0f)
+                                                else if (tmpafps < 69.0f)
                                                 {
                                                     MaxIdealJumps = 9;
                                                 }
-                                                else if (tmpafps < 75.0f)
+                                                else if (tmpafps < 79.0f)
                                                 {
                                                     MaxIdealJumps = 8;
                                                 }
-                                                else if (tmpafps < 90.0f)
+                                                else if (tmpafps < 89.0f)
+                                                {
+                                                    MaxIdealJumps = 7;
+                                                }
+                                                else if (tmpafps <= 109.0f)
                                                 {
                                                     MaxIdealJumps = 6;
                                                 }
-                                                else if (tmpafps < 100.0f)
+                                                else if (tmpafps <= 500)
                                                 {
                                                     MaxIdealJumps = 5;
                                                 }
-                                                else if (tmpafps < 130.0f)
+                                                else if (tmpafps <= 700)
                                                 {
                                                     MaxIdealJumps = 4;
+                                                }
+                                                else
+                                                {
+                                                    MaxIdealJumps = 3;
                                                 }
                                             }
 
@@ -8886,7 +8898,8 @@ namespace DemoScanner.DG
                         DemoScanner_AddInfo("[FPS HACK TYPE 1] ");
                         DemoScanner_AddInfo("[FPS HACK TYPE 2] - ФПС бустер, может быть читом");
                         DemoScanner_AddInfo("[FPS HACK TYPE 3] - Очень высокий фпс, может быть читом");
-                        DemoScanner_AddInfo("[IDEALJUMP] - Идеальный прыжок, может быть читом(или сервер плагин)");
+                        DemoScanner_AddInfo("[IDEALJUMP] - Идеальный прыжок (комбо один кадр на земле срабатывает по FPS)");
+                        DemoScanner_AddInfo("может быть читом(или сервер плагин, или игрок с нечеловеческой реакцией)");
                         DemoScanner_AddInfo("[JUMPHACK XTREME] - Чит XTREME");
                         DemoScanner_AddInfo("[JUMPHACK HPP] - Чит HPP (Или из-за экстремальных настроек сервера)");
                         DemoScanner_AddInfo("[JUMPHACK TYPE X] - Остальные читы на прыжки");
@@ -8943,7 +8956,8 @@ namespace DemoScanner.DG
                         DemoScanner_AddInfo("[FPS HACK TYPE 1]");
                         DemoScanner_AddInfo("[FPS HACK TYPE 2] - FPS-booster, can be part of hack");
                         DemoScanner_AddInfo("[FPS HACK TYPE 3] - Really big FPS, can be part of hack");
-                        DemoScanner_AddInfo("[IDEALJUMP] - One-Frame ideal jump, can be part of hack (or server plugin)");
+                        DemoScanner_AddInfo("[IDEALJUMP] - One-Frame ground ideal jump combo ");
+                        DemoScanner_AddInfo("can be hack (or server plugin) or 'very skilled player'");
                         DemoScanner_AddInfo("[JUMPHACK XTREME] - XTREME Jump");
                         DemoScanner_AddInfo(
                             "[JUMPHACK HPP] - HPP JumpHack (Or extreme server settings like accelerate)");
@@ -9547,7 +9561,7 @@ namespace DemoScanner.DG
 
                             if (player.voicedata.Count > 0)
                             {
-                                var filename = player.UserName + "_[" + player.UserSteamId + "][id_" + player.iSlot + "][user_" + player.ServerUserIdLong + "].wav";
+                                var filename = player.UserName + "_[" + player.UserSteamId + "][id_" + player.iSlot + "][user_" + player.ServerUserIdLong + "]";
 
                                 filename = Regex.Replace(filename, @"[^\u0000-\u007F]+", "_");
 
@@ -9556,8 +9570,8 @@ namespace DemoScanner.DG
                                     filename = filename.Replace(c, '_');
                                 }
 
-                                var inputfile = CurrentDir + "/input/" + filename;
-                                var outputfile = CurrentDir + "/output/" + filename;
+                                var inputfile = CurrentDir + "/input/" + filename + ".bin";
+                                var outputfile = CurrentDir + "/output/" + filename + ".wav";
                                 if (one_file)
                                 {
                                     outputfile = CurrentDir + "/output/voice.wav";
