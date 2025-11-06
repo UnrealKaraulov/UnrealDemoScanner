@@ -30,7 +30,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.75.14";
+        public const string PROGRAMVERSION = "1.75.15";
 
         public static string FoundNewVersion = "";
 
@@ -9603,10 +9603,36 @@ namespace DemoScanner.DG
                         }
 
                         var process = new Process();
-                        process.StartInfo.FileName = CurrentDir + "/revoicedecoder.exe";
+                        process.StartInfo.FileName = Path.Combine(CurrentDir, "revoicedecoder.exe");
                         process.StartInfo.WorkingDirectory = CurrentDir;
+
+                        process.StartInfo.UseShellExecute = false; 
+                        process.StartInfo.RedirectStandardOutput = true; 
+                        process.StartInfo.RedirectStandardError = true;
+                        process.StartInfo.CreateNoWindow = true; 
+
+                        process.OutputDataReceived += (s, e) =>
+                        {
+                            if (!string.IsNullOrEmpty(e.Data))
+                                Console.WriteLine(e.Data);
+                        };
+
+                        process.ErrorDataReceived += (s, e) =>
+                        {
+                            if (!string.IsNullOrEmpty(e.Data))
+                            {
+                                Console.ForegroundColor = ConsoleColor.Red;
+                                Console.WriteLine(e.Data);
+                                Console.ResetColor();
+                            }
+                        };
+
                         process.Start();
+                        process.BeginOutputReadLine();
+                        process.BeginErrorReadLine();
                         process.WaitForExit();
+
+                        Console.WriteLine("Decoder exited with code: " + process.ExitCode);
 
                         bool found_one = false;
 
