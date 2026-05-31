@@ -30,7 +30,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.75.15";
+        public const string PROGRAMVERSION = "1.75.16";
 
         public static string FoundNewVersion = "";
 
@@ -333,8 +333,8 @@ namespace DemoScanner.DG
         public static List<float> PlayerSensitivityHistory = new List<float>();
         public static int CheckedSensCount;
         public static int DuplicateUserMessages = 0;
-
-
+        public static string CurrentDemoFilePath = "";
+        public static MyTreeNode root_dmp_node = null;
         public static string GlobalMovevarsDump = "";
         public static bool FirstServerMovevars = true;
         public static bool FirstClientMovevars = true;
@@ -450,6 +450,7 @@ namespace DemoScanner.DG
         public static BinaryWriter ViewDemoHelperComments;
         public static List<string> OutTextDetects = new List<string>();
         public static List<string> OutTextMessages = new List<string>();
+        public static List<string> OutExploitDetects = new List<string>();
         public static int ViewDemoCommentCount;
 
         public static byte[] xcommentdata =
@@ -2709,6 +2710,19 @@ namespace DemoScanner.DG
                     Console.WriteLine("Critical error. Analyzing can not be continued.");
                 }
                 Console.WriteLine(ex.Message);
+                var textdatapath = CurrentDemoFilePath.Remove(CurrentDemoFilePath.Length - 4) +
+                                             "_Frames.txt";
+                if (outFrames.Count > 25)
+                {
+                    Console.WriteLine("Found dump data. Save...");
+                    if (File.Exists(textdatapath))
+                    {
+                        File.Delete(textdatapath);
+                    }
+                    File.AppendAllLines(textdatapath,
+                        outFrames.ToArray());
+                }
+
                 Console.ReadKey();
             }
 
@@ -2752,7 +2766,6 @@ namespace DemoScanner.DG
 
             var originalOut = Console.Out;
 
-            var CurrentDemoFilePath = "";
             var filefound = false;
         DEMO_FULLRESET:
             foreach (var arg in args)
@@ -3426,25 +3439,27 @@ namespace DemoScanner.DG
 
                         Console.WriteLine();
 #if !NET6_0_OR_GREATER
-                     /* START: SOME BLACK MAGIC OUTSIDE HOGWARTS */
-                    FieldInfo[] fields = typeof(DemoScanner).GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+                        var dem_path = CurrentDemoFilePath;
+                        /* START: SOME BLACK MAGIC OUTSIDE HOGWARTS */
+                        FieldInfo[] fields = typeof(DemoScanner).GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
 
-                    foreach (var field in fields)
-                    {
-                        try
+                        foreach (var field in fields)
                         {
-                            Type fieldType = field.FieldType;
-                            object defaultValue = fieldType.IsValueType ? Activator.CreateInstance(fieldType) : null;
-                            field.SetValue(null, defaultValue);
+                            try
+                            {
+                                Type fieldType = field.FieldType;
+                                object defaultValue = fieldType.IsValueType ? Activator.CreateInstance(fieldType) : null;
+                                field.SetValue(null, defaultValue);
+                            }
+                            catch
+                            {
+                            }
                         }
-                        catch
-                        {
-                        }
-                    }
-                    typeof(DemoScanner)
-                        .GetConstructor(BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public, null,
-                            new Type[0], null).Invoke(null, null);
-                    /* END: VERY DARK BLACK MAGIC!!!!!! */
+                        typeof(DemoScanner)
+                            .GetConstructor(BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public, null,
+                                new Type[0], null).Invoke(null, null);
+                        /* END: VERY DARK BLACK MAGIC!!!!!! */
+                        CurrentDemoFilePath = dem_path;
 #else
                         // NET 6 NOT SUPPORT HOGWARTS MAGIC, NEED USE ANOTHER
                         /* START: ULTRA BLACK MAGIC */
@@ -3556,7 +3571,7 @@ namespace DemoScanner.DG
             {
                 NewDirectory = true;
                 FrameErrors = LastOutgoingSequence = LastIncomingAcknowledged = LastIncomingSequence = 0;
-                var entrynode = new MyTreeNode("Directory entry [" + (index + 1) + "] - " +
+                root_dmp_node = new MyTreeNode("Directory entry [" + (index + 1) + "] - " +
                                              CurrentDemoFile.DirectoryEntries[index].Frames.Count);
                 TimeShift4Times = new float[3] { 0.0f, 0.0f, 0.0f };
                 //int frame_num = 0;
@@ -5048,7 +5063,15 @@ namespace DemoScanner.DG
                                         CurrentTime += newtime;
                                     }
 
-                                    ParseGameData(halfLifeDemoParser, nf.MsgBytes);
+                                    try
+                                    {
+                                        ParseGameData(halfLifeDemoParser, nf.MsgBytes, frame.offs);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        PrintNodesRecursive(root_dmp_node);
+                                        Console.WriteLine("Found invalid messages at frame " + CurrentFrameId + " at time " + CurrentTime + "(error:" + ex.Message + ")");
+                                    }
 
                                     if (BadTimeFoundReal > 500 && AlternativeTimeCounter <= 2)
                                     {
@@ -5149,7 +5172,7 @@ namespace DemoScanner.DG
                                             var newAltTimer = AlternativeTimeCounter;
                                             var isDump = DUMP_ALL_FRAMES;
 
-                                            PrintNodesRecursive(entrynode);
+                                            PrintNodesRecursive(root_dmp_node);
 
                                             try
                                             {
@@ -5165,6 +5188,7 @@ namespace DemoScanner.DG
                                                     File.WriteAllLines(textdatapath,
                                                         outFrames.ToArray());
 
+                                                    outFrames.Clear();
                                                 }
                                             }
                                             catch
@@ -5172,7 +5196,6 @@ namespace DemoScanner.DG
                                                 Console.WriteLine("Error access write frame log!");
                                             }
 
-                                            outFrames.Clear();
                                             DUMP_ALL_FRAMES = false;
 
                                             Console.Clear();
@@ -5225,7 +5248,9 @@ namespace DemoScanner.DG
                                             Console.WriteLine();
 
 #if !NET6_0_OR_GREATER
-                                             /* START: SOME BLACK MAGIC OUTSIDE HOGWARTS */
+
+                                            var dem_path = CurrentDemoFilePath;
+                                            /* START: SOME BLACK MAGIC OUTSIDE HOGWARTS */
                                             FieldInfo[] fields = typeof(DemoScanner).GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
 
                                             foreach (var field in fields)
@@ -5243,6 +5268,7 @@ namespace DemoScanner.DG
                                             typeof(DemoScanner)
                                                 .GetConstructor(BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public, null,
                                                     new Type[0], null).Invoke(null, null);
+                                            CurrentDemoFilePath = dem_path;
                                             /* END: VERY DARK BLACK MAGIC!!!!!! */
 #else
                                             // NET 6 NOT SUPPORT HOGWARTS MAGIC, NEED USE ANOTHER
@@ -8096,12 +8122,12 @@ namespace DemoScanner.DG
                         {
                             case 1:
                             case 2:
-                                ParseGameData(halfLifeDemoParser, frame.rawData);
+                                ParseGameData(halfLifeDemoParser, frame.rawData, frame.offs);
                                 subnode.Text += OutDumpString;
                                 OutDumpString = "";
                                 break;
                             case 5:
-                                ParseGameData(halfLifeDemoParser, frame.rawData);
+                                ParseGameData(halfLifeDemoParser, frame.rawData, frame.offs);
                                 subnode.Text += OutDumpString;
                                 OutDumpString = "";
                                 break;
@@ -8114,10 +8140,10 @@ namespace DemoScanner.DG
                     {
                         node.Nodes.Add(subnode);
                     }
-                    entrynode.Nodes.Add(node);
+                    root_dmp_node.Nodes.Add(node);
                 }
 
-                PrintNodesRecursive(entrynode);
+                PrintNodesRecursive(root_dmp_node);
             }
 
             try
@@ -8137,6 +8163,7 @@ namespace DemoScanner.DG
                         FileName = textdatapath,
                         UseShellExecute = true
                     });*/
+                    outFrames.Clear();
                 }
             }
             catch
@@ -8144,7 +8171,6 @@ namespace DemoScanner.DG
                 Console.WriteLine("Error access write frame log!");
             }
 
-            outFrames.Clear();
             DUMP_ALL_FRAMES = false;
 
             if (LastCmd == "-strafe")
@@ -8368,8 +8394,8 @@ namespace DemoScanner.DG
                 }
                 else
                 {
-                    OutTextDetects.Add("Detected [MOUSE JUMP] bind. Detect count:" + MouseJumps);
-                    Console.WriteLine("Detected [MOUSE JUMP] bind. Detect count:" + MouseJumps);
+                    OutTextDetects.Add("Found [MOUSE JUMP] bind. Detect count:" + MouseJumps);
+                    Console.WriteLine("Found [MOUSE JUMP] bind. Detect count:" + MouseJumps);
                 }
             }
 
@@ -8420,8 +8446,8 @@ namespace DemoScanner.DG
                 }
                 else
                 {
-                    OutTextDetects.Add("Detected [MOUSE DUCK] bind. Detect count:" + MouseDucks);
-                    Console.WriteLine("Detected [MOUSE DUCK] bind. Detect count:" + MouseDucks);
+                    OutTextDetects.Add("Found [MOUSE DUCK] bind. Detect count:" + MouseDucks);
+                    Console.WriteLine("Found [MOUSE DUCK] bind. Detect count:" + MouseDucks);
                 }
             }
 
@@ -8486,6 +8512,26 @@ namespace DemoScanner.DG
                 {
                     OutTextDetects.Add("Warning. Unknown messages detected. Detect count:" + UnknownMessages);
                     Console.WriteLine("Warning. Unknown messages detected. Detect count:" + UnknownMessages);
+                }
+            }
+
+            if (OutExploitDetects.Count > 0)
+            {
+                if (IsRussia)
+                {
+                    OutTextDetects.Add("Внимание. Другой игрок использовал userinfo эксплойт!");
+                    Console.WriteLine("Внимание. Другой игрок использовал userinfo эксплойт");
+                }
+                else
+                {
+                    OutTextDetects.Add("Alert. Found userinfo exploit usage by another user!");
+                    Console.WriteLine("Alert. Found userinfo exploit usage by another user!");
+                }
+
+                foreach(var s in OutExploitDetects)
+                {
+                    OutTextDetects.Add(s);
+                    Console.WriteLine(s);
                 }
             }
 
@@ -8739,7 +8785,8 @@ namespace DemoScanner.DG
                 {
 
 #if !NET6_0_OR_GREATER
-                     /* START: SOME BLACK MAGIC OUTSIDE HOGWARTS */
+                    var dem_path = CurrentDemoFilePath;
+                    /* START: SOME BLACK MAGIC OUTSIDE HOGWARTS */
                     FieldInfo[] fields = typeof(DemoScanner).GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
 
                     foreach (var field in fields)
@@ -8758,6 +8805,7 @@ namespace DemoScanner.DG
                         .GetConstructor(BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public, null,
                             new Type[0], null).Invoke(null, null);
                     /* END: VERY DARK BLACK MAGIC!!!!!! */
+                    CurrentDemoFilePath = dem_path;
 #else
                     // NET 6 NOT SUPPORT HOGWARTS MAGIC, NEED USE ANOTHER
                     /* START: ULTRA BLACK MAGIC */
@@ -8802,7 +8850,8 @@ namespace DemoScanner.DG
                 if (command == "13")
                 {
 #if !NET6_0_OR_GREATER
-                     /* START: SOME BLACK MAGIC OUTSIDE HOGWARTS */
+                    var dem_path = CurrentDemoFilePath;
+                    /* START: SOME BLACK MAGIC OUTSIDE HOGWARTS */
                     FieldInfo[] fields = typeof(DemoScanner).GetFields(BindingFlags.Instance | BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
 
                     foreach (var field in fields)
@@ -8821,6 +8870,7 @@ namespace DemoScanner.DG
                         .GetConstructor(BindingFlags.Instance | BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public, null,
                             new Type[0], null).Invoke(null, null);
                     /* END: VERY DARK BLACK MAGIC!!!!!! */
+                    CurrentDemoFilePath = dem_path;
 #else
                     // NET 6 NOT SUPPORT HOGWARTS MAGIC, NEED USE ANOTHER
                     /* START: ULTRA BLACK MAGIC */
@@ -9606,10 +9656,10 @@ namespace DemoScanner.DG
                         process.StartInfo.FileName = Path.Combine(CurrentDir, "revoicedecoder.exe");
                         process.StartInfo.WorkingDirectory = CurrentDir;
 
-                        process.StartInfo.UseShellExecute = false; 
-                        process.StartInfo.RedirectStandardOutput = true; 
+                        process.StartInfo.UseShellExecute = false;
+                        process.StartInfo.RedirectStandardOutput = true;
                         process.StartInfo.RedirectStandardError = true;
-                        process.StartInfo.CreateNoWindow = true; 
+                        process.StartInfo.CreateNoWindow = true;
 
                         process.OutputDataReceived += (s, e) =>
                         {
@@ -10384,9 +10434,9 @@ namespace DemoScanner.DG
             return SourceCode.Length != 51 ? throw new Exception("ANAL ERROR") : SourceCode;
         }
 
-        private static void ParseGameData(HalfLifeDemoParser halfLifeDemoParser, byte[] msgBytes)
+        private static void ParseGameData(HalfLifeDemoParser halfLifeDemoParser, byte[] msgBytes, int frame_offset)
         {
-            halfLifeDemoParser.ParseGameDataMessages(msgBytes);
+            halfLifeDemoParser.ParseGameDataMessages(msgBytes, null, frame_offset);
         }
 
         public static float abs(float val)
@@ -11789,7 +11839,7 @@ namespace DemoScanner.DG
             AddMessageHandler((byte)MessageId.svc_centerprint, MessageCenterPrint);
             AddMessageHandler((byte)MessageId.svc_spawnstaticsound, 14);
             AddMessageHandler((byte)MessageId.svc_intermission, MessageInterMission);
-            AddMessageHandler((byte)MessageId.svc_finale, 1);
+            AddMessageHandler((byte)MessageId.svc_finale, MessageFinale);
             AddMessageHandler((byte)MessageId.svc_cdtrack, 2);
             AddMessageHandler((byte)MessageId.svc_weaponanim, 2);
             AddMessageHandler((byte)MessageId.svc_roomtype, MessageRoomType);
@@ -11896,7 +11946,7 @@ namespace DemoScanner.DG
             userMessageCallbackTable.Add(name, callback);
         }
 
-        public void ParseGameDataMessages(byte[] frameData)
+        public void ParseGameDataMessages(byte[] frameData, int frame_offset)
         {
             if (ErrorCount > 100)
             {
@@ -11910,7 +11960,7 @@ namespace DemoScanner.DG
 
             try
             {
-                ParseGameDataMessages(frameData, null);
+                ParseGameDataMessages(frameData, null, frame_offset);
             }
             catch (Exception ex)
             {
@@ -11943,7 +11993,7 @@ namespace DemoScanner.DG
             }
         }
 
-        public void ParseGameDataMessages(byte[] frameData, Function<byte, byte> userMessageCallback)
+        public void ParseGameDataMessages(byte[] frameData, Function<byte, byte> userMessageCallback, int frame_offset)
         {
             // read game data frame into memory
             BitBuffer = new BitBuffer(frameData);
@@ -11961,13 +12011,14 @@ namespace DemoScanner.DG
                 DemoScanner.MessageId += 1;
                 if (DUMP_ALL_FRAMES)
                 {
-                    OutDumpString += "\n{MSGLEN-" + frameData.Length + ".MSGBYTE:" + BitBuffer.CurrentByte;
+                    OutDumpString += "\n{MSGLEN-" + frameData.Length + ".MSGOFFSET:" + (BitBuffer.CurrentByte + frame_offset);
                 }
 
+                var startOffs = BitBuffer.CurrentByte;
                 var messageId = BitBuffer.ReadByte();
                 if (DUMP_ALL_FRAMES)
                 {
-                    OutDumpString += "MSGID:" + messageId + ".MSGBYTE:" + BitBuffer.CurrentByte;
+                    OutDumpString += ".MSG_ID:" + BitBuffer.CurrentByte + ".MSG_BIT:" + BitBuffer.CurrentBit;
                 }
 
                 // File.AppendAllText("messages.bin", messageId + "\n");
@@ -11979,7 +12030,7 @@ namespace DemoScanner.DG
 
                 if (DUMP_ALL_FRAMES)
                 {
-                    OutDumpString += ".\nMSGNAME:[" + messageName + "]";
+                    OutDumpString += ".MSGNAME:[" + messageName + "]";
                 }
 
                 var messageHandler = FindMessageHandler(messageId);
@@ -12019,6 +12070,7 @@ namespace DemoScanner.DG
                     {
                         UnknownMessages++;
                         CheckConsoleCommand("Unknown message id:" + messageId, true);
+                        //throw new ApplicationException(string.Format("Unknown message id \"{0}\"", messageId));
                     }
 
                     break;
@@ -12062,12 +12114,25 @@ namespace DemoScanner.DG
                 }
                 else
                 {
-                    throw new ApplicationException(string.Format("Unknown message id \"{0}\"", messageId));
+                    CheckConsoleCommand("2 Unknown message id:" + messageId, true);
+                    // throw new ApplicationException(string.Format("Unknown message id \"{0}\"", messageId));
                 }
 
+                if (DUMP_ALL_FRAMES)
+                {
+                    var endOffs = BitBuffer.CurrentByte;
+                    BitBuffer.SeekBytes(startOffs, SeekOrigin.Begin);
+                    uint result = Crc32.Compute(BitBuffer.ReadBytes(endOffs - startOffs));
+                    BitBuffer.SeekBytes(endOffs, SeekOrigin.Begin);
+                    OutDumpString += "\nCRC:" + result.ToString();
+                }
                 // Check if we've reached the end of the frame, or if any of the messages have called SkipGameDataFrame (readingGameData will be false).
                 if (BitBuffer.CurrentByte < 0 || BitBuffer.CurrentByte >= BitBuffer.Length || !readingGameData)
                 {
+                    if (BitBuffer.CurrentByte > BitBuffer.Length)
+                    {
+                        throw new ApplicationException(string.Format("Error message id \"{0}\"", messageId));
+                    }
                     break;
                 }
 
@@ -12557,97 +12622,191 @@ namespace DemoScanner.DG
         public void MessageUpdateUserInfo()
         {
             var slot = BitBuffer.ReadByte();
-
             var userid = BitBuffer.ReadInt32();
-            var userinfo_string = BitBuffer.ReadString();
-            //Console.WriteLine(s);
+
+            // Read raw data for exploit test
+            var rawBytes = new List<byte>();
+            while (true)
+            {
+                var b = BitBuffer.ReadByte();
+                if (b == 0x00)
+                {
+                    break;
+                }
+                rawBytes.Add(b);
+            }
+
             if (demo.Header.NetProtocol > 43)
             {
                 Seek(16); // string hash
             }
 
-            if (userinfo_string.Length < 4)
+            if (rawBytes.Count < 4)
             {
                 return;
             }
-
-            /*
-             * Если s пустая значит
-             * ищем игрока с id и присваиваем ему новый слот
-             * игрок со старым slot удаляем и перемещаем в другое место
-             * */
-            Player player = null;
-            var playerfound = false;
-            var player_in_struct_id = 0;
-
-            // поиск игрока с нужным UserID если он существует
-            for (player_in_struct_id = 0; player_in_struct_id < playerList.Count; player_in_struct_id++)
-            {
-                if (playerList[player_in_struct_id].ServerUserIdLong == userid
-                    || (playerList[player_in_struct_id].iSlot == slot && playerList[player_in_struct_id].ServerUserIdLong == -1))
-                {
-                    playerfound = true;
-                    playerList[player_in_struct_id].ServerUserIdLong = userid;
-                    player = playerList[player_in_struct_id];
-                    break;
-                }
-            }
-
-            // Если нет создаем нового
-            // create player if it doesn't exist
-            if (!playerfound)
-            {
-                player = new Player(slot, userid);
-                playerList.Insert(0, player);
-                player_in_struct_id = 0;
-            }
-
+            string userinfo_string_bak = "";
             bool badKeyFound = false;
             string badString = "";
-            var userinfo_string_bak = userinfo_string;
+            Player player = null;
 
-            Dictionary<string, string> TempInfoKeys = new Dictionary<string, string>();
             try
             {
-                // parse infokey string
-                userinfo_string = userinfo_string.Remove(0, 1); // trim leading slash
+                /*
+                 * Если s пустая значит
+                 * ищем игрока с id и присваиваем ему новый слот
+                 * игрок со старым slot удаляем и перемещаем в другое место
+                 * */
+                var playerfound = false;
+                var player_in_struct_id = 0;
 
-                var infoKeyTokens = userinfo_string.Split('\\');
-
-                for (int n = 0; n < infoKeyTokens.Length; n++)
+                // поиск игрока с нужным UserID если он существует
+                for (player_in_struct_id = 0; player_in_struct_id < playerList.Count; player_in_struct_id++)
                 {
-                    try
+                    if (playerList[player_in_struct_id].ServerUserIdLong == userid
+                        || (playerList[player_in_struct_id].iSlot == slot && playerList[player_in_struct_id].ServerUserIdLong == -1))
                     {
-                        bool oldbad = false;
-                        infoKeyTokens[n] = Regex.Replace(infoKeyTokens[n],
-    @"[^\u0000-\u007F\u0400-\u04FF\u0080-\u00FF\u0370-\u03FF\u0500-\u052F\u4E00-\u9FFF\u3400-\u4DBF\u20000-\u2A6DF\u2A700-\u2B73F\u2B740-\u2B81F\u3040-\u309F\u30A0-\u30FF]",
-            a => { badKeyFound = true; oldbad = true; return StringToHex(a.Value); });
+                        playerfound = true;
+                        playerList[player_in_struct_id].ServerUserIdLong = userid;
+                        player = playerList[player_in_struct_id];
+                        break;
+                    }
+                }
 
-                        if (oldbad)
+                // Если нет создаем нового
+                // create player if it doesn't exist
+                if (!playerfound)
+                {
+                    player = new Player(slot, userid);
+                    playerList.Insert(0, player);
+                    player_in_struct_id = 0;
+                }
+
+                var sanitizedBytes = new List<byte>();
+
+                int byteIndex = 0;
+                while (byteIndex < rawBytes.Count)
+                {
+                    byte curByte = rawBytes[byteIndex];
+                    int codepoint = 0;
+                    int bytesToRead = 0;
+                    bool isValid = true;
+
+                    if ((curByte & 0xF8) == 0xF0) // 4-byte UTF-8 codepoint
+                    {
+                        if (byteIndex + 3 >= rawBytes.Count) isValid = false;
+                        else if ((rawBytes[byteIndex + 1] & 0xC0) != 0x80 || (rawBytes[byteIndex + 2] & 0xC0) != 0x80 || (rawBytes[byteIndex + 3] & 0xC0) != 0x80) isValid = false;
+                        else
                         {
-                            badString += infoKeyTokens[n].TrimBad('|');
-                            if (badString.Length > 64)
-                            {
-                                badString = badString.Remove(64) + "..."; ;
-                            }
+                            codepoint = ((curByte & 0x07) << 18) | ((rawBytes[byteIndex + 1] & 0x3F) << 12) | ((rawBytes[byteIndex + 2] & 0x3F) << 6) | (rawBytes[byteIndex + 3] & 0x3F);
+                            if (codepoint < 0x010000 || codepoint > 0x10FFFF) isValid = false;
+                            else bytesToRead = 4;
                         }
                     }
-                    catch
+                    else if ((curByte & 0xF0) == 0xE0) // 3-byte UTF-8 codepoint
                     {
-
+                        if (byteIndex + 2 >= rawBytes.Count) isValid = false;
+                        else if ((rawBytes[byteIndex + 1] & 0xC0) != 0x80 || (rawBytes[byteIndex + 2] & 0xC0) != 0x80) isValid = false;
+                        else
+                        {
+                            codepoint = ((curByte & 0x0F) << 12) | ((rawBytes[byteIndex + 1] & 0x3F) << 6) | (rawBytes[byteIndex + 2] & 0x3F);
+                            if (codepoint >= 0xD800 && codepoint <= 0xDFFF) isValid = false;
+                            else if (codepoint < 0x0800 || codepoint > 0xFFFF) isValid = false;
+                            else bytesToRead = 3;
+                        }
+                    }
+                    else if ((curByte & 0xE0) == 0xC0) // 2-byte UTF-8 codepoint
+                    {
+                        if (byteIndex + 1 >= rawBytes.Count) isValid = false;
+                        else if ((rawBytes[byteIndex + 1] & 0xC0) != 0x80) isValid = false;
+                        else
+                        {
+                            codepoint = ((curByte & 0x1F) << 6) | (rawBytes[byteIndex + 1] & 0x3F);
+                            if (codepoint < 0x0080 || codepoint > 0x07FF) isValid = false;
+                            else bytesToRead = 2;
+                        }
+                    }
+                    else if (curByte > 0 && curByte <= 0x7F) // 1-byte UTF-8 codepoint
+                    {
+                        codepoint = curByte;
+                        bytesToRead = 1;
+                    }
+                    else
+                    {
+                        isValid = false; // Invalid start byte
                     }
 
+                    if (isValid)
+                    {
+                        if ((codepoint >= 0x0000 && codepoint <= 0x001F) || (codepoint >= 0x007F && codepoint <= 0x009F)) isValid = false;
+                        else if (codepoint >= 0x202A && codepoint <= 0x202E) isValid = false;
+                        else if (codepoint >= 0x206A && codepoint <= 0x206F) isValid = false;
+                        else if (codepoint == 0x2028 || codepoint == 0x2029) isValid = false;
+                    }
+
+                    if (!isValid)
+                    {
+                        badKeyFound = true;
+                        string hexReplacement = $"[0x{curByte:X2}]";
+                        badString += hexReplacement;
+
+                        foreach (char c in hexReplacement)
+                        {
+                            sanitizedBytes.Add((byte)c);
+                        }
+                        byteIndex++;
+                    }
+                    else
+                    {
+                        if (badString.Length > 0)
+                        {
+                            try
+                            {
+                                string validText = Encoding.UTF8.GetString(rawBytes.GetRange(byteIndex, bytesToRead).ToArray());
+                                badString += validText;
+                            }
+                            catch
+                            {
+
+                            }
+                        }
+                        for (int j = 0; j < bytesToRead; j++)
+                        {
+                            sanitizedBytes.Add(rawBytes[byteIndex + j]);
+                        }
+                        byteIndex += bytesToRead;
+                    }
                 }
+
+                if (badString.Length > 100)
+                {
+                    badString = badString.Substring(0, 100) + "...";
+                }
+
+                string userinfo_string = Encoding.UTF8.GetString(sanitizedBytes.ToArray());
+                userinfo_string_bak = userinfo_string;
+
+                Dictionary<string, string> TempInfoKeys = new Dictionary<string, string>();
+                // parse infokey string
+                if (userinfo_string.Length > 0 && userinfo_string[0] == '\\')
+                {
+                    userinfo_string = userinfo_string.Remove(0, 1); // trim leading slash
+                }
+
+                var infoKeyTokens = userinfo_string.Split('\\');
 
                 for (var n = 0; n < infoKeyTokens.Length; n += 2)
                 {
                     var key = infoKeyTokens[n];
 
-
                     if (n + 1 >= infoKeyTokens.Length)
                     {
-                        player.InfoKeys[key] += "";
-                        TempInfoKeys[key] += "";
+                        if (!player.InfoKeys.ContainsKey(key))
+                            player.InfoKeys[key] = "";
+
+                        if (!TempInfoKeys.ContainsKey(key))
+                            TempInfoKeys[key] = "";
+
                         break;
                     }
 
@@ -12670,7 +12829,7 @@ namespace DemoScanner.DG
                             {
                                 bool samenames = false;
 
-                                if (LastUsername.Length > 2 && player.UserName.Length > 2)
+                                if (LastUsername != null && LastUsername.Length > 2 && player.UserName.Length > 2)
                                 {
                                     samenames = LastUsername.Substring(0, 3).Equals(player.UserName.Substring(0, 3)) &&
                                         player.UserName.IndexOf(" + ") > 0;
@@ -12678,7 +12837,7 @@ namespace DemoScanner.DG
 
                                 if (player.UserName != LastUsername && !samenames)
                                 {
-                                    if (LastUsername.Length != 0 && LastUsername.IndexOf(player.UserName) != 0 &&
+                                    if (LastUsername != null && LastUsername.Length != 0 && LastUsername.IndexOf(player.UserName) != 0 &&
                                        player.UserName.IndexOf(LastUsername) != 0 &&
                                        LocalPlayerUserId == player.ServerUserIdLong)
                                     {
@@ -12694,7 +12853,7 @@ namespace DemoScanner.DG
 
                                     if (!SKIP_RESULTS)
                                     {
-                                        if (LastUsername.Length == 0 ||
+                                        if (LastUsername == null || LastUsername.Length == 0 ||
                                             (LastUsername.IndexOf(player.UserName) != 0
                                             && player.UserName.IndexOf(LastUsername) != 0)
                                             || player.UserName.Length < LastUsername.Length)
@@ -12711,6 +12870,7 @@ namespace DemoScanner.DG
                                             }
 
                                             Console.CursorLeft = UserNameAndSteamIDField2;
+                                            // TrimBad у тебя кастомный extension method, поэтому оставляем его как есть
                                             Console.Write(player.UserName.TrimBad().Trim());
                                             Console.ForegroundColor = ConsoleColor.Cyan;
                                             Console.WriteLine(" [" + LastSteam + "]");
@@ -12816,19 +12976,46 @@ namespace DemoScanner.DG
 
                 playerList[player_in_struct_id] = player;
             }
-            catch
+            catch (Exception ex)
             {
-                Console.WriteLine("Error in parsing:" + userinfo_string_bak);
+                Console.WriteLine("Error in parsing:" + userinfo_string_bak + " - Exception: " + ex.Message);
             }
+
             try
             {
-                if (badKeyFound && DEMOSCANNER_HLTV)
+                if (badKeyFound)
                 {
-                    numberbaduserdetects++;
-                    if (numberbaduserdetects < 10)
+                    if (DEMOSCANNER_HLTV)
                     {
-                        DemoScanner_AddWarn("[USERINFO HACK] [USER " + userid + " NAME " + (player.UserName != null ? player.UserName : "ERROR NO NAME") + " STEAMID " + player.UserSteamId + "] at (" + LastKnowRealTime + "):" + LastKnowTimeString, true, true, true);
-                        DemoScanner_AddWarn("[USERINFO HACK STRING] [" + badString + "]", true, true, true, false, true);
+                        numberbaduserdetects++;
+                        if (numberbaduserdetects < 10)
+                        {
+                            if (player != null)
+                                DemoScanner_AddWarn("[USERINFO HACK] [USER " + userid + " NAME " + (player.UserName != null ? player.UserName : "ERROR NO NAME") + " STEAMID " + player.UserSteamId + "] at (" + LastKnowRealTime + "):" + LastKnowTimeString, true, true, true);
+                            else
+                                DemoScanner_AddWarn("[USERINFO HACK] [USER " + userid + " NAME " + "ERROR NO NAME" + "] at (" + LastKnowRealTime + "):" + LastKnowTimeString, true, true, true);
+                            DemoScanner_AddWarn("[USERINFO HACK STRING] [" + badString + "]", true, true, true, false, true);
+                        }
+                    }
+                    else
+                    {
+                        numberbaduserdetects++;
+                        if (numberbaduserdetects < 10)
+                        {
+                            if (player != null && ((LocalPlayerUserId2 == player.ServerUserIdLong) || (LocalPlayerId != -1 && slot == LocalPlayerId)))
+                            {
+                                DemoScanner_AddWarn("[USERINFO HACK] at (" + LastKnowRealTime + "):" + LastKnowTimeString, true, true, true);
+                                DemoScanner_AddWarn("[USERINFO HACK STRING] [" + badString + "]", true, true, true, false, true);
+                            }
+                            else
+                            {
+                                if (player != null)
+                                    OutExploitDetects.Add("[USERINFO HACK] [USER " + userid + " NAME " + (player.UserName != null ? player.UserName : "ERROR NO NAME") + " STEAMID " + player.UserSteamId + "] at (" + LastKnowRealTime + "):" + LastKnowTimeString);
+                                else
+                                    OutExploitDetects.Add("[USERINFO HACK] [USER " + userid + " NAME " + "ERROR NO NAME" + "] at (" + LastKnowRealTime + "):" + LastKnowTimeString);
+                                OutExploitDetects.Add("[USERINFO HACK STRING] [" + badString + "]");
+                            }
+                        }
                     }
                 }
             }
@@ -13390,6 +13577,16 @@ namespace DemoScanner.DG
             }
 
             Console.ForegroundColor = tmpcolor;
+        }
+        private void MessageFinale()
+        {
+            CurrentMsgPrintCount++;
+            var msgprint = BitBuffer.ReadString();
+            if (DUMP_ALL_FRAMES)
+            {
+                OutDumpString += "MessageFinale:" + msgprint;
+            }
+            DemoScanner_AddTextMessage(msgprint, "SVC_FINALE", CurrentTime, LastKnowTimeString);
         }
 
         private void MessageCenterPrint()
@@ -14417,7 +14614,7 @@ namespace DemoScanner.DG
                 clientName = "SERVER";
             }
 
-            if (arg1 == "%s" || arg1[0] == '#')
+            if (arg1.Length > 0 && (arg1 == "%s" || arg1[0] == '#'))
             {
                 try
                 {
@@ -16007,6 +16204,11 @@ namespace DemoScanner.DG
                                             if (!CurrentFrameAttacked && !PreviousFrameAttacked &&
                                                 !IsPlayerAttackedPressed())
                                             {
+                                                if (DEBUG_ENABLED)
+                                                {
+                                                    Console.WriteLine("Alive 7 at " + LastKnowTimeString);
+                                                }
+
                                                 // first detection can be false if demo started in +attack
                                                 // just skip it
                                                 if (!FirstAim11skip)

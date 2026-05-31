@@ -190,17 +190,20 @@ namespace DemoScanner.DemoStuff.GoldSource
             public DemoFrame Key;
             public IFrame Value;
             public byte[] rawData;
-            public FramesHren(DemoFrame key, IFrame value)
+            public int offs;
+            public FramesHren(DemoFrame key, IFrame value, int offset)
             {
                 Key = key;
                 Value = value;
                 rawData = null;
+                offs = offset;
             }
-            public FramesHren(DemoFrame key, byte [] value)
+            public FramesHren(DemoFrame key, byte [] value, int offset)
             {
                 Key = key;
                 Value = null;
                 rawData = value;
+                offs = offset;
             }
         }
         [StructLayout(LayoutKind.Sequential, Pack = 1)]
@@ -960,7 +963,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                     switch (currentDemoFrame.Type)
                                     {
                                         case GoldSource.DemoFrameType.DemoStart: //No extra dat
-                                            entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame, new GoldSource.DemoStartFrame()));
+                                            entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame, new GoldSource.DemoStartFrame(), (int)br.BaseStream.Position));
                                             break;
                                         case GoldSource.DemoFrameType.ConsoleCommand:
                                             var ccframe = new GoldSource.ConsoleCommandFrame();
@@ -975,7 +978,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             var cmd = br.ReadBytes(64);
                                             ccframe.Command = Encoding.ASCII.GetString(cmd).Trim('\0').Replace("\0", string.Empty);
                                             ccframe.BxtData = ExtractIncludedBytes(cmd);
-                                            entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame, ccframe));
+                                            entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame, ccframe, (int)br.BaseStream.Position));
                                             break;
                                         case GoldSource.DemoFrameType.ClientData:
                                             var cdframe = new GoldSource.ClientDataFrame();
@@ -998,12 +1001,12 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             cdframe.Viewangles.Z = tmpfloat;
                                             cdframe.WeaponBits = br.ReadInt32();
                                             cdframe.Fov = br.ReadSingle();
-                                            entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame, cdframe));
+                                            entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame, cdframe, (int)br.BaseStream.Position));
                                             break;
                                         case GoldSource.DemoFrameType.NextSection:
                                             if (entry.Offset != 0)
                                                 nextSectionRead = true;
-                                            entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame, new GoldSource.NextSectionFrame()));
+                                            entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame, new GoldSource.NextSectionFrame(), (int)br.BaseStream.Position));
                                             break;
                                         case GoldSource.DemoFrameType.Event:
                                             var eframe = new GoldSource.EventFrame();
@@ -1048,7 +1051,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             eframe.EventArguments.Iparam2 = br.ReadInt32();
                                             eframe.EventArguments.Bparam1 = br.ReadInt32();
                                             eframe.EventArguments.Bparam2 = br.ReadInt32();
-                                            entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame, eframe));
+                                            entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame, eframe, (int)br.BaseStream.Position));
                                             break;
                                         case GoldSource.DemoFrameType.WeaponAnim:
                                             var waframe = new GoldSource.WeaponAnimFrame();
@@ -1061,7 +1064,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             }
                                             waframe.Anim = br.ReadInt32();
                                             waframe.Body = br.ReadInt32();
-                                            entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame, waframe));
+                                            entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame, waframe, (int)br.BaseStream.Position));
                                             break;
                                         case GoldSource.DemoFrameType.Sound:
                                             var sframe = new GoldSource.SoundFrame();
@@ -1093,7 +1096,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             sframe.Volume = br.ReadSingle();
                                             sframe.Flags = br.ReadInt32();
                                             sframe.Pitch = br.ReadInt32();
-                                            entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame, sframe));
+                                            entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame, sframe, (int)br.BaseStream.Position));
                                             break;
                                         case GoldSource.DemoFrameType.DemoBuffer:
                                             var bframe = new GoldSource.DemoBufferFrame();
@@ -1117,7 +1120,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                             {
                                                 bframe.Buffer.AddRange(br.ReadBytes(bufferlength));
                                             }
-                                            entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame, bframe));
+                                            entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame, bframe, (int)br.BaseStream.Position));
                                             break;
                                         case GoldSource.DemoFrameType.NetMsg:
                                         default:
@@ -1306,7 +1309,7 @@ namespace DemoScanner.DemoStuff.GoldSource
 
                                             }
                                             nf.Msg = ByteArrayToString(nf.MsgBytes);
-                                            entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame, nf));
+                                            entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame, nf, (int)br.BaseStream.Position));
                                             break;
                                     }
                                 }
@@ -1346,7 +1349,7 @@ namespace DemoScanner.DemoStuff.GoldSource
 
                         if (DemoScanner.DG.DemoScanner.DEBUG_ENABLED)
                         {
-                            Console.WriteLine("DEMO PROTOCOL XASH/GOLDSRC/HLTV: " + gDemo.Header.DemoProtocol + " / " + gDemo.Header.NetProtocol);
+                            Console.WriteLine("DEMO PROTOCOL GOLDSRC/HLTV: " + gDemo.Header.DemoProtocol + " / " + gDemo.Header.NetProtocol);
                             Console.WriteLine("DEMO MAP, DIR, CRC, DIR OFFSET: \"" + gDemo.Header.MapName + "\" , \""
                                + gDemo.Header.GameDir + "\" , " + (int)gDemo.Header.MapCrc + " , " + gDemo.Header.DirectoryOffset.ToString("x2"));
                         }
@@ -1521,7 +1524,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                                     break;
                                                 }
 
-                                                entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame,br.ReadBytes(bufferlength)));
+                                                entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame,br.ReadBytes(bufferlength), (int)br.BaseStream.Position));
 
                                                 br.BaseStream.Seek(bufferlength + curOffset, SeekOrigin.Begin);
                                             }
@@ -1544,7 +1547,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                                     break;
                                                 }
 
-                                                entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame, br.ReadBytes(bufferlength)));
+                                                entry.Frames.Add(new GoldSource.FramesHren(currentDemoFrame, br.ReadBytes(bufferlength), (int)br.BaseStream.Position));
                                             }
                                             break;
                                         case 5: // cmd
@@ -1568,7 +1571,7 @@ namespace DemoScanner.DemoStuff.GoldSource
                                                     break;
                                                 }
 
-                                                var tmpData = new GoldSource.FramesHren(currentDemoFrame, br.ReadBytes(bufferlength));
+                                                var tmpData = new GoldSource.FramesHren(currentDemoFrame, br.ReadBytes(bufferlength), (int)br.BaseStream.Position);
                                                 List<byte> tmpRawData = new List<byte>();
                                                 tmpRawData.AddRange(tmpData.rawData);
                                                 tmpRawData.Insert(0, (byte)MessageId.svc_clientdata);

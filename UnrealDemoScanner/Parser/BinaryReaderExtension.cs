@@ -80,5 +80,34 @@ namespace DemoScanner.DemoStuff
 
             return Encoding.Default.GetString(result.ToArray());
         }
+
+
+    }
+    public static class Crc32
+    {
+        private static readonly uint[] Table;
+
+        static Crc32()
+        {
+            uint poly = 0xedb88320;
+            Table = new uint[256];
+            for (uint i = 0; i < 256; i++)
+            {
+                uint r = i;
+                for (int j = 0; j < 8; j++)
+                    r = (r & 1) != 0 ? (r >> 1) ^ poly : r >> 1;
+                Table[i] = r;
+            }
+        }
+
+        public static uint Compute(byte[] bytes)
+        {
+            uint crc = 0xffffffff;
+            for (int i = 0; i < bytes.Length; i++)
+            {
+                crc = (crc >> 8) ^ Table[(crc ^ bytes[i]) & 0xff];
+            }
+            return crc ^ 0xffffffff;
+        }
     }
 }
