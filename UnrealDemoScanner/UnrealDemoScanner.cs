@@ -30,7 +30,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.75.16";
+        public const string PROGRAMVERSION = "1.75.17";
 
         public static string FoundNewVersion = "";
 
@@ -7541,6 +7541,11 @@ namespace DemoScanner.DG
                                         subnode.Text += "UCmd.Lightlevel  = " + nf.UCmd.Lightlevel + "\n";
                                         subnode.Text += "UCmd.Align2  = " + nf.UCmd.Align2 + "\n";
                                         subnode.Text += "UCmd.Buttons  = " + nf.UCmd.Buttons + "\n";
+                                        subnode.Text += "UCmd.Viewangles.X  = " + nf.UCmd.Viewangles.X + "\n";
+                                        subnode.Text += "UCmd.Viewangles.Y  = " + nf.UCmd.Viewangles.Y + "\n";
+                                        subnode.Text += "UCmd.Viewangles.Z  = " + nf.UCmd.Viewangles.Z + "\n";
+                                        subnode.Text += "UCmd.Weaponselect  = " + nf.UCmd.Weaponselect + "\n";
+
                                     }
 
                                     if (nf.UCmd.Msec > 50)
@@ -8519,16 +8524,16 @@ namespace DemoScanner.DG
             {
                 if (IsRussia)
                 {
-                    OutTextDetects.Add("Внимание. Другой игрок использовал userinfo эксплойт!");
-                    Console.WriteLine("Внимание. Другой игрок использовал userinfo эксплойт");
+                    OutTextDetects.Add("Внимание. Обнаружен эксплойт! Источник другой игрок или amxx плагин!");
+                    Console.WriteLine("Внимание. Обнаружен эксплойт! Источник другой игрок или amxx плагин!");
                 }
                 else
                 {
-                    OutTextDetects.Add("Alert. Found userinfo exploit usage by another user!");
-                    Console.WriteLine("Alert. Found userinfo exploit usage by another user!");
+                    OutTextDetects.Add("Alert. Found exploit usage by another user or amxx plugin!");
+                    Console.WriteLine("Alert. Found exploit usage by another user or amxx plugin!");
                 }
 
-                foreach(var s in OutExploitDetects)
+                foreach (var s in OutExploitDetects)
                 {
                     OutTextDetects.Add(s);
                     Console.WriteLine(s);
@@ -12624,6 +12629,8 @@ namespace DemoScanner.DG
             var slot = BitBuffer.ReadByte();
             var userid = BitBuffer.ReadInt32();
 
+            bool badKeyFound = false;
+            bool badKeyFound2 = false;
             // Read raw data for exploit test
             var rawBytes = new List<byte>();
             while (true)
@@ -12632,6 +12639,15 @@ namespace DemoScanner.DG
                 if (b == 0x00)
                 {
                     break;
+                }
+                if (b == 0xFF)
+                {
+                    badKeyFound = true;
+                    OutExploitDetects.Add("UpdateUser (-1) byte in string detected at (" + LastKnowRealTime + "):" + LastKnowTimeString);
+                    if (DUMP_ALL_FRAMES)
+                    {
+                        OutDumpString += "\nFOUND EXPLOIT HERE!\n";
+                    }
                 }
                 rawBytes.Add(b);
             }
@@ -12646,7 +12662,6 @@ namespace DemoScanner.DG
                 return;
             }
             string userinfo_string_bak = "";
-            bool badKeyFound = false;
             string badString = "";
             Player player = null;
 
@@ -12746,7 +12761,10 @@ namespace DemoScanner.DG
 
                     if (!isValid)
                     {
-                        badKeyFound = true;
+                        if (badKeyFound)
+                        {
+                            badKeyFound2 = true;
+                        }
                         string hexReplacement = $"[0x{curByte:X2}]";
                         badString += hexReplacement;
 
@@ -13002,10 +13020,13 @@ namespace DemoScanner.DG
                         numberbaduserdetects++;
                         if (numberbaduserdetects < 10)
                         {
-                            if (player != null && ((LocalPlayerUserId2 == player.ServerUserIdLong) || (LocalPlayerId != -1 && slot == LocalPlayerId)))
+                            if (badKeyFound2)
                             {
-                                DemoScanner_AddWarn("[USERINFO HACK] at (" + LastKnowRealTime + "):" + LastKnowTimeString, true, true, true);
-                                DemoScanner_AddWarn("[USERINFO HACK STRING] [" + badString + "]", true, true, true, false, true);
+                                if (player != null && ((LocalPlayerUserId2 == player.ServerUserIdLong) || (LocalPlayerId != -1 && slot == LocalPlayerId)))
+                                {
+                                    DemoScanner_AddWarn("[USERINFO HACK] at (" + LastKnowRealTime + "):" + LastKnowTimeString, true, true, true);
+                                    DemoScanner_AddWarn("[USERINFO HACK STRING] [" + badString + "]", true, true, true, false, true);
+                                }
                             }
                             else
                             {
@@ -15217,6 +15238,15 @@ namespace DemoScanner.DG
                     break;
                 }
 
+                if (b == 0xFF)
+                {
+                    OutExploitDetects.Add("ReadString (-1) byte in string detected at (" + LastKnowRealTime + "):" + LastKnowTimeString);
+                    if (DUMP_ALL_FRAMES)
+                    {
+                        OutDumpString += "\nFOUND EXPLOIT HERE!\n";
+                    }
+                }
+
                 bytes.Add(b);
             }
 
@@ -15232,6 +15262,15 @@ namespace DemoScanner.DG
                 if (b == 0x00)
                 {
                     break;
+                }
+
+                if (b == 0xFF)
+                {
+                    OutExploitDetects.Add("ReadStringLen (-1) byte in string detected at (" + LastKnowRealTime + "):" + LastKnowTimeString);
+                    if (DUMP_ALL_FRAMES)
+                    {
+                        OutDumpString += "\nFOUND EXPLOIT HERE!\n";
+                    }
                 }
 
                 bytes.Add(b);
