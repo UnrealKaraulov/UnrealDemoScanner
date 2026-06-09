@@ -60,6 +60,9 @@
     <StartupObject>DemoScanner.DG.DemoScanner</StartupObject>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <AnalysisLevel>none</AnalysisLevel>
+    <PublishAot>False</PublishAot>
+    <SignAssembly>False</SignAssembly>
+    <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x86'">
     <OutputPath>..\Release\</OutputPath>
@@ -69,6 +72,8 @@
     <RunCodeAnalysis>false</RunCodeAnalysis>
     <WarningLevel>6</WarningLevel>
     <IsPublishable>True</IsPublishable>
+    <Deterministic>False</Deterministic>
+    <FileAlignment>1024</FileAlignment>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x86'">
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -76,6 +81,16 @@
     <NoWarn />
     <CheckForOverflowUnderflow>False</CheckForOverflowUnderflow>
     <IsPublishable>True</IsPublishable>
+    <Deterministic>False</Deterministic>
+    <FileAlignment>1024</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Deterministic>False</Deterministic>
+    <FileAlignment>1024</FileAlignment>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Deterministic>False</Deterministic>
+    <FileAlignment>1024</FileAlignment>
   </PropertyGroup>
   <ItemGroup>
     <Compile Remove="EntitiesPreviewWindow.cs" />
