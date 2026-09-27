@@ -30,7 +30,7 @@ namespace DemoScanner.DG
     public static class DemoScanner
     {
         public const string PROGRAMNAME = "Unreal Demo Scanner";
-        public const string PROGRAMVERSION = "1.76.0";
+        public const string PROGRAMVERSION = "1.76.1";
 
         public static string FoundNewVersion = "";
 
@@ -3104,6 +3104,7 @@ namespace DemoScanner.DG
             whiteListCMDLIST.Add("vgui_runscript");
             // csldr
             whiteListCMDLIST.Add("lookat");
+            whiteListCMDLIST.Add("lookatweapon");
 
             if (IsRussia)
             {
@@ -6579,7 +6580,7 @@ namespace DemoScanner.DG
 
                                     if (IsUserAlive() && abs(CurrentTime) > EPSILON)
                                     {
-                                        if (CurrentFrameLerp < 8)
+                                        if (CurrentFrameLerp < 6)
                                         {
                                             if (abs(CurrentTime - LastCmdHack) > 5.0)
                                             {
@@ -12564,6 +12565,7 @@ namespace DemoScanner.DG
                     {
                         FoundGoldClient = true;
                         DemoScanner_AddInfo("Пропускается обнаружение AIM 8.2 and AIM 1.1 для GOLDCLIENT");
+                        //DemoScanner_AddInfo("Пропускается обнаружение CMD HACK TYPE 6 для GOLDCLIENT");
                         NeedWriteAim_DETECT_VALUE = 10;
                     }
                 }
